@@ -1,0 +1,141 @@
+import json
+import requests
+import os
+from PyQt5.QtWidgets import QMessageBox
+
+SETTINGS_FILE = "settings.json"
+
+def build_final_prompt(action_beats, prose_prompt, pov, pov_character, tense):
+    """
+    Construct the final prompt to be sent to the LLM by combining the selected prose prompt,
+    action beats, and project settings.
+    Uses placeholder substitution if present.
+    """
+    final_prompt = prose_prompt.format(pov=pov, pov_character=pov_character, tense=tense)
+    final_prompt += "\n" + action_beats
+    return final_prompt
+
+def get_llm_settings():
+    """
+    Load LLM settings from the global settings file.
+    Returns a dictionary with keys: provider, endpoint, model, api_key, and timeout.
+    It first checks for a top-level "llm" key; if not found, it uses "llm_configs" and "active_llm_config".
+    """
+    settings = {}
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if "llm" in data:
+                settings = data["llm"]
+            elif "llm_configs" in data and "active_llm_config" in data:
+                active_config = data["active_llm_config"]
+                for config in data["llm_configs"]:
+                    if config.get("name") == active_config:
+                        settings = config
+                        break
+        except Exception as e:
+            print("⚠️ ERROR loading LLM settings:", e)
+    defaults = {
+        "provider": "Local",
+        "endpoint": "http://localhost:1234/v1/chat/completions",
+        "model": "local-model",
+        "api_key": "",
+        "timeout": 30
+    }
+    for key, val in defaults.items():
+        settings.setdefault(key, val)
+    return settings
+
+def send_prompt_to_llm(final_prompt, overrides=None, conversation_history=None):
+    """
+    Send the prompt to the LLM API and return the generated text.
+    If a conversation_history list (of message dicts) is provided, it is sent instead
+    of a single message.
+    Overrides (if provided) update the LLM settings.
+    
+    This function now performs an explicit check: if either the provider or the model is not set,
+    it shows an error message and aborts.
+    Also, it resets the endpoint based on the (possibly overridden) provider.
+    """
+    llm_settings = get_llm_settings()
+    if overrides:
+        llm_settings.update(overrides)
+    
+    # Explicit check: ensure both provider and model are selected.
+    if not llm_settings.get("provider") or not llm_settings.get("model"):
+        QMessageBox.critical(None, "LLM Configuration Error", 
+                             "Error: No model selected. Please select a model in the prompt settings.")
+        return "[Error: No model selected]"
+    
+    # Set the endpoint based on the provider after applying overrides.
+    if llm_settings.get("provider") == "Local":
+        llm_settings["endpoint"] = "http://localhost:1234/v1/chat/completions"
+    elif llm_settings.get("provider") == "OpenRouter":
+        llm_settings["endpoint"] = "https://openrouter.ai/api/v1/chat/completions"
+    
+    provider = llm_settings.get("provider", "Local")
+    endpoint = llm_settings.get("endpoint", "http://localhost:1234/v1/chat/completions")
+    model = llm_settings.get("model", "local-model")
+    api_key = llm_settings.get("api_key", "")
+    timeout = llm_settings.get("timeout", 30)
+
+    print(f"🔍 DEBUG: API Key Retrieved = '{api_key}' (length: {len(api_key)})")
+    if not api_key:
+        print("❌ ERROR: API Key is missing or empty! Check settings.json.")
+        return "[Error: Missing API Key]"
+
+    headers = {
+        "Content-Type": "application/json",
+    }
+    if provider == "OpenAI":
+        headers["Authorization"] = f"Bearer {api_key}"
+    elif provider in ["OpenRouter", "Custom"]:
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+    payload = {
+        "model": model,
+        "max_tokens": overrides.get("max_tokens", 2000) if overrides else 2000,
+        "temperature": overrides.get("temperature", 1.0) if overrides else 1.0
+    }
+    if conversation_history:
+        payload["messages"] = conversation_history
+    else:
+        payload["messages"] = [{"role": "user", "content": final_prompt}]
+    
+    print(f"🔍 DEBUG: Headers = {headers}")
+    print(f"🔍 DEBUG: Payload = {json.dumps(payload, indent=2)}")
+    
+    try:
+        response = requests.post(endpoint, headers=headers, json=payload, timeout=timeout)
+        response.raise_for_status()
+        result = response.json()
+        print(f"✅ DEBUG: Response = {json.dumps(result, indent=2)}")
+        generated_text = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+        if not generated_text:
+            generated_text = "[No text returned by LLM]"
+        return generated_text
+    except requests.exceptions.HTTPError as e:
+        print(f"❌ HTTP Error: {e} - {response.text}")
+        return f"[HTTP Error: {e}]"
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Request Error: {e}")
+        return f"[Request Error: {e}]"
+    except Exception as e:
+        print(f"❌ Unexpected Error: {e}")
+        return f"[Unexpected Error: {e}]"
+
+def get_prose_prompts(project_name):
+    """
+    Load the Prose prompts from the prompts file for the given project.
+    Returns a list of prompts. If none exist, returns an empty list.
+    """
+    base_name = f"prompts_{project_name.replace(' ', '')}.json"
+    try:
+        with open(base_name, "r", encoding="utf-8") as f:
+            prompts_data = json.load(f)
+        return prompts_data.get("Prose", [])
+    except Exception as e:
+        print(f"⚠️ ERROR loading Prose prompts: {e}")
+        return []

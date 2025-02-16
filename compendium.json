@@ -1,0 +1,14 @@
+{
+    "categories": {
+        "Characters": {
+            "Alice": "Details about Alice. test test test.",
+            "Bob": "Details about Bob. lalala."
+        },
+        "Locations": {
+            "New York": "Details about New York."
+        },
+        "Items": {
+            "Ancient Key": "Details about the Ancient Key."
+        }
+    }
+}

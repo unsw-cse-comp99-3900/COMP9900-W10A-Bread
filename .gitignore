@@ -1,0 +1,27 @@
+# Ignore Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore environment files (virtual environments)
+env/
+venv/
+.venv/
+
+# Ignore personal settings and API keys
+settings.json
+
+# Ignore backups and temporary files
+*.bak.json
+*.zip
+*.log
+*.tmp
+
+# Ignore project-specific files (optional)
+Projects/
+*.txt
+
+# Ignore Windows/Mac system files
+.DS_Store
+Thumbs.db

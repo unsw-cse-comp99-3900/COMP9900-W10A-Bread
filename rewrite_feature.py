@@ -104,13 +104,24 @@ class RewriteDialog(QDialog):
         if not prompt_text:
             QMessageBox.warning(self, "Rewrite", "Selected prompt has no text.")
             return
+        
         # Construct final prompt.
         final_prompt = f"{prompt_text}\n\nOriginal Passage:\n{self.original_text}"
         self.new_edit.setPlainText("Generating rewrite...")
-        rewritten = send_prompt_to_llm(final_prompt)
+        
+        # Build the overrides dictionary to force local LLM usage.
+        overrides = {
+            "provider": "Local",
+            "model": "Local Model",
+            "max_tokens": prompt_data.get("max_tokens", 2000),
+            "temperature": prompt_data.get("temperature", 1.0)
+        }
+        
+        rewritten = send_prompt_to_llm(final_prompt, overrides=overrides)
         if not rewritten:
             QMessageBox.warning(self, "Rewrite", "LLM returned no output.")
             return
+        
         self.rewritten_text = rewritten
         self.new_edit.setPlainText(rewritten)
     

@@ -1,6 +1,44 @@
 import sys
-import json
 import os
+import json
+
+def check_dependencies():
+    """Check for required modules and notify the user via Tkinter if any are missing."""
+    missing = []
+    # Check for PyQt5
+    try:
+        import PyQt5
+    except ImportError:
+        missing.append("PyQt5")
+    # Check for pyttsx3
+    try:
+        import pyttsx3
+    except ImportError:
+        missing.append("pyttsx3")
+    
+    if missing:
+        # Try to use Tkinter (which is included with most Python installations) for a GUI error message.
+        try:
+            import tkinter as tk
+            from tkinter import messagebox
+            root = tk.Tk()
+            root.withdraw()  # Hide the main window.
+            messagebox.showerror(
+                "Missing Dependencies",
+                "The application requires the following module(s): " + ", ".join(missing) +
+                "\n\nPlease install them by running:\n\npip install " + " ".join(missing) +
+                "\n\nFor more help, please contact support."
+            )
+        except Exception:
+            # Fallback to console output if Tkinter isn't available.
+            print("The application requires the following module(s): " + ", ".join(missing))
+            print("Please install them by running:\n\npip install " + " ".join(missing))
+        sys.exit(1)
+
+# Run dependency check before any further imports.
+check_dependencies()
+
+# Now import the modules needed for the application.
 from PyQt5.QtWidgets import QApplication
 from workbench import WorkbenchWindow
 from theme_manager import ThemeManager
@@ -21,7 +59,7 @@ def load_theme():
 def main():
     app = QApplication(sys.argv)
     
-    # Load and apply the saved theme to the application
+    # Load and apply the saved theme to the application.
     theme = load_theme()
     try:
         ThemeManager.apply_to_app(theme)

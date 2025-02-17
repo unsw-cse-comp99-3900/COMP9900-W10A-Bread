@@ -1,1 +1,1 @@
-python C:\App2\main.py
+python main.py

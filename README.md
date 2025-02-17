@@ -22,12 +22,12 @@ This section provides a step-by-step guide on how to install and run Writingway.
 
 **4. Install Writingway (Placeholder):**
 
-_Step by Step instructions are provided at ![How do I install Writingway](https://aomukai.com/2025/02/17/how-do-i-install-writingway/)_
+Step by Step instructions are provided at [How do I install Writingway](https://aomukai.com/2025/02/17/how-do-i-install-writingway/)
 
 
 **5. Run Writingway:**
 
-_Double click on the start.bat file to run the program. You can also right click and select Create Shortcut, then move the shortcut to your desktop. _
+Double click on the start.bat file to run the program. You can also right click and select Create Shortcut, then move the shortcut to your desktop. 
 
 **Troubleshooting:**
 

@@ -10,12 +10,11 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from prompts import load_project_options, get_workshop_prompts
 from llm_integration import send_prompt_to_llm
+from conversation_history_manager import estimate_conversation_tokens, summarize_conversation, prune_conversation_history
+
+TOKEN_LIMIT = 2000
 
 def parse_compendium_references(message):
-    """
-    Loads compendium entries from 'compendium.json' and returns a list of entry names
-    that appear in the message (case-insensitive match).
-    """
     filename = "compendium.json"
     refs = []
     if os.path.exists(filename):
@@ -36,7 +35,6 @@ def parse_compendium_references(message):
     return refs
 
 def get_compendium_data():
-    """Load and return compendium data from 'compendium.json'. Returns a dict."""
     filename = "compendium.json"
     if os.path.exists(filename):
         try:
@@ -47,24 +45,11 @@ def get_compendium_data():
     return {"categories": {}}
 
 def get_compendium_text(category, entry):
-    """
-    Given a category and entry name, returns the corresponding text from the compendium data.
-    """
     data = get_compendium_data()
     categories = data.get("categories", {})
     return categories.get(category, {}).get(entry, f"[No content for {entry} in category {category}]")
 
 class ExtendedContextDialog(QDialog):
-    """
-    A dialog that allows the user to select context from two tabs:
-      1. Project Structure (Acts, Chapters, Scenes)
-         - Acts are visible but not checkable.
-         - Chapters and Scenes are checkable.
-      2. Compendium
-         - Displays compendium entries organized by category.
-         - Only entry nodes (leaves) are checkable.
-    When accepted, the dialog returns a list of selections as dictionaries.
-    """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Select Context")
@@ -77,14 +62,12 @@ class ExtendedContextDialog(QDialog):
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
         
-        # Tab 1: Project Structure
         self.project_tree = QTreeWidget()
         self.project_tree.setHeaderHidden(True)
         self.build_project_tree()
         self.project_tree.itemChanged.connect(self.handle_item_changed)
         self.tabs.addTab(self.project_tree, "Project Structure")
         
-        # Tab 2: Compendium
         self.compendium_tree = QTreeWidget()
         self.compendium_tree.setHeaderHidden(True)
         self.build_compendium_tree()
@@ -96,17 +79,14 @@ class ExtendedContextDialog(QDialog):
         layout.addWidget(ok_button)
     
     def build_project_tree(self):
-        """Build a hierarchical tree for project structure (Acts, Chapters, Scenes)."""
         self.project_tree.clear()
-        # Use parent's structure if available; otherwise, show an empty tree.
         structure = None
         if self.parent() is not None and hasattr(self.parent(), "structure"):
             structure = self.parent().structure
         if structure is None:
-            structure = {"acts": []}  # No dummy data; empty tree
+            structure = {"acts": []}
         for act in structure.get("acts", []):
             act_item = QTreeWidgetItem(self.project_tree, [act.get("name", "Unnamed Act")])
-            # Acts are not checkable
             act_item.setFlags(act_item.flags() & ~Qt.ItemIsUserCheckable)
             for chapter in act.get("chapters", []):
                 chap_item = QTreeWidgetItem(act_item, [chapter.get("name", "Unnamed Chapter")])
@@ -119,7 +99,6 @@ class ExtendedContextDialog(QDialog):
         self.project_tree.expandAll()
     
     def build_compendium_tree(self):
-        """Build a tree from the compendium data. Categories are not checkable."""
         self.compendium_tree.clear()
         data = get_compendium_data()
         categories = data.get("categories", {})
@@ -162,7 +141,6 @@ class ExtendedContextDialog(QDialog):
         self.update_parent(parent)
     
     def get_selected_contexts(self):
-        """Traverse both trees and return a list of selected context labels."""
         selections = []
         def traverse(item):
             if item.childCount() == 0 and item.checkState(0) == Qt.Checked:
@@ -170,11 +148,9 @@ class ExtendedContextDialog(QDialog):
             else:
                 for i in range(item.childCount()):
                     traverse(item.child(i))
-        # Traverse project tree
         root = self.project_tree.invisibleRootItem()
         for i in range(root.childCount()):
             traverse(root.child(i))
-        # Traverse compendium tree
         for i in range(self.compendium_tree.topLevelItemCount()):
             cat_item = self.compendium_tree.topLevelItem(i)
             category = cat_item.text(0)
@@ -192,12 +168,6 @@ class ExtendedContextDialog(QDialog):
         self.accept()
 
 class WorkshopWindow(QDialog):
-    """
-    A Workshop window that provides a chat interface similar to the action beats section
-    in the project window. The layout mirrors the project window:
-      - The left side contains a resizable input area with Prompt, Send, and Context buttons.
-      - The right side shows the context panel.
-    """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Workshop")
@@ -206,35 +176,28 @@ class WorkshopWindow(QDialog):
             self.project_name = self.parent().project_name
         else:
             self.project_name = "DefaultProject"
-        # Copy the project structure if available
         if self.parent() is not None and hasattr(self.parent(), "structure"):
             self.structure = self.parent().structure
         else:
             self.structure = {"acts": []}
-        # This will store the workshop prompt configuration (provider, model, etc.)
         self.workshop_prompt_config = None
-        # Initialize conversation history as a list of messages
         self.conversation_history = []
         self.init_ui()
     
     def init_ui(self):
         main_layout = QVBoxLayout(self)
-        # Chat log at the top.
         self.chat_log = QTextEdit()
         self.chat_log.setReadOnly(True)
         main_layout.addWidget(self.chat_log)
         
-        # Create horizontal splitter: left for input area, right for context panel.
         splitter = QSplitter(Qt.Horizontal)
         
-        # Left container: chat input area and buttons.
         left_container = QWidget()
         left_layout = QVBoxLayout(left_container)
         self.chat_input = QTextEdit()
         self.chat_input.setPlaceholderText("Type your message here...")
         left_layout.addWidget(self.chat_input)
         
-        # Buttons layout: Prompt, Send, Context, plus a label for model info.
         buttons_layout = QHBoxLayout()
         self.prompt_button = QPushButton("Prompt")
         self.prompt_button.clicked.connect(self.select_workshop_prompt)
@@ -249,7 +212,6 @@ class WorkshopWindow(QDialog):
         self.context_button.clicked.connect(self.toggle_context_panel)
         buttons_layout.addWidget(self.context_button)
         
-        # Add a label to display which model/provider is currently selected.
         self.model_label = QLabel("Model: [None]")
         buttons_layout.addWidget(self.model_label)
         
@@ -258,11 +220,9 @@ class WorkshopWindow(QDialog):
         
         splitter.addWidget(left_container)
         
-        # Right container: context panel.
         self.context_panel = QWidget()
         context_layout = QVBoxLayout(self.context_panel)
         self.context_tabs = QTabWidget()
-        # Wrap the trees in QScrollArea to ensure scrollbars appear.
         self.extended_context_dialog = ExtendedContextDialog(self)
         
         scroll1 = QScrollArea()
@@ -300,9 +260,7 @@ class WorkshopWindow(QDialog):
         if ok and item:
             for p in prompts:
                 if p.get("name", "") == item:
-                    # Store the selected workshop prompt configuration
                     self.workshop_prompt_config = p
-                    # Update the model label to reflect the new prompt's provider/model
                     provider = p.get("provider", "Local")
                     model = p.get("model", "Local Model")
                     self.model_label.setText(f"Model: {provider}/{model}")
@@ -313,7 +271,6 @@ class WorkshopWindow(QDialog):
         if not user_message:
             return
         
-        # Build augmented message by appending selected context (if any) invisibly.
         augmented_message = user_message
         if self.context_panel.isVisible():
             contexts = self.extended_context_dialog.get_selected_contexts()
@@ -323,26 +280,21 @@ class WorkshopWindow(QDialog):
         if refs:
             augmented_message += "\n[Compendium references: " + ", ".join(refs) + "]"
         
-        # Append the plain user message to the chat log.
         self.chat_log.append("You: " + user_message)
         self.chat_input.clear()
         self.chat_log.append("LLM: Generating response...")
         QApplication.processEvents()
         
-        # Build the conversation payload.
-        conversation_payload = list(self.conversation_history)  # copy existing history
+        conversation_payload = list(self.conversation_history)
         
-        # If this is the first message and a workshop prompt is selected, add it as a system message.
         if not conversation_payload and self.workshop_prompt_config:
             conversation_payload.append({
-                "role": "system", 
+                "role": "system",
                 "content": self.workshop_prompt_config.get("text", "")
             })
         
-        # Append the new user message (augmented) to the conversation.
         conversation_payload.append({"role": "user", "content": augmented_message})
         
-        # Prepare overrides from workshop prompt configuration if available.
         overrides = {}
         if self.workshop_prompt_config:
             overrides = {
@@ -352,13 +304,15 @@ class WorkshopWindow(QDialog):
                 "temperature": self.workshop_prompt_config.get("temperature", 1.0)
             }
         
-        # Send the conversation payload to the LLM.
+        if estimate_conversation_tokens(conversation_payload) > TOKEN_LIMIT:
+            summary = summarize_conversation(conversation_payload)
+            conversation_payload = [conversation_payload[0], {"role": "system", "content": summary}]
+            self.chat_log.append("LLM: [Conversation summarized to reduce token count.]")
+        
         response = send_prompt_to_llm("", overrides=overrides, conversation_history=conversation_payload)
         
-        # Append the response to the chat log.
         self.chat_log.append("LLM: " + response)
         QApplication.processEvents()
         
-        # Update conversation history with the new user message and the LLM response.
         self.conversation_history = conversation_payload
         self.conversation_history.append({"role": "assistant", "content": response})

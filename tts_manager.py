@@ -31,15 +31,21 @@ def get_engine():
 # Global variable to hold the current engine.
 _engine = None
 
-def speak(text):
+def speak(text, start_position=0, on_complete=None):
     """
-    Create a new engine, speak the text, and then tear it down.
-    This ensures that rate changes take effect.
+    Create a new engine, speak the text starting from the given cursor location,
+    and then tear it down. Optionally, call on_complete() when done to update
+    the TTS button (or any other UI element) back from "stop".
     """
     global _engine
     _engine = get_engine()
-    _engine.say(text)
+    # Start speaking from the provided cursor location (start_position)
+    text_to_speak = text[start_position:]
+    _engine.say(text_to_speak)
     _engine.runAndWait()
+    # Invoke the on_complete callback if provided
+    if on_complete is not None:
+        on_complete()
     _engine = None
 
 def stop():

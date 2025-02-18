@@ -81,10 +81,22 @@ class ProjectPostIt(QToolButton):
         cover_action = menu.addAction("Add Book Cover")
         action = menu.exec_(event.globalPos())
         if action == delete_action:
-            QMessageBox.information(
+            confirm = QMessageBox.question(
                 self, "Delete Project",
-                f"Delete '{self.project['name']}' functionality will be implemented later."
+                f"Are you sure you want to delete '{self.project['name']}'?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
             )
+            if confirm == QMessageBox.Yes:
+                try:
+                    PROJECTS.remove(self.project)
+                    save_projects(PROJECTS)
+                    QMessageBox.information(self, "Delete Project", f"Project '{self.project['name']}' deleted.")
+                    # Refresh the workbench UI by calling load_covers() on the main window.
+                    workbench = self.window()
+                    if hasattr(workbench, "load_covers"):
+                        workbench.load_covers()
+                except Exception as e:
+                    QMessageBox.warning(self, "Delete Project", f"Error deleting project: {e}")
         elif action == export_action:
             QMessageBox.information(
                 self, "Export Project",

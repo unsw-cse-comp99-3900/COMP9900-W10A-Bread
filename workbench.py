@@ -298,6 +298,8 @@ class WorkbenchWindow(QMainWindow):
             PROJECTS.append(new_project)
             save_projects(PROJECTS)
             self.load_covers()
+            # Automatically select the newly created project.
+            self.coverStack.setCurrentIndex(len(PROJECTS) - 1)
             QMessageBox.information(self, "New Project", f"Project '{name}' created.")
         else:
             QMessageBox.information(self, "New Project", "Project creation cancelled.")

@@ -121,16 +121,9 @@ class OptionsWindow(QDialog):
         general_group.setLayout(general_layout)
         self.layout.addWidget(general_group)
         
-        # Provider Configurations Group
+        # Provider Configurations Group (Active configuration menu removed)
         providers_group = QGroupBox("Provider Configurations")
         self.providers_layout = QVBoxLayout()
-        
-        # Active configuration selector
-        active_layout = QHBoxLayout()
-        self.active_config_combo = QComboBox()
-        active_layout.addWidget(QLabel("Active Configuration:"))
-        active_layout.addWidget(self.active_config_combo)
-        self.providers_layout.addLayout(active_layout)
         
         # Add New Configuration button
         add_config_btn = QPushButton("Add New Configuration")
@@ -166,30 +159,11 @@ class OptionsWindow(QDialog):
         # Add to layout and list
         self.provider_configs.append(config_widget)
         self.providers_layout.insertWidget(self.providers_layout.count() - 1, config_widget)
-        
-        # Update active config combo
-        self.update_active_config_combo()
 
     def remove_provider_config(self, config_widget):
         """Remove a provider configuration widget."""
         self.provider_configs.remove(config_widget)
         config_widget.deleteLater()
-        self.update_active_config_combo()
-
-    def update_active_config_combo(self):
-        """Update the active configuration combo box.
-           Now, even if a configuration has an empty name, a default name is assigned."""
-        current_text = self.active_config_combo.currentText()
-        self.active_config_combo.clear()
-        
-        for i, config in enumerate(self.provider_configs, start=1):
-            name = config.name_edit.text().strip()
-            if not name:
-                name = f"Unnamed Configuration {i}"
-            self.active_config_combo.addItem(name)
-        
-        if current_text and self.active_config_combo.findText(current_text) >= 0:
-            self.active_config_combo.setCurrentText(current_text)
 
     def load_settings(self):
         """Load settings from file."""
@@ -208,15 +182,10 @@ class OptionsWindow(QDialog):
                 
                 # Load provider configurations
                 provider_configs = settings.get("llm_configs", [])
-                active_config = settings.get("active_llm_config", "")
                 
                 # Create widgets for each configuration
                 for config in provider_configs:
                     self.add_provider_config(config)
-                
-                # Set active configuration
-                if active_config:
-                    self.active_config_combo.setCurrentText(active_config)
                 
             except Exception as e:
                 print("Error loading settings:", e)
@@ -237,13 +206,12 @@ class OptionsWindow(QDialog):
                 return
             names.append(name)
         
-        # Build settings dictionary
+        # Build settings dictionary without active_llm_config
         settings = {
             "theme": self.theme_combo.currentText(),
             "tts_fast": self.tts_speed_checkbox.isChecked(),
             "autosave": self.autosave_checkbox.isChecked(),
             "llm_configs": [config.get_config() for config in self.provider_configs],
-            "active_llm_config": self.active_config_combo.currentText()
         }
         
         try:

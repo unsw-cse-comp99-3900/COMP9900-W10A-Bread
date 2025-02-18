@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys, os, json
 from PyQt5.QtWidgets import (
     QDialog, QSplitter, QVBoxLayout, QHBoxLayout, QTreeWidget,
@@ -161,10 +162,14 @@ class CompendiumWindow(QDialog):
 
     def create_toolbar(self, layout):
         self.toolbar = QToolBar()
-        
+
         new_entry_action = QAction(QIcon.fromTheme("document-new"), "New Entry", self)
         new_entry_action.triggered.connect(self.new_entry)
         self.toolbar.addAction(new_entry_action)
+
+        new_category_action = QAction(QIcon.fromTheme("folder-new"), "New Category", self)
+        new_category_action.triggered.connect(self.new_category)
+        self.toolbar.addAction(new_category_action)
         
         save_entry_action = QAction(QIcon.fromTheme("document-save"), "Save Entry", self)
         save_entry_action.triggered.connect(self.save_entry)
@@ -226,7 +231,6 @@ class CompendiumWindow(QDialog):
         Only act if the clicked item is a child (an entry), not a category.
         """
         if item.parent() is None:
-            # Clicked on a category; do nothing.
             return
         category = item.parent().text(0)
         entry_name = item.text(0)
@@ -235,12 +239,18 @@ class CompendiumWindow(QDialog):
 
     def show_context_menu(self, pos):
         """
-        Show a context menu when right-clicking an entry.
-        Only entry items (children of categories) will trigger the menu.
+        Show a context menu when right-clicking.
+        If a category (or blank area) is right-clicked, offer an option to add a new category.
+        If an entry is right-clicked, show options for delete, rename, or manage category.
         """
         item = self.entry_tree.itemAt(pos)
-        if item and item.parent():
-            menu = QMenu()
+        menu = QMenu()
+        if item is None or (item and item.parent() is None):
+            add_category_action = menu.addAction("Add New Category")
+            action = menu.exec_(self.entry_tree.viewport().mapToGlobal(pos))
+            if action == add_category_action:
+                self.new_category()
+        else:
             delete_action = menu.addAction("Delete")
             rename_action = menu.addAction("Rename")
             manage_action = menu.addAction("Manage Category")
@@ -262,13 +272,27 @@ class CompendiumWindow(QDialog):
         if dlg.exec_():
             entry_name = dlg.entry_name
             category = dlg.category
-            # Create the category if it doesn't exist.
             if category not in self.data["categories"]:
                 self.data["categories"][category] = {}
             if entry_name in self.data["categories"][category]:
                 QMessageBox.warning(self, "New Entry", "An entry with that name already exists in this category.")
                 return
             self.data["categories"][category][entry_name] = ""
+            self.populate_tree()
+            self.save_to_file()
+
+    def new_category(self):
+        """Prompt the user to add a new category."""
+        new_category, ok = QInputDialog.getText(self, "New Category", "Enter new category name:")
+        new_category = new_category.strip()
+        if ok:
+            if not new_category:
+                QMessageBox.warning(self, "New Category", "Category name cannot be empty.")
+                return
+            if new_category in self.data["categories"]:
+                QMessageBox.warning(self, "New Category", "Category already exists.")
+                return
+            self.data["categories"][new_category] = {}
             self.populate_tree()
             self.save_to_file()
 
@@ -299,7 +323,6 @@ class CompendiumWindow(QDialog):
                                          QMessageBox.Yes | QMessageBox.No)
             if reply == QMessageBox.Yes:
                 del self.data["categories"][category][entry_name]
-                # Remove the category if empty.
                 if not self.data["categories"][category]:
                     del self.data["categories"][category]
                 self.populate_tree()
@@ -322,7 +345,6 @@ class CompendiumWindow(QDialog):
                 if new_name in self.data["categories"][category]:
                     QMessageBox.warning(self, "Rename Entry", "An entry with that name already exists in this category.")
                     return
-                # Rename the entry in the data structure.
                 self.data["categories"][category][new_name] = self.data["categories"][category].pop(old_name)
                 self.populate_tree()
                 self.save_to_file()
@@ -348,7 +370,6 @@ class CompendiumWindow(QDialog):
                         self.data["categories"][new_category] = {}
                     if entry_name in self.data["categories"][new_category]:
                         QMessageBox.warning(self, "Manage Entry", "An entry with that name already exists in the new category.")
-                        # Re-add the entry back to the old category.
                         self.data["categories"][old_category][entry_name] = content
                     else:
                         self.data["categories"][new_category][entry_name] = content
@@ -369,7 +390,6 @@ class CompendiumWindow(QDialog):
                 QMessageBox.warning(self, "Load Error", f"Could not load JSON file: {e}")
                 self.data = {"categories": {}}
         else:
-            # Initialize with some dummy data if file does not exist.
             self.data = {
                 "categories": {
                     "Characters": {

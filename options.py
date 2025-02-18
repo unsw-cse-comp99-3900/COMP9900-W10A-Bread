@@ -177,14 +177,16 @@ class OptionsWindow(QDialog):
         self.update_active_config_combo()
 
     def update_active_config_combo(self):
-        """Update the active configuration combo box."""
+        """Update the active configuration combo box.
+           Now, even if a configuration has an empty name, a default name is assigned."""
         current_text = self.active_config_combo.currentText()
         self.active_config_combo.clear()
         
-        for config in self.provider_configs:
+        for i, config in enumerate(self.provider_configs, start=1):
             name = config.name_edit.text().strip()
-            if name:
-                self.active_config_combo.addItem(name)
+            if not name:
+                name = f"Unnamed Configuration {i}"
+            self.active_config_combo.addItem(name)
         
         if current_text and self.active_config_combo.findText(current_text) >= 0:
             self.active_config_combo.setCurrentText(current_text)
@@ -221,15 +223,14 @@ class OptionsWindow(QDialog):
                 QMessageBox.warning(self, "Error", f"Error loading settings: {str(e)}")
 
     def save_settings(self):
-        """Save settings to file and apply the selected theme immediately."""
-        # Validate configuration names are unique
+        """Save settings to file and apply the selected theme immediately.
+           If a configuration name is empty, it is auto-assigned a default name."""
         names = []
-        for config in self.provider_configs:
+        for i, config in enumerate(self.provider_configs, start=1):
             name = config.name_edit.text().strip()
             if not name:
-                QMessageBox.warning(self, "Validation Error", 
-                                  "All configurations must have a name.")
-                return
+                name = f"Unnamed Configuration {i}"
+                config.name_edit.setText(name)
             if name in names:
                 QMessageBox.warning(self, "Validation Error", 
                                   f"Configuration name '{name}' is used multiple times.")

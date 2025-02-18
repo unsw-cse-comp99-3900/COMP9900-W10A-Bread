@@ -77,6 +77,16 @@
             "max_tokens": 200,
             "temperature": 0.7,
             "provider": "Local"
+        },
+        {
+            "name": "Clarity",
+            "text": "Rewrite the selected text for clarity. If there are adverbs, replace them with strong verbs.",
+            "default": false,
+            "provider": "OpenRouter",
+            "model": "cognitivecomputations/dolphin3.0-r1-mistral-24b:free",
+            "max_tokens": 2000,
+            "temperature": 0.7,
+            "type": "prompt"
         }
     ]
 }

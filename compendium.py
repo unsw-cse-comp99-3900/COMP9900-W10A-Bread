@@ -112,7 +112,7 @@ class CompendiumWindow(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Compendium")
         self.resize(800, 500)
-        # Data structure: { "categories": { category_name: { entry_name: content, ... }, ... } }
+        # Data structure: { "categories": { category_name: { entry_name: content, ... }, ... }, "category_order": [category_name, ...] }
         self.data = {"categories": {}}
         self.load_from_file()
         self.init_ui()
@@ -190,10 +190,20 @@ class CompendiumWindow(QDialog):
         layout.addWidget(self.toolbar)
 
     def populate_tree(self):
-        """Populate the QTreeWidget from self.data."""
+        """Populate the QTreeWidget from self.data using the category order."""
         self.entry_tree.clear()
-        for category, entries in self.data.get("categories", {}).items():
-            # Create a top-level item for the category.
+        # Ensure category_order exists and is consistent
+        category_order = self.data.get("category_order", list(self.data["categories"].keys()))
+        # Add any new categories that might not be in the order list
+        for cat in self.data["categories"]:
+            if cat not in category_order:
+                category_order.append(cat)
+        # Remove any categories that no longer exist
+        category_order = [cat for cat in category_order if cat in self.data["categories"]]
+        self.data["category_order"] = category_order
+        
+        for category in category_order:
+            entries = self.data["categories"][category]
             category_item = QTreeWidgetItem([category])
             category_item.setFlags(category_item.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
             for entry_name, content in entries.items():
@@ -240,17 +250,34 @@ class CompendiumWindow(QDialog):
     def show_context_menu(self, pos):
         """
         Show a context menu when right-clicking.
-        If a category (or blank area) is right-clicked, offer an option to add a new category.
-        If an entry is right-clicked, show options for delete, rename, or manage category.
+        For a blank area, offer an option to add a new category.
+        For a category, offer options to rename, delete, or move it up or down.
+        For an entry, offer options for delete, rename, or manage category.
         """
         item = self.entry_tree.itemAt(pos)
         menu = QMenu()
-        if item is None or (item and item.parent() is None):
+        if item is None:
             add_category_action = menu.addAction("Add New Category")
             action = menu.exec_(self.entry_tree.viewport().mapToGlobal(pos))
             if action == add_category_action:
                 self.new_category()
+        elif item.parent() is None:
+            # Category node context menu
+            rename_action = menu.addAction("Rename Category")
+            delete_action = menu.addAction("Delete Category")
+            move_up_action = menu.addAction("Move Category Up")
+            move_down_action = menu.addAction("Move Category Down")
+            action = menu.exec_(self.entry_tree.viewport().mapToGlobal(pos))
+            if action == rename_action:
+                self.rename_category()
+            elif action == delete_action:
+                self.delete_category()
+            elif action == move_up_action:
+                self.move_category_up()
+            elif action == move_down_action:
+                self.move_category_down()
         else:
+            # Entry node context menu
             delete_action = menu.addAction("Delete")
             rename_action = menu.addAction("Rename")
             manage_action = menu.addAction("Manage Category")
@@ -274,6 +301,10 @@ class CompendiumWindow(QDialog):
             category = dlg.category
             if category not in self.data["categories"]:
                 self.data["categories"][category] = {}
+                # Ensure the new category is added to the order list
+                if "category_order" not in self.data:
+                    self.data["category_order"] = []
+                self.data["category_order"].append(category)
             if entry_name in self.data["categories"][category]:
                 QMessageBox.warning(self, "New Entry", "An entry with that name already exists in this category.")
                 return
@@ -293,6 +324,9 @@ class CompendiumWindow(QDialog):
                 QMessageBox.warning(self, "New Category", "Category already exists.")
                 return
             self.data["categories"][new_category] = {}
+            if "category_order" not in self.data:
+                self.data["category_order"] = []
+            self.data["category_order"].append(new_category)
             self.populate_tree()
             self.save_to_file()
 
@@ -323,8 +357,11 @@ class CompendiumWindow(QDialog):
                                          QMessageBox.Yes | QMessageBox.No)
             if reply == QMessageBox.Yes:
                 del self.data["categories"][category][entry_name]
+                # If the category is now empty, remove it
                 if not self.data["categories"][category]:
                     del self.data["categories"][category]
+                    if "category_order" in self.data and category in self.data["category_order"]:
+                        self.data["category_order"].remove(category)
                 self.populate_tree()
                 self.editor.clear()
                 self.save_to_file()
@@ -368,6 +405,9 @@ class CompendiumWindow(QDialog):
                     content = self.data["categories"][old_category].pop(entry_name)
                     if new_category not in self.data["categories"]:
                         self.data["categories"][new_category] = {}
+                        if "category_order" not in self.data:
+                            self.data["category_order"] = []
+                        self.data["category_order"].append(new_category)
                     if entry_name in self.data["categories"][new_category]:
                         QMessageBox.warning(self, "Manage Entry", "An entry with that name already exists in the new category.")
                         self.data["categories"][old_category][entry_name] = content
@@ -375,10 +415,94 @@ class CompendiumWindow(QDialog):
                         self.data["categories"][new_category][entry_name] = content
                         if not self.data["categories"][old_category]:
                             del self.data["categories"][old_category]
+                            if "category_order" in self.data and old_category in self.data["category_order"]:
+                                self.data["category_order"].remove(old_category)
                     self.populate_tree()
                     self.save_to_file()
         else:
             QMessageBox.warning(self, "Manage Entry", "No entry selected to manage.")
+
+    def rename_category(self):
+        """
+        Rename the selected category.
+        """
+        current_item = self.entry_tree.currentItem()
+        if current_item and current_item.parent() is None:
+            old_category = current_item.text(0)
+            new_category, ok = QInputDialog.getText(self, "Rename Category", "Enter new category name:", text=old_category)
+            new_category = new_category.strip()
+            if ok and new_category and new_category != old_category:
+                if new_category in self.data["categories"]:
+                    QMessageBox.warning(self, "Rename Category", "A category with that name already exists.")
+                    return
+                # Rename category in the data dictionary
+                self.data["categories"][new_category] = self.data["categories"].pop(old_category)
+                # Update category order list
+                if "category_order" in self.data:
+                    index = self.data["category_order"].index(old_category)
+                    self.data["category_order"][index] = new_category
+                self.populate_tree()
+                self.save_to_file()
+        else:
+            QMessageBox.warning(self, "Rename Category", "No category selected.")
+
+    def delete_category(self):
+        """
+        Delete the selected category and all its entries.
+        """
+        current_item = self.entry_tree.currentItem()
+        if current_item and current_item.parent() is None:
+            category = current_item.text(0)
+            reply = QMessageBox.question(self, "Delete Category", f"Delete category '{category}' and all its entries?",
+                                         QMessageBox.Yes | QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                if category in self.data["categories"]:
+                    del self.data["categories"][category]
+                if "category_order" in self.data and category in self.data["category_order"]:
+                    self.data["category_order"].remove(category)
+                self.populate_tree()
+                self.editor.clear()
+                self.save_to_file()
+        else:
+            QMessageBox.warning(self, "Delete Category", "No category selected to delete.")
+
+    def move_category_up(self):
+        """
+        Move the selected category up in the list.
+        """
+        current_item = self.entry_tree.currentItem()
+        if current_item and current_item.parent() is None:
+            category = current_item.text(0)
+            order = self.data.get("category_order", list(self.data["categories"].keys()))
+            index = order.index(category)
+            if index > 0:
+                order[index], order[index-1] = order[index-1], order[index]
+                self.data["category_order"] = order
+                self.populate_tree()
+                self.save_to_file()
+            else:
+                QMessageBox.information(self, "Move Category", "Category is already at the top.")
+        else:
+            QMessageBox.warning(self, "Move Category", "No category selected to move.")
+
+    def move_category_down(self):
+        """
+        Move the selected category down in the list.
+        """
+        current_item = self.entry_tree.currentItem()
+        if current_item and current_item.parent() is None:
+            category = current_item.text(0)
+            order = self.data.get("category_order", list(self.data["categories"].keys()))
+            index = order.index(category)
+            if index < len(order) - 1:
+                order[index], order[index+1] = order[index+1], order[index]
+                self.data["category_order"] = order
+                self.populate_tree()
+                self.save_to_file()
+            else:
+                QMessageBox.information(self, "Move Category", "Category is already at the bottom.")
+        else:
+            QMessageBox.warning(self, "Move Category", "No category selected to move.")
 
     def load_from_file(self):
         """Load compendium data from a JSON file."""
@@ -386,6 +510,8 @@ class CompendiumWindow(QDialog):
             try:
                 with open(JSON_FILE, "r", encoding="utf-8") as f:
                     self.data = json.load(f)
+                if "category_order" not in self.data:
+                    self.data["category_order"] = list(self.data["categories"].keys())
             except Exception as e:
                 QMessageBox.warning(self, "Load Error", f"Could not load JSON file: {e}")
                 self.data = {"categories": {}}
@@ -402,7 +528,8 @@ class CompendiumWindow(QDialog):
                     "Items": {
                         "Ancient Key": "Details about the Ancient Key."
                     }
-                }
+                },
+                "category_order": ["Characters", "Locations", "Items"]
             }
             self.save_to_file()
 

@@ -104,15 +104,38 @@ class ModelFetcher(QObject):
             self._return_default_models("OpenRouter", error_msg)
 
     def _fetch_openai_models(self, config):
-        """Return default OpenAI models (API doesn't provide chat model list)."""
-        models = [
-            "gpt-4-turbo-preview",
-            "gpt-4",
-            "gpt-3.5-turbo",
-            "gpt-3.5-turbo-16k"
-        ]
-        self._save_cache("OpenAI", models)
-        self.models_updated.emit(models, "")
+        """Fetch models dynamically from the OpenAI API."""
+        try:
+            api_key = config.get('api_key', '') if config else ''
+            if not api_key:
+                raise ValueError("API key is required for OpenAI")
+            headers = {
+                'Authorization': f'Bearer {api_key}',
+            }
+            response = requests.get(
+                'https://api.openai.com/v1/models',
+                headers=headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                models_data = response.json()
+                # Expecting a dict with a "data" key containing model objects
+                if isinstance(models_data, dict) and "data" in models_data:
+                    models_list = models_data["data"]
+                elif isinstance(models_data, list):
+                    models_list = models_data
+                else:
+                    raise ValueError(f"Unexpected response structure: {type(models_data).__name__}")
+                # Extract the "id" from each model in the list
+                model_list = [model["id"] for model in models_list if "id" in model]
+                self._save_cache("OpenAI", model_list)
+                self.models_updated.emit(model_list, "")
+            else:
+                error_msg = f"Error fetching models (Status {response.status_code})"
+                self._return_default_models("OpenAI", error_msg)
+        except Exception as e:
+            error_msg = f"Unexpected error: {str(e)}"
+            self._return_default_models("OpenAI", error_msg)
 
     def _fetch_togetherai_models(self, config):
         """Return TogetherAI models."""

@@ -6,21 +6,11 @@ from PyQt5.QtWidgets import QMessageBox
 SETTINGS_FILE = "settings.json"
 
 def build_final_prompt(action_beats, prose_prompt, pov, pov_character, tense):
-    """
-    Construct the final prompt to be sent to the LLM by combining the selected prose prompt,
-    action beats, and project settings.
-    Uses placeholder substitution if present.
-    """
     final_prompt = prose_prompt.format(pov=pov, pov_character=pov_character, tense=tense)
     final_prompt += "\n" + action_beats
     return final_prompt
 
 def get_llm_settings():
-    """
-    Load LLM settings from the global settings file.
-    Returns a dictionary with keys: provider, endpoint, model, api_key, and timeout.
-    It first checks for a top-level "llm" key; if not found, it uses "llm_configs" and "active_llm_config".
-    """
     settings = {}
     if os.path.exists(SETTINGS_FILE):
         try:
@@ -48,27 +38,15 @@ def get_llm_settings():
     return settings
 
 def send_prompt_to_llm(final_prompt, overrides=None, conversation_history=None):
-    """
-    Send the prompt to the LLM API and return the generated text.
-    If a conversation_history list (of message dicts) is provided, it is sent instead
-    of a single message.
-    Overrides (if provided) update the LLM settings.
-    
-    This function now performs an explicit check: if either the provider or the model is not set,
-    it shows an error message and aborts.
-    Also, it resets the endpoint based on the (possibly overridden) provider.
-    """
     llm_settings = get_llm_settings()
     if overrides:
         llm_settings.update(overrides)
     
-    # Explicit check: ensure both provider and model are selected.
     if not llm_settings.get("provider") or not llm_settings.get("model"):
         QMessageBox.critical(None, "LLM Configuration Error", 
                              "Error: No model selected. Please select a model in the prompt settings.")
         return "[Error: No model selected]"
     
-    # Set the endpoint based on the provider after applying overrides.
     if llm_settings.get("provider") == "Local":
         llm_settings["endpoint"] = "http://localhost:1234/v1/chat/completions"
     elif llm_settings.get("provider") == "OpenRouter":
@@ -81,7 +59,9 @@ def send_prompt_to_llm(final_prompt, overrides=None, conversation_history=None):
     timeout = llm_settings.get("timeout", 30)
 
     print(f"🔍 DEBUG: API Key Retrieved = '{api_key}' (length: {len(api_key)})")
-    if not api_key:
+
+    # Skip the API key check if using a local provider
+    if provider != "Local" and not api_key:
         print("❌ ERROR: API Key is missing or empty! Check settings.json.")
         return "[Error: Missing API Key]"
 
@@ -127,10 +107,6 @@ def send_prompt_to_llm(final_prompt, overrides=None, conversation_history=None):
         return f"[Unexpected Error: {e}]"
 
 def get_prose_prompts(project_name):
-    """
-    Load the Prose prompts from the prompts file for the given project.
-    Returns a list of prompts. If none exist, returns an empty list.
-    """
     base_name = f"prompts_{project_name.replace(' ', '')}.json"
     try:
         with open(base_name, "r", encoding="utf-8") as f:

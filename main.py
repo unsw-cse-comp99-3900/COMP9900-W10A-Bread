@@ -27,7 +27,7 @@ def check_dependencies():
                 "Missing Dependencies",
                 "The application requires the following module(s): " + ", ".join(missing) +
                 "\n\nPlease install them by running:\n\npip install " + " ".join(missing) +
-                "\n\nFor more help, please contact support."
+                "\n\nOn Windows: Win+R to open a console, then type cmd."
             )
         except Exception:
             # Fallback to console output if Tkinter isn't available.

@@ -883,15 +883,18 @@ class ProjectWindow(QMainWindow):
         self.editor.mergeCurrentCharFormat(fmt)
     
     def toggle_tts(self):
-        global tts_engine
         if self.tts_playing:
             tts_manager.stop()
             self.tts_playing = False
             self.tts_button.setText("TTS")
         else:
-            text = self.editor.textCursor().selectedText()
-            if not text.strip():
+            cursor = self.editor.textCursor()
+            if cursor.hasSelection():
+                text = cursor.selectedText()
+                start_position = 0
+            else:
                 text = self.editor.toPlainText()
+                start_position = cursor.position()
             if not text.strip():
                 QMessageBox.warning(self, "TTS Warning", "There is no text to read.")
                 return
@@ -899,12 +902,15 @@ class ProjectWindow(QMainWindow):
             self.tts_button.setText("Stop TTS")
             def run_speech():
                 try:
-                    tts_manager.speak(text)
+                    tts_manager.speak(
+                        text,
+                        start_position=start_position,
+                        on_complete=lambda: QTimer.singleShot(0, lambda: self.tts_button.setText("TTS"))
+                    )
                 except Exception as e:
                     print("Error during TTS:", e)
                 finally:
                     self.tts_playing = False
-                    QTimer.singleShot(0, lambda: self.tts_button.setText("TTS"))
             threading.Thread(target=run_speech).start()
     
     def perform_tts(self):

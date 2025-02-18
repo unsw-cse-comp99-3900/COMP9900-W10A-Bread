@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import time
 import glob
@@ -16,28 +17,21 @@ from PyQt5.QtGui import QIcon, QFont, QTextCharFormat
 from PyQt5.QtCore import Qt, QTimer, QEvent
 
 from compendium import CompendiumWindow
-from workshop import WorkshopWindow  # In case needed
+from workshop import WorkshopWindow
 from llm_integration import send_prompt_to_llm, get_prose_prompts, build_final_prompt
-from rewrite_feature import RewriteDialog  # Using the dialog from rewrite_feature.py
+from rewrite_feature import RewriteDialog
 from backup_manager import show_backup_dialog
 from summary_feature import create_summary as create_summary_feature
 from prompts import load_project_options
 
 from tree_manager import load_structure, save_structure, populate_tree, update_structure_from_tree, delete_node
 from context_panel import ContextPanel
-
-# Import our new TTS manager module
 import tts_manager
 
-# The global PROJECT_SETTINGS_FILE remains for autosave-related settings.
 PROJECT_SETTINGS_FILE = "project_settings.json"
 
 
 class CreateSummaryDialog(QDialog):
-    """
-    A dialog for creating a summary.
-    It presents an editable field with a default summarizer prompt.
-    """
     def __init__(self, default_prompt, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Create Summary")
@@ -69,27 +63,19 @@ class CreateSummaryDialog(QDialog):
 
 
 class ProjectWindow(QMainWindow):
-    """
-    Main project window with tree view, formatting and scene settings toolbars,
-    scene editing, autosave, and integration with LLM/prompt functions.
-    The tree structure (acts, chapters, scenes) is persisted to a project-specific file.
-    Global settings for POV, POV Character, and Tense persist across sessions.
-    """
     def __init__(self, project_name):
         super().__init__()
         self.project_name = project_name
         self.setWindowTitle(f"Project: {project_name}")
         self.resize(900, 600)
-        # Global persistent settings (applied across all scenes)
         self.current_pov = "Third Person"
         self.current_pov_character = "Character"
         self.current_tense = "Present Tense"
         
         self.current_prose_prompt = None
         self.current_prose_config = None
-        self.tts_playing = False  # Track TTS state
+        self.tts_playing = False
 
-        # Load the persistent project structure using our tree manager.
         self.structure = load_structure(self.project_name)
 
         self.init_ui()
@@ -102,17 +88,14 @@ class ProjectWindow(QMainWindow):
                 chapter_item = act_item.child(0)
                 if chapter_item.childCount() > 0:
                     self.tree.setCurrentItem(chapter_item.child(0))
-        # Set initial tooltips reflecting the global settings.
         self.updateSettingTooltips()
     
     def updateSettingTooltips(self):
-        """Update the tooltips for the POV, POV Character, and Tense buttons."""
-        self.pov_button.setToolTip(f"POV: {self.current_pov}")
-        self.pov_character_button.setToolTip(f"POV Character: {self.current_pov_character}")
-        self.tense_button.setToolTip(f"Tense: {self.current_tense}")
+        self.pov_combo.setToolTip(f"POV: {self.current_pov}")
+        self.pov_character_combo.setToolTip(f"POV Character: {self.current_pov_character}")
+        self.tense_combo.setToolTip(f"Tense: {self.current_tense}")
     
     def load_autosave_setting(self):
-        """Load autosave and global settings from PROJECT_SETTINGS_FILE."""
         self.autosave_enabled = False
         if os.path.exists(PROJECT_SETTINGS_FILE):
             try:
@@ -120,7 +103,6 @@ class ProjectWindow(QMainWindow):
                     all_settings = json.load(f)
                 project_settings = all_settings.get(self.project_name, {})
                 self.autosave_enabled = project_settings.get("autosave", False)
-                # Load global settings if they exist; otherwise keep defaults.
                 self.current_pov = project_settings.get("global_pov", self.current_pov)
                 self.current_pov_character = project_settings.get("global_pov_character", self.current_pov_character)
                 self.current_tense = project_settings.get("global_tense", self.current_tense)
@@ -128,7 +110,6 @@ class ProjectWindow(QMainWindow):
                 print("Error loading project settings for autosave:", e)
     
     def save_global_settings(self):
-        """Save global settings (POV, POV Character, Tense) to PROJECT_SETTINGS_FILE."""
         settings = {}
         if os.path.exists(PROJECT_SETTINGS_FILE):
             try:
@@ -148,18 +129,12 @@ class ProjectWindow(QMainWindow):
             print("Error saving project settings:", e)
     
     def populate_tree(self):
-        """Populate the QTreeWidget from the structure using tree_manager."""
         populate_tree(self.tree, self.structure)
     
     def update_structure_from_tree(self):
-        """Update the structure from the QTreeWidget and save it via tree_manager."""
         self.structure = update_structure_from_tree(self.tree, self.project_name)
     
     def get_summary_filename(self, item):
-        """
-        Generate a filename for the summary based on the selected tree item.
-        """
-        import re, os, time
         def sanitize(text):
             return re.sub(r'\W+', '', text)
         hierarchy = []
@@ -175,10 +150,6 @@ class ProjectWindow(QMainWindow):
         return os.path.join(project_folder, filename)
     
     def rename_item(self, item):
-        """
-        Prompt the user to rename the selected item. Update the item's text
-        and underlying data (ensuring that the 'name' key is updated).
-        """
         current_name = item.text(0)
         new_name, ok = QInputDialog.getText(self, "Rename", "Enter new name:", text=current_name)
         if ok and new_name.strip():
@@ -195,7 +166,6 @@ class ProjectWindow(QMainWindow):
     def init_ui(self):
         self.setStatusBar(self.statusBar())
         
-        # --- Global Toolbar (top of window) ---
         toolbar = QToolBar("Main Toolbar")
         self.addToolBar(toolbar)
         
@@ -214,7 +184,6 @@ class ProjectWindow(QMainWindow):
         workshop_action.triggered.connect(self.open_workshop)
         toolbar.addAction(workshop_action)
         
-        # --- Main Layout Splitter ---
         main_splitter = QSplitter(Qt.Horizontal)
         self.tree = QTreeWidget()
         self.tree.setHeaderLabel("Project Structure")
@@ -227,7 +196,6 @@ class ProjectWindow(QMainWindow):
         top_right = QWidget()
         top_right_layout = QVBoxLayout(top_right)
         
-        # --- Formatting Toolbar (above the editor) ---
         self.formatting_toolbar = QHBoxLayout()
         bold_button = QPushButton("B")
         bold_button.setCheckable(True)
@@ -251,14 +219,12 @@ class ProjectWindow(QMainWindow):
         self.formatting_toolbar.addStretch()
         top_right_layout.addLayout(self.formatting_toolbar)
         
-        # --- Editor Widget ---
         self.editor = QTextEdit()
         self.editor.setPlaceholderText("Select a node to edit its content...")
         top_right_layout.addWidget(self.editor)
         self.editor.setContextMenuPolicy(Qt.CustomContextMenu)
         self.editor.customContextMenuRequested.connect(self.show_editor_context_menu)
         
-        # --- Scene Settings Toolbar ---
         self.scene_settings_toolbar = QWidget()
         scene_settings_layout = QHBoxLayout(self.scene_settings_toolbar)
         
@@ -276,18 +242,40 @@ class ProjectWindow(QMainWindow):
         
         pov_group = QWidget()
         pov_layout = QHBoxLayout(pov_group)
-        self.pov_button = QPushButton("POV")
-        self.pov_button.setToolTip(f"POV: {self.current_pov}")
-        self.pov_button.clicked.connect(self.set_pov)
-        pov_layout.addWidget(self.pov_button)
-        self.pov_character_button = QPushButton("POV Character")
-        self.pov_character_button.setToolTip(f"POV Character: {self.current_pov_character}")
-        self.pov_character_button.clicked.connect(self.set_pov_character)
-        pov_layout.addWidget(self.pov_character_button)
-        self.tense_button = QPushButton("Tense")
-        self.tense_button.setToolTip(f"Tense: {self.current_tense}")
-        self.tense_button.clicked.connect(self.set_tense)
-        pov_layout.addWidget(self.tense_button)
+        
+        self.pov_combo = QComboBox()
+        pov_options = ["First Person", "Omniscient", "Third Person Limited", "Custom..."]
+        if self.current_pov not in pov_options:
+            self.pov_combo.addItem(self.current_pov)
+        for option in pov_options:
+            self.pov_combo.addItem(option)
+        self.pov_combo.setCurrentText(self.current_pov)
+        self.pov_combo.setToolTip(f"POV: {self.current_pov}")
+        self.pov_combo.currentIndexChanged.connect(self.handle_pov_change)
+        pov_layout.addWidget(self.pov_combo)
+        
+        self.pov_character_combo = QComboBox()
+        pov_character_options = ["Alice", "Bob", "Charlie", "Custom..."]
+        if self.current_pov_character not in pov_character_options:
+            self.pov_character_combo.addItem(self.current_pov_character)
+        for option in pov_character_options:
+            self.pov_character_combo.addItem(option)
+        self.pov_character_combo.setCurrentText(self.current_pov_character)
+        self.pov_character_combo.setToolTip(f"POV Character: {self.current_pov_character}")
+        self.pov_character_combo.currentIndexChanged.connect(self.handle_pov_character_change)
+        pov_layout.addWidget(self.pov_character_combo)
+        
+        self.tense_combo = QComboBox()
+        tense_options = ["Past Tense", "Present Tense", "Custom..."]
+        if self.current_tense not in tense_options:
+            self.tense_combo.addItem(self.current_tense)
+        for option in tense_options:
+            self.tense_combo.addItem(option)
+        self.tense_combo.setCurrentText(self.current_tense)
+        self.tense_combo.setToolTip(f"Tense: {self.current_tense}")
+        self.tense_combo.currentIndexChanged.connect(self.handle_tense_change)
+        pov_layout.addWidget(self.tense_combo)
+        
         pov_layout.addStretch()
         
         scene_settings_layout.addWidget(save_group)
@@ -296,7 +284,6 @@ class ProjectWindow(QMainWindow):
         scene_settings_layout.addStretch()
         top_right_layout.addWidget(self.scene_settings_toolbar)
         
-        # --- Bottom Panel (LLM and Summary) ---
         self.bottom_stack = QStackedWidget()
         
         self.summary_panel = QWidget()
@@ -421,7 +408,7 @@ class ProjectWindow(QMainWindow):
             self.editor.setTextCursor(cursor)
     
     def open_project_options(self):
-        pass  # Deprecated.
+        pass
     
     def tree_item_changed(self, current, previous):
         if current is None:
@@ -471,7 +458,6 @@ class ProjectWindow(QMainWindow):
         autosave_files = glob.glob(pattern)
         if not autosave_files:
             return None
-            
         latest_file = max(autosave_files, key=os.path.getmtime)
         try:
             with open(latest_file, "r", encoding="utf-8") as f:
@@ -574,7 +560,6 @@ class ProjectWindow(QMainWindow):
             new_scene = {
                 "name": text.strip(),
                 "content": f"This is the scene content for {text.strip()}."
-                # Global POV settings will be used; they are not stored per scene.
             }
             if "scenes" not in chapter_data:
                 chapter_data["scenes"] = []
@@ -682,74 +667,76 @@ class ProjectWindow(QMainWindow):
         else:
             QMessageBox.information(self, "Backup", "No backup file selected.")
     
-    def set_pov(self):
-        options = ["First Person", "Omniscient", "Third Person Limited", "Custom..."]
-        current_value = self.current_pov
-        try:
-            default_index = options.index(current_value)
-        except ValueError:
-            default_index = 0
-        item, ok = QInputDialog.getItem(self, "Select POV", "Choose POV:", options, default_index, False)
-        if ok and item:
-            if item == "Custom...":
-                custom, ok2 = QInputDialog.getText(self, "Custom POV", "Enter custom POV:", text=(current_value if current_value not in options else ""))
-                if ok2 and custom.strip():
-                    self.current_pov = custom.strip()
-                else:
-                    return
+    def handle_pov_change(self, index):
+        value = self.pov_combo.currentText()
+        if value == "Custom...":
+            custom, ok = QInputDialog.getText(
+                self, "Custom POV", "Enter custom POV:",
+                text=self.current_pov if self.current_pov not in ["First Person", "Omniscient", "Third Person Limited"] else ""
+            )
+            if ok and custom.strip():
+                custom = custom.strip()
+                if self.pov_combo.findText(custom) == -1:
+                    self.pov_combo.insertItem(0, custom)
+                self.current_pov = custom
+                self.pov_combo.setCurrentText(custom)
             else:
-                self.current_pov = item
-            self.updateSettingTooltips()
-            self.save_global_settings()
-            QMessageBox.information(self, "POV Set", f"POV set to: {self.current_pov}")
+                self.pov_combo.setCurrentText(self.current_pov)
+                return
+        else:
+            self.current_pov = value
+        self.pov_combo.setToolTip(f"POV: {self.current_pov}")
+        self.save_global_settings()
     
-    def set_pov_character(self):
-        characters = ["Alice", "Bob", "Charlie", "Custom..."]
-        current_value = self.current_pov_character
-        try:
-            default_index = characters.index(current_value)
-        except ValueError:
-            default_index = 0
-        item, ok = QInputDialog.getItem(self, "Select POV Character", "Choose character:", characters, default_index, False)
-        if ok and item:
-            if item == "Custom...":
-                custom, ok2 = QInputDialog.getText(self, "Custom POV Character", "Enter character name:", text=(current_value if current_value not in characters else ""))
-                if ok2 and custom.strip():
-                    self.current_pov_character = custom.strip()
-                else:
-                    return
+    def handle_pov_character_change(self, index):
+        value = self.pov_character_combo.currentText()
+        if value == "Custom...":
+            custom, ok = QInputDialog.getText(
+                self, "Custom POV Character", "Enter custom POV Character:",
+                text=self.current_pov_character if self.current_pov_character not in ["Alice", "Bob", "Charlie"] else ""
+            )
+            if ok and custom.strip():
+                custom = custom.strip()
+                if self.pov_character_combo.findText(custom) == -1:
+                    self.pov_character_combo.insertItem(0, custom)
+                self.current_pov_character = custom
+                self.pov_character_combo.setCurrentText(custom)
             else:
-                self.current_pov_character = item
-            self.updateSettingTooltips()
-            self.save_global_settings()
-            QMessageBox.information(self, "POV Character Set", f"POV character set to: {self.current_pov_character}")
+                self.pov_character_combo.setCurrentText(self.current_pov_character)
+                return
+        else:
+            self.current_pov_character = value
+        self.pov_character_combo.setToolTip(f"POV Character: {self.current_pov_character}")
+        self.save_global_settings()
     
-    def set_tense(self):
-        options = ["Past Tense", "Present Tense", "Custom..."]
-        current_value = self.current_tense
-        try:
-            default_index = options.index(current_value)
-        except ValueError:
-            default_index = 0
-        item, ok = QInputDialog.getItem(self, "Select Tense", "Choose tense:", options, default_index, False)
-        if ok and item:
-            if item == "Custom...":
-                custom, ok2 = QInputDialog.getText(self, "Custom Tense", "Enter tense:", text=(current_value if current_value not in options else ""))
-                if ok2 and custom.strip():
-                    self.current_tense = custom.strip()
-                else:
-                    return
+    def handle_tense_change(self, index):
+        value = self.tense_combo.currentText()
+        if value == "Custom...":
+            custom, ok = QInputDialog.getText(
+                self, "Custom Tense", "Enter custom Tense:",
+                text=self.current_tense if self.current_tense not in ["Past Tense", "Present Tense"] else ""
+            )
+            if ok and custom.strip():
+                custom = custom.strip()
+                if self.tense_combo.findText(custom) == -1:
+                    self.tense_combo.insertItem(0, custom)
+                self.current_tense = custom
+                self.tense_combo.setCurrentText(custom)
             else:
-                self.current_tense = item
-            self.updateSettingTooltips()
-            self.save_global_settings()
-            QMessageBox.information(self, "Tense Set", f"Tense set to: {self.current_tense}")
+                self.tense_combo.setCurrentText(self.current_tense)
+                return
+        else:
+            self.current_tense = value
+        self.tense_combo.setToolTip(f"Tense: {self.current_tense}")
+        self.save_global_settings()
     
     def select_prose_prompt(self):
         prose_prompts = get_prose_prompts(self.project_name)
         if not prose_prompts:
-            default_prompt = ("You are collaborating with the author to write a scene. "
-                              "Write the scene in {pov} point of view, from the perspective of {pov_character}, and in {tense}.")
+            default_prompt = (
+                "You are collaborating with the author to write a scene. "
+                "Write the scene in {pov} point of view, from the perspective of {pov_character}, and in {tense}."
+            )
             self.current_prose_prompt = default_prompt
             self.current_prose_config = None
             QMessageBox.information(self, "Default Prompt Loaded", "No custom Prose prompts found. The default prompt has been loaded.")
@@ -792,8 +779,10 @@ class ProjectWindow(QMainWindow):
         if self.current_prose_prompt is not None:
             prose_prompt = self.current_prose_prompt
         else:
-            prose_prompt = ("You are collaborating with the author to write a scene. "
-                            "Write the scene in {pov} point of view, from the perspective of {pov_character}, and in {tense}.")
+            prose_prompt = (
+                "You are collaborating with the author to write a scene. "
+                "Write the scene in {pov} point of view, from the perspective of {pov_character}, and in {tense}."
+            )
         print("DEBUG: Using prose prompt:", repr(self.current_prose_prompt))
         
         pov = self.current_pov or "Third Person"
@@ -894,7 +883,7 @@ class ProjectWindow(QMainWindow):
         self.editor.mergeCurrentCharFormat(fmt)
     
     def toggle_tts(self):
-        global tts_engine  # Not used directly anymore; managed via tts_manager.
+        global tts_engine
         if self.tts_playing:
             tts_manager.stop()
             self.tts_playing = False
@@ -923,7 +912,7 @@ class ProjectWindow(QMainWindow):
     
     def start_autosave_timer(self):
         self.autosave_timer = QTimer(self)
-        self.autosave_timer.setInterval(300000)  # 5 minutes
+        self.autosave_timer.setInterval(300000)
         self.autosave_timer.timeout.connect(self.autosave_scene)
         self.autosave_timer.start()
     
@@ -941,16 +930,16 @@ class ProjectWindow(QMainWindow):
         content = self.editor.toPlainText()
         if not content.strip():
             return
-            
+        
         def sanitize(text):
             return re.sub(r'\W+', '', text)
-            
+        
         hierarchy = []
         item = current_item
         while item:
             hierarchy.insert(0, item.text(0).strip())
             item = item.parent()
-            
+        
         sanitized_hierarchy = [sanitize(x) for x in hierarchy]
         timestamp = time.strftime("%Y%m%d%H%M%S")
         filename = f"{sanitize(self.project_name)}-" + "-".join(sanitized_hierarchy) + f"_{timestamp}.txt"
@@ -958,7 +947,7 @@ class ProjectWindow(QMainWindow):
         
         if not os.path.exists(project_folder):
             os.makedirs(project_folder)
-            
+        
         filepath = os.path.join(project_folder, filename)
         
         try:
@@ -987,7 +976,6 @@ class ProjectWindow(QMainWindow):
             print("Error during autosave:", e)
 
 
-# For testing standalone.
 if __name__ == "__main__":
     from PyQt5.QtWidgets import QApplication
     import sys

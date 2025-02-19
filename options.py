@@ -163,6 +163,7 @@ class OptionsWindow(QDialog):
     def remove_provider_config(self, config_widget):
         """Remove a provider configuration widget."""
         self.provider_configs.remove(config_widget)
+        self.providers_layout.removeWidget(config_widget)
         config_widget.deleteLater()
 
     def load_settings(self):

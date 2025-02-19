@@ -380,7 +380,7 @@ class PromptsWindow(QDialog):
                     "text": default_prompts.get(cat, ""),
                     "default": True,
                     "provider": default_config["provider"],
-                    "model": default_config["model"],
+                    "model": default_config.get("model", "Local Model"),
                     "max_tokens": 2000,
                     "temperature": 0.7
                 })
@@ -390,7 +390,7 @@ class PromptsWindow(QDialog):
                     if "provider" not in prompt:
                         prompt["provider"] = default_config["provider"]
                     if "model" not in prompt:
-                        prompt["model"] = default_config["model"]
+                        prompt["model"] = default_config.get("model", "Local Model")
                     if "max_tokens" not in prompt:
                         prompt["max_tokens"] = 2000
                     if "temperature" not in prompt:

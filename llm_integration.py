@@ -51,6 +51,8 @@ def send_prompt_to_llm(final_prompt, overrides=None, conversation_history=None):
         llm_settings["endpoint"] = "http://localhost:1234/v1/chat/completions"
     elif llm_settings.get("provider") == "OpenRouter":
         llm_settings["endpoint"] = "https://openrouter.ai/api/v1/chat/completions"
+    elif llm_settings.get("provider") == "Ollama":
+        llm_settings["endpoint"] = "http://localhost:11434/v1/chat/completions"
     
     provider = llm_settings.get("provider", "Local")
     endpoint = llm_settings.get("endpoint", "http://localhost:1234/v1/chat/completions")

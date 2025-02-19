@@ -64,8 +64,10 @@ class ModelFetcher(QObject):
             self._fetch_openai_models(config)
         elif provider == "TogetherAI":
             self._fetch_togetherai_models(config)
+        elif provider == "Ollama":
+            self._fetch_ollama_models(config)
         else:
-            self._return_default_models(provider)
+            self._fetch_custom_provider_models(provider, config)
 
     def _fetch_openrouter_models(self, config):
         """Fetch models from OpenRouter API."""
@@ -82,14 +84,12 @@ class ModelFetcher(QObject):
             )
             if response.status_code == 200:
                 models_data = response.json()
-                # If the response is a dict with a "data" key, use that list.
                 if isinstance(models_data, dict) and "data" in models_data:
                     models_list = models_data["data"]
                 elif isinstance(models_data, list):
                     models_list = models_data
                 else:
                     raise ValueError(f"Expected a list or dict with 'data', but got {type(models_data).__name__}")
-                # Extract the "id" from each model in the list.
                 model_list = [model["id"] for model in models_list if "id" in model]
                 self._save_cache("OpenRouter", model_list)
                 self.models_updated.emit(model_list, "")
@@ -119,14 +119,12 @@ class ModelFetcher(QObject):
             )
             if response.status_code == 200:
                 models_data = response.json()
-                # Expecting a dict with a "data" key containing model objects
                 if isinstance(models_data, dict) and "data" in models_data:
                     models_list = models_data["data"]
                 elif isinstance(models_data, list):
                     models_list = models_data
                 else:
                     raise ValueError(f"Unexpected response structure: {type(models_data).__name__}")
-                # Extract the "id" from each model in the list
                 model_list = [model["id"] for model in models_list if "id" in model]
                 self._save_cache("OpenAI", model_list)
                 self.models_updated.emit(model_list, "")
@@ -148,6 +146,64 @@ class ModelFetcher(QObject):
         self._save_cache("TogetherAI", models)
         self.models_updated.emit(models, "")
 
+    def _fetch_ollama_models(self, config):
+        """Fetch models from Ollama API dynamically."""
+        try:
+            # Derive the models endpoint from the configured completions endpoint.
+            endpoint = config.get('endpoint', 'http://localhost:11434/v1/chat/completions')
+            models_endpoint = endpoint.replace('/chat/completions', '/models')
+            response = requests.get(models_endpoint, timeout=10)
+            if response.status_code == 200:
+                models_data = response.json()
+                if isinstance(models_data, dict) and "models" in models_data:
+                    model_list = models_data["models"]
+                elif isinstance(models_data, list):
+                    model_list = models_data
+                else:
+                    raise ValueError("Unexpected response structure for Ollama models.")
+                self._save_cache("Ollama", model_list)
+                self.models_updated.emit(model_list, "")
+            else:
+                error_msg = f"Error fetching Ollama models (Status {response.status_code})"
+                self._return_default_models("Ollama", error_msg)
+        except requests.RequestException as e:
+            error_msg = f"Network error: {str(e)}"
+            self._return_default_models("Ollama", error_msg)
+        except Exception as e:
+            error_msg = f"Unexpected error: {str(e)}"
+            self._return_default_models("Ollama", error_msg)
+
+    def _fetch_custom_provider_models(self, provider, config):
+        """Attempt to fetch models dynamically for any custom provider."""
+        try:
+            endpoint = config.get('endpoint', '')
+            if not endpoint:
+                raise ValueError("No endpoint provided for custom provider.")
+            if '/chat/completions' in endpoint:
+                models_endpoint = endpoint.replace('/chat/completions', '/models')
+            else:
+                models_endpoint = endpoint.rstrip('/') + '/models'
+            response = requests.get(models_endpoint, timeout=10)
+            if response.status_code == 200:
+                models_data = response.json()
+                if isinstance(models_data, dict) and "models" in models_data:
+                    model_list = models_data["models"]
+                elif isinstance(models_data, list):
+                    model_list = models_data
+                else:
+                    raise ValueError("Unexpected response structure for custom provider models.")
+                self._save_cache(provider, model_list)
+                self.models_updated.emit(model_list, "")
+            else:
+                error_msg = f"Error fetching models (Status {response.status_code})"
+                self._return_default_models(provider, error_msg)
+        except requests.RequestException as e:
+            error_msg = f"Network error: {str(e)}"
+            self._return_default_models(provider, error_msg)
+        except Exception as e:
+            error_msg = f"Unexpected error: {str(e)}"
+            self._return_default_models(provider, error_msg)
+
     def _return_default_models(self, provider, error_msg=""):
         """Return default models for a provider when API fails."""
         default_models = {
@@ -159,6 +215,7 @@ class ModelFetcher(QObject):
                 "meta-llama/llama-2-70b-chat"
             ],
             "Local": ["Local Model"],
+            "Ollama": ["Ollama Model"]
         }
         models = default_models.get(provider, ["Default Model"])
         self.models_updated.emit(models, error_msg)

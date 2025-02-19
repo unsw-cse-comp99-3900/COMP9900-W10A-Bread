@@ -20,9 +20,9 @@ class ProviderConfigWidget(QWidget):
         self.name_edit = QLineEdit()
         layout.addRow("Configuration Name:", self.name_edit)
         
-        # Provider selection
+        # Provider selection, now including Ollama
         self.provider_combo = QComboBox()
-        self.provider_combo.addItems(["Local", "OpenAI", "OpenRouter", "TogetherAI", "Custom"])
+        self.provider_combo.addItems(["Local", "OpenAI", "OpenRouter", "TogetherAI", "Ollama", "Custom"])
         self.provider_combo.currentTextChanged.connect(self.on_provider_changed)
         layout.addRow("Provider:", self.provider_combo)
         
@@ -59,6 +59,8 @@ class ProviderConfigWidget(QWidget):
             self.endpoint_edit.setText("https://openrouter.ai/api/v1/chat/completions")
         elif provider == "TogetherAI":
             self.endpoint_edit.setText("https://api.together.xyz/v1/chat/completions")
+        elif provider == "Ollama":
+            self.endpoint_edit.setText("http://localhost:11434/v1/chat/completions")
         else:
             self.endpoint_edit.setText("")
 
@@ -121,7 +123,7 @@ class OptionsWindow(QDialog):
         general_group.setLayout(general_layout)
         self.layout.addWidget(general_group)
         
-        # Provider Configurations Group (Active configuration menu removed)
+        # Provider Configurations Group
         providers_group = QGroupBox("Provider Configurations")
         self.providers_layout = QVBoxLayout()
         

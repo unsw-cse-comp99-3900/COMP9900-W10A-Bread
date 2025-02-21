@@ -28,6 +28,7 @@ class ProviderConfigWidget(QWidget):
         
         # Endpoint URL
         self.endpoint_edit = QLineEdit()
+        self.endpoint_edit.setMinimumWidth(350)
         layout.addRow("Endpoint URL:", self.endpoint_edit)
         
         # API Key

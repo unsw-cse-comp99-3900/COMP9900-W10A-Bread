@@ -8,7 +8,13 @@
             "New York": "Details about New York."
         },
         "Items": {
-            "Ancient Key": "Details about the Ancient Key."
+            "Ancient Key": "Details about the Ancient Key.",
+            "Test Item": "test test 1 2 3"
         }
-    }
+    },
+    "category_order": [
+        "Characters",
+        "Locations",
+        "Items"
+    ]
 }

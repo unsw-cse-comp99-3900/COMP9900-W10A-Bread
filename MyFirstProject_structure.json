@@ -13,6 +13,10 @@
                         {
                             "content": "As she stepped into the dimly lit alleyway, Lena's eyes adjusted slowly to the faint glow emanating from the flickering streetlights above. The air was heavy with the scent of damp concrete and decaying trash, a morbid perfume that clung to her skin like a bad omen.\n\nHer heels clicked against the wet pavement, echoing off the towering brick walls on either side as she made her way deeper into the narrow passageway. She felt a shiver run down her spine, but it wasn't just from the chill in the air.\n\nLena's mind was racing with possibilities - and worst-case scenarios - as she navigated the treacherous terrain of her own thoughts. Had she made a mistake by coming here alone? And what exactly did she hope to find in this forsaken place?\n\nAs she turned a corner, the sound of distant music drifted through the air, mingling with the cacophony of car horns and murmuring voices from the city streets beyond. Lena's heart quickened, her senses on high alert as she recognized the unmistakable beat of The Whiskey Wanderers.\n\nShe had been searching for their lead guitarist, Axel, for weeks now - ever since his mysterious disappearance from the music scene. And rumor had it that he was hiding in plain sight, tucked away in this very neighborhood like a ghost in the shadows.\n\nLena's eyes scanned the crowded room as she pushed open the creaky door to The Whiskey Wanderers' favorite dive bar. It was a dingy, rundown joint, but one thing was for sure - if Axel was here tonight, she would find him.",
                             "name": "Scene 2"
+                        },
+                        {
+                            "content": "This is the scene content for Scene 3.",
+                            "name": "Scene 3"
                         }
                     ],
                     "summary": "Alice leaves her home, filled with memories, for the unknown. Lena searches for a missing guitarist in a shady part of town, ready to confront whatever lies ahead."
@@ -44,6 +48,16 @@
                         }
                     ],
                     "summary": "This is the summary for Chapter 3."
+                },
+                {
+                    "name": "Chapter 4",
+                    "scenes": [
+                        {
+                            "content": "\nTo better assist you in writing this scene in Third Person Limited point of view and Past Tense, I need some information on Alice's character. \n\nPlease provide me with details such as:\n\n- Age\n- Personality traits (e.g., introverted, optimistic)\n- Goals or motivations for leaving her home\n- Any specific habits or quirks that could be used to describe her in this scene\n- Her background and where she is headed\n\nWith these details, I can proceed with writing the next part of the scene.",
+                            "name": "Scene 1"
+                        }
+                    ],
+                    "summary": "This is the summary for Chapter 4."
                 }
             ],
             "name": "Act 1",
@@ -53,6 +67,11 @@
             "chapters": [],
             "name": "Act 2",
             "summary": "This is the summary for Act 2."
+        },
+        {
+            "chapters": [],
+            "name": "Act 3",
+            "summary": "This is the summary for Act 3."
         }
     ]
 }

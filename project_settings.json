@@ -1,6 +1,5 @@
 {
     "My First Project": {
-        "autosave": true,
         "global_pov": "Third Person Limited",
         "global_pov_character": "Alice",
         "global_tense": "Past Tense"

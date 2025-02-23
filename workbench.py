@@ -182,7 +182,7 @@ class WorkbenchWindow(QMainWindow):
         header_layout = QHBoxLayout(header_container)
         header_layout.setContentsMargins(0, 0, 0, 0)
 
-        header_label = QLabel("My Projects")
+        header_label = QLabel("")
         header_label.setObjectName("headerLabel")
         header_label.setAlignment(Qt.AlignCenter)
         header_layout.addWidget(header_label)

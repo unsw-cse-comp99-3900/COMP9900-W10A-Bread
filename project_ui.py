@@ -185,14 +185,16 @@ def build_main_ui(window):
     window.prompt_input.setPlaceholderText("Enter your action beats here...")
     window.prompt_input.setMinimumHeight(100)
     left_layout.addWidget(window.prompt_input)
-    left_buttons_layout = QHBoxLayout(left_container)
+    # Create a horizontal layout for buttons and add it to left_layout instead of reassigning to left_container.
+    left_buttons_layout = QHBoxLayout()
+    left_layout.addLayout(left_buttons_layout)
     window.prompt_dropdown = QComboBox()
     window.prompt_dropdown.setToolTip("Select a prose prompt")
     window.prompt_dropdown.addItem("Select Prose Prompt")
     window.prompt_dropdown.currentIndexChanged.connect(
         window.prompt_dropdown_changed)
     left_buttons_layout.addWidget(window.prompt_dropdown)
-    # Create the Send button if it doesn't already exist
+    # Create the Send button
     window.send_button = QPushButton("Send")
     window.send_button.setToolTip("Send the prompt to the LLM")
     window.send_button.clicked.connect(window.send_prompt)
@@ -209,7 +211,7 @@ def build_main_ui(window):
     window.model_indicator.setToolTip("Selected prompt's model")
     left_buttons_layout.addWidget(window.model_indicator)
     left_buttons_layout.addStretch()
-    left_layout.addLayout(left_buttons_layout)
+    left_layout.addStretch()
     input_context_layout.addWidget(left_container, stretch=2)
     window.context_panel = ContextPanel(window.structure, window.project_name)
     window.context_panel.setVisible(False)

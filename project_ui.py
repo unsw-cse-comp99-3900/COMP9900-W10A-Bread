@@ -27,6 +27,11 @@ def build_main_ui(window):
     workshop_action.setStatusTip("Open Workshop Chat")
     workshop_action.triggered.connect(window.open_workshop)
     toolbar.addAction(workshop_action)
+    focus_mode_action = QAction(
+        QIcon("assets/icons/maximize-2.svg"), "Focus Mode", window)
+    focus_mode_action.setStatusTip("Enter Focus Mode")
+    focus_mode_action.triggered.connect(window.open_focus_mode)
+    toolbar.addAction(focus_mode_action)
     main_splitter = QSplitter(Qt.Horizontal)
     window.tree = QTreeWidget()
     window.tree.setHeaderLabel("Project Structure")

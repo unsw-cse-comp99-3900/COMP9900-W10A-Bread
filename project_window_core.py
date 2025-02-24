@@ -6,9 +6,9 @@ import json
 import re
 import threading
 import pyttsx3
-from PyQt5.QtWidgets import QMainWindow, QInputDialog, QMenu, QMessageBox, QApplication, QDialog, QFontDialog
+from PyQt5.QtWidgets import QMainWindow, QInputDialog, QMenu, QMessageBox, QApplication, QDialog, QFontDialog, QShortcut
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont, QTextCharFormat, QIcon
+from PyQt5.QtGui import QFont, QTextCharFormat, QIcon, QKeySequence
 from compendium import CompendiumWindow
 from workshop import WorkshopWindow
 from llm_integration import send_prompt_to_llm, build_final_prompt
@@ -51,6 +51,10 @@ class ProjectWindow(QMainWindow):
                     self.tree.setCurrentItem(chapter_item.child(0))
         self.updateSettingTooltips()
         self.populate_prompt_dropdown()
+
+        # NEW: Bind F11 key to open focus mode
+        self.focus_mode_shortcut = QShortcut(QKeySequence("F11"), self)
+        self.focus_mode_shortcut.activated.connect(self.open_focus_mode)
 
     def updateSettingTooltips(self):
         self.pov_combo.setToolTip(f"POV: {self.current_pov}")
@@ -614,6 +618,24 @@ class ProjectWindow(QMainWindow):
 
     def perform_tts(self):
         self.toggle_tts()
+
+    # NEW: Methods for Focus Mode integration
+    def open_focus_mode(self):
+        # Retrieve current scene text from the editor
+        scene_text = self.editor.toPlainText()
+        # Determine the directory for background images
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        image_directory = os.path.join(base_dir, "assets", "backgrounds")
+        # Create the FocusMode window with no parent to ensure it is top-level and full-screen
+        from focus_mode import FocusMode
+        self.focus_window = FocusMode(image_directory, scene_text, parent=None)
+        # Set the callback to receive updated text when focus mode closes
+        self.focus_window.on_close = self.focus_mode_closed
+        self.focus_window.show()
+
+    def focus_mode_closed(self, updated_text):
+        # Update the scene text with changes from Focus Mode
+        self.editor.setPlainText(updated_text)
 
 
 if __name__ == "__main__":

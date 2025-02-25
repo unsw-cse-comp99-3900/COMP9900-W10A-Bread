@@ -51,7 +51,11 @@ class ModelFetcher(QObject):
             print(f"Error saving cache: {e}")
 
     def fetch_models(self, provider, config=None, force_refresh=False):
-        """Fetch models for the specified provider."""
+        # Immediately handle the Local provider by returning the default model.
+        if provider == "Local":
+            self.models_updated.emit(["Local Model"], "")
+            return
+
         if not force_refresh:
             cached_models = self._load_cache(provider)
             if cached_models:

@@ -472,7 +472,8 @@ class PromptsWindow(QDialog):
 
     def save_prompts(self):
         """Save all prompts to file."""
-        current_item = getattr(self, "current_prompt_item", None)
+        # Get the currently selected item directly from the tree widget.
+        current_item = self.tree.currentItem()
         prompt_name = None
         if current_item:
             data = current_item.data(0, Qt.UserRole)
@@ -516,10 +517,10 @@ class PromptsWindow(QDialog):
                 json.dump(self.prompts_data, f, indent=4)
             QMessageBox.information(self, "Save All", "Prompts saved successfully.")
             
-            # Refresh the tree
+            # Refresh the tree. This will rebuild all items, so we must avoid holding on to any old references.
             self.refresh_tree()
 
-            # Re-select the prompt so the UI updates
+            # Re-select the prompt so the UI updates properly.
             if prompt_name:
                 self.reselect_prompt_by_name(prompt_name)
 

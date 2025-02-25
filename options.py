@@ -1,26 +1,31 @@
 import json
 import os
+import requests  # Ensure the requests library is installed (pip install requests)
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QLabel, QCheckBox, QLineEdit, QPushButton, 
-    QHBoxLayout, QComboBox, QSpinBox, QGroupBox, QFormLayout,
-    QMessageBox, QWidget, QScrollArea
+    QDialog, QVBoxLayout, QLabel, QCheckBox, QLineEdit, QPushButton,
+    QHBoxLayout, QComboBox, QSpinBox, QFormLayout, QMessageBox,
+    QWidget, QScrollArea, QGroupBox
 )
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 from theme_manager import ThemeManager  # Importing our theme manager module
 
 SETTINGS_FILE = "settings.json"
 
 class ProviderConfigWidget(QWidget):
-    """Widget for configuring a single provider."""
+    """Widget for configuring a single provider, with test connection capability."""
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QFormLayout(self)
+        layout.setLabelAlignment(Qt.AlignLeft)
+        layout.setHorizontalSpacing(20)
+        layout.setVerticalSpacing(10)
         
         # Configuration name
         self.name_edit = QLineEdit()
         layout.addRow("Configuration Name:", self.name_edit)
         
-        # Provider selection, now including Ollama
+        # Provider selection, including Ollama
         self.provider_combo = QComboBox()
         self.provider_combo.addItems(["Local", "OpenAI", "OpenRouter", "TogetherAI", "Ollama", "Custom"])
         self.provider_combo.currentTextChanged.connect(self.on_provider_changed)
@@ -31,7 +36,7 @@ class ProviderConfigWidget(QWidget):
         self.endpoint_edit.setMinimumWidth(350)
         layout.addRow("Endpoint URL:", self.endpoint_edit)
         
-        # API Key
+        # API Key (monospaced can be set via stylesheet if needed)
         self.api_key_edit = QLineEdit()
         self.api_key_edit.setEchoMode(QLineEdit.Password)
         layout.addRow("API Key:", self.api_key_edit)
@@ -42,12 +47,23 @@ class ProviderConfigWidget(QWidget):
         self.timeout_spin.setValue(60)
         layout.addRow("Timeout (seconds):", self.timeout_spin)
         
-        # Delete button
+        # Buttons layout for Test Connection and Delete
+        buttons_layout = QHBoxLayout()
+        
+        # Test Connection Button with icon
+        self.test_button = QPushButton("Test Connection")
+        self.test_button.setIcon(QIcon("assets/icons/refresh-ccw.svg"))
+        self.test_button.clicked.connect(self.test_connection)
+        buttons_layout.addWidget(self.test_button)
+        
+        # Delete Configuration Button styled in red
         self.delete_button = QPushButton("Delete Configuration")
         self.delete_button.setStyleSheet("color: red;")
-        layout.addRow("", self.delete_button)
+        buttons_layout.addWidget(self.delete_button)
+        
+        layout.addRow("", buttons_layout)
 
-        # Initially set default endpoint based on provider
+        # Set default endpoint based on initial provider selection
         self.on_provider_changed(self.provider_combo.currentText())
 
     def on_provider_changed(self, provider):
@@ -65,8 +81,37 @@ class ProviderConfigWidget(QWidget):
         else:
             self.endpoint_edit.setText("")
 
+    def test_connection(self):
+        """Test the connection to the configured endpoint."""
+        provider = self.provider_combo.currentText()
+        url = self.endpoint_edit.text().strip()
+        if not url:
+            QMessageBox.warning(self, "Test Connection", "Please enter an endpoint URL.")
+            return
+        
+        headers = {}
+        api_key = self.api_key_edit.text().strip()
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        
+        # For OpenRouter, test using the models endpoint.
+        test_url = url
+        if provider == "OpenRouter":
+            test_url = url.replace("/chat/completions", "/models")
+            headers["HTTP-Referer"] = "http://localhost:1234"
+        
+        try:
+            response = requests.get(test_url, headers=headers, timeout=self.timeout_spin.value())
+            if response.status_code == 200:
+                QMessageBox.information(self, "Test Connection", "Connection successful!")
+            else:
+                QMessageBox.warning(self, "Test Connection", 
+                                    f"Connection failed with status code: {response.status_code}")
+        except Exception as e:
+            QMessageBox.critical(self, "Test Connection", f"Error testing connection: {str(e)}")
+
     def get_config(self):
-        """Get the configuration as a dictionary."""
+        """Return the configuration as a dictionary."""
         return {
             "name": self.name_edit.text().strip(),
             "provider": self.provider_combo.currentText(),
@@ -84,6 +129,7 @@ class ProviderConfigWidget(QWidget):
         self.timeout_spin.setValue(config.get("timeout", 60))
 
 class OptionsWindow(QDialog):
+    """The main options/settings window with a clean and modern look."""
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Options")
@@ -94,15 +140,19 @@ class OptionsWindow(QDialog):
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(15)
         
-        # Create scrollable area
+        # Create a scrollable area for all options
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll_widget = QWidget()
         self.layout = QVBoxLayout(scroll_widget)
+        self.layout.setSpacing(20)
         
-        # Appearance Settings Group - Moved to the top for prominence
+        # Appearance Settings Group
         appearance_group = QGroupBox("Appearance Settings")
+        appearance_group.setStyleSheet("QGroupBox { font-weight: bold; font-size: 14px; }")
         appearance_layout = QVBoxLayout()
         self.theme_label = QLabel("Select Theme:")
         appearance_layout.addWidget(self.theme_label)
@@ -114,11 +164,10 @@ class OptionsWindow(QDialog):
         
         # General Settings Group
         general_group = QGroupBox("General Settings")
+        general_group.setStyleSheet("QGroupBox { font-weight: bold; font-size: 14px; }")
         general_layout = QVBoxLayout()
         self.tts_speed_checkbox = QCheckBox("Enable fast TTS")
         general_layout.addWidget(self.tts_speed_checkbox)
-        
-        # Auto-save toggle
         self.autosave_checkbox = QCheckBox("Enable Auto-Save")
         general_layout.addWidget(self.autosave_checkbox)
         general_group.setLayout(general_layout)
@@ -126,20 +175,20 @@ class OptionsWindow(QDialog):
         
         # Provider Configurations Group
         providers_group = QGroupBox("Provider Configurations")
+        providers_group.setStyleSheet("QGroupBox { font-weight: bold; font-size: 14px; }")
         self.providers_layout = QVBoxLayout()
-        
+        self.providers_layout.setSpacing(10)
         # Add New Configuration button
         add_config_btn = QPushButton("Add New Configuration")
         add_config_btn.clicked.connect(self.add_provider_config)
         self.providers_layout.addWidget(add_config_btn)
-        
         providers_group.setLayout(self.providers_layout)
         self.layout.addWidget(providers_group)
         
         scroll.setWidget(scroll_widget)
         main_layout.addWidget(scroll)
         
-        # Bottom buttons
+        # Bottom buttons for saving or canceling
         button_layout = QHBoxLayout()
         save_button = QPushButton("Save")
         cancel_button = QPushButton("Cancel")
@@ -156,10 +205,8 @@ class OptionsWindow(QDialog):
         if config:
             config_widget.set_config(config)
         
-        # Connect delete button
+        # Connect the delete button to remove the widget
         config_widget.delete_button.clicked.connect(lambda: self.remove_provider_config(config_widget))
-        
-        # Add to layout and list
         self.provider_configs.append(config_widget)
         self.providers_layout.insertWidget(self.providers_layout.count() - 1, config_widget)
 
@@ -175,22 +222,16 @@ class OptionsWindow(QDialog):
             try:
                 with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
                     settings = json.load(f)
-                
                 # Load appearance setting
                 theme = settings.get("theme", "Standard")
                 self.theme_combo.setCurrentText(theme)
-                
                 # Load general settings
                 self.tts_speed_checkbox.setChecked(settings.get("tts_fast", False))
                 self.autosave_checkbox.setChecked(settings.get("autosave", False))
-                
                 # Load provider configurations
                 provider_configs = settings.get("llm_configs", [])
-                
-                # Create widgets for each configuration
                 for config in provider_configs:
                     self.add_provider_config(config)
-                
             except Exception as e:
                 print("Error loading settings:", e)
                 QMessageBox.warning(self, "Error", f"Error loading settings: {str(e)}")
@@ -205,12 +246,11 @@ class OptionsWindow(QDialog):
                 name = f"Unnamed Configuration {i}"
                 config.name_edit.setText(name)
             if name in names:
-                QMessageBox.warning(self, "Validation Error", 
-                                  f"Configuration name '{name}' is used multiple times.")
+                QMessageBox.warning(self, "Validation Error",
+                                    f"Configuration name '{name}' is used multiple times.")
                 return
             names.append(name)
         
-        # Build settings dictionary without active_llm_config
         settings = {
             "theme": self.theme_combo.currentText(),
             "tts_fast": self.tts_speed_checkbox.isChecked(),
@@ -221,7 +261,6 @@ class OptionsWindow(QDialog):
         try:
             with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
                 json.dump(settings, f, indent=4)
-            # Apply the selected theme immediately
             ThemeManager.apply_to_app(self.theme_combo.currentText())
             self.accept()
             QMessageBox.information(self, "Settings Saved", "Settings have been saved successfully.")
@@ -229,8 +268,7 @@ class OptionsWindow(QDialog):
             print("Error saving settings:", e)
             QMessageBox.critical(self, "Error", f"Failed to save settings: {str(e)}")
 
-
-# For testing standalone
+# For testing the options window standalone
 if __name__ == "__main__":
     from PyQt5.QtWidgets import QApplication
     import sys

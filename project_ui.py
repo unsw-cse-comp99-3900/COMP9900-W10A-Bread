@@ -10,33 +10,40 @@ from context_panel import ContextPanel
 
 def build_main_ui(window):
     window.setStatusBar(window.statusBar())
-    toolbar = QToolBar("Main Toolbar")
-    window.addToolBar(toolbar)
-    compendium_action = QAction(
-        QIcon("assets/icons/book.svg"), "Compendium", window)
-    compendium_action.setStatusTip(
-        "Opens the Compendium, to view and edit your worldbuilding database")
+
+    # Global Actions Toolbar (always visible)
+    global_toolbar = QToolBar("Global Actions")
+    window.addToolBar(global_toolbar)
+
+    compendium_action = QAction(QIcon("assets/icons/book.svg"), "", window)
+    compendium_action.setToolTip(
+        "Compendium: Opens the Compendium to view and edit your worldbuilding database")
     compendium_action.triggered.connect(window.open_compendium)
-    toolbar.addAction(compendium_action)
+    global_toolbar.addAction(compendium_action)
+
     prompt_options_action = QAction(
-        QIcon("assets/icons/settings.svg"), "Prompt Options", window)
-    prompt_options_action.setStatusTip(
-        "Configure your writing prompts and LLM settings")
+        QIcon("assets/icons/settings.svg"), "", window)
+    prompt_options_action.setToolTip(
+        "Prompt Options: Configure your writing prompts and LLM settings")
     prompt_options_action.triggered.connect(window.open_prompts_window)
-    toolbar.addAction(prompt_options_action)
+    global_toolbar.addAction(prompt_options_action)
+
     workshop_action = QAction(
-        QIcon("assets/icons/message-square.svg"), "Workshop", window)
-    workshop_action.setStatusTip(
-        "Opens the Workshop Chat, where you can chat directly with your chosen LLM")
+        QIcon("assets/icons/message-square.svg"), "", window)
+    workshop_action.setToolTip("Workshop Chat: Opens the Workshop Chat")
     workshop_action.triggered.connect(window.open_workshop)
-    toolbar.addAction(workshop_action)
+    global_toolbar.addAction(workshop_action)
+
     focus_mode_action = QAction(
-        QIcon("assets/icons/maximize-2.svg"), "Focus Mode", window)
-    focus_mode_action.setStatusTip(
-        "Press button or F11 to enter Focus Mode, F12 to cycle through images")
+        QIcon("assets/icons/maximize-2.svg"), "", window)
+    focus_mode_action.setToolTip("Focus Mode: Enter Focus Mode")
     focus_mode_action.triggered.connect(window.open_focus_mode)
-    toolbar.addAction(focus_mode_action)
+    global_toolbar.addAction(focus_mode_action)
+
+    # Main layout: Left is the project tree, right is the editor area and toolbars
     main_splitter = QSplitter(Qt.Horizontal)
+
+    # Project tree on the left
     window.tree = QTreeWidget()
     window.tree.setHeaderLabel("Project Structure")
     window.tree.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -45,52 +52,63 @@ def build_main_ui(window):
     window.populate_tree()
     window.tree.currentItemChanged.connect(window.tree_item_changed)
     main_splitter.addWidget(window.tree)
-    top_right = QWidget()
-    top_right_layout = QVBoxLayout(top_right)
-    window.formatting_toolbar = QHBoxLayout()
-    bold_button = QPushButton()
-    bold_button.setCheckable(True)
-    bold_button.setIcon(QIcon("assets/icons/bold.svg"))
-    bold_button.setToolTip("Bold")
-    bold_button.clicked.connect(window.toggle_bold)
-    window.formatting_toolbar.addWidget(bold_button)
-    italic_button = QPushButton()
-    italic_button.setCheckable(True)
-    italic_button.setIcon(QIcon("assets/icons/italic.svg"))
-    italic_button.setToolTip("Italic")
-    italic_button.clicked.connect(window.toggle_italic)
-    window.formatting_toolbar.addWidget(italic_button)
-    underline_button = QPushButton()
-    underline_button.setCheckable(True)
-    underline_button.setIcon(QIcon("assets/icons/underline.svg"))
-    underline_button.setToolTip("Underline")
-    underline_button.clicked.connect(window.toggle_underline)
-    window.formatting_toolbar.addWidget(underline_button)
-    window.tts_button = QPushButton()
-    window.tts_button.setIcon(QIcon("assets/icons/play-circle.svg"))
-    window.tts_button.setToolTip("Play TTS (or Stop if playing)")
-    window.tts_button.clicked.connect(window.toggle_tts)
-    window.formatting_toolbar.addWidget(window.tts_button)
-    align_left_button = QPushButton()
-    align_left_button.setIcon(QIcon("assets/icons/align-left.svg"))
-    align_left_button.setToolTip("Align text to the left")
-    align_left_button.clicked.connect(window.align_left)
-    window.formatting_toolbar.addWidget(align_left_button)
-    align_center_button = QPushButton()
-    align_center_button.setIcon(QIcon("assets/icons/align-center.svg"))
-    align_center_button.setToolTip("Center align text")
-    align_center_button.clicked.connect(window.align_center)
-    window.formatting_toolbar.addWidget(align_center_button)
-    align_right_button = QPushButton()
-    align_right_button.setIcon(QIcon("assets/icons/align-right.svg"))
-    align_right_button.setToolTip("Align text to the right")
-    align_right_button.clicked.connect(window.align_right)
-    window.formatting_toolbar.addWidget(align_right_button)
+
+    # Right side: Editor area with an Editor Toolbar on top
+    right_side = QWidget()
+    right_layout = QVBoxLayout(right_side)
+
+    # Editor Toolbar: Merges formatting actions and scene-specific controls
+    editor_toolbar = QToolBar("Editor Toolbar", window)
+
+    # --- Formatting Actions ---
+    bold_action = QAction(QIcon("assets/icons/bold.svg"), "", window)
+    bold_action.setToolTip("Bold")
+    bold_action.setCheckable(True)
+    bold_action.triggered.connect(window.toggle_bold)
+    editor_toolbar.addAction(bold_action)
+
+    italic_action = QAction(QIcon("assets/icons/italic.svg"), "", window)
+    italic_action.setToolTip("Italic")
+    italic_action.setCheckable(True)
+    italic_action.triggered.connect(window.toggle_italic)
+    editor_toolbar.addAction(italic_action)
+
+    underline_action = QAction(QIcon("assets/icons/underline.svg"), "", window)
+    underline_action.setToolTip("Underline")
+    underline_action.setCheckable(True)
+    underline_action.triggered.connect(window.toggle_underline)
+    editor_toolbar.addAction(underline_action)
+
+    tts_action = QAction(QIcon("assets/icons/play-circle.svg"), "", window)
+    tts_action.setToolTip("Play TTS (or Stop if playing)")
+    tts_action.triggered.connect(window.toggle_tts)
+    editor_toolbar.addAction(tts_action)
+
+    align_left_action = QAction(
+        QIcon("assets/icons/align-left.svg"), "", window)
+    align_left_action.setToolTip("Align Left")
+    align_left_action.triggered.connect(window.align_left)
+    editor_toolbar.addAction(align_left_action)
+
+    align_center_action = QAction(
+        QIcon("assets/icons/align-center.svg"), "", window)
+    align_center_action.setToolTip("Center Align")
+    align_center_action.triggered.connect(window.align_center)
+    editor_toolbar.addAction(align_center_action)
+
+    align_right_action = QAction(
+        QIcon("assets/icons/align-right.svg"), "", window)
+    align_right_action.setToolTip("Align Right")
+    align_right_action.triggered.connect(window.align_right)
+    editor_toolbar.addAction(align_right_action)
+
+    # Font selection widgets as part of the toolbar
     font_combo = QFontComboBox()
     font_combo.setToolTip("Select a font")
     font_combo.currentFontChanged.connect(
         lambda font: window.editor.setCurrentFont(font))
-    window.formatting_toolbar.addWidget(font_combo)
+    editor_toolbar.addWidget(font_combo)
+
     font_size_combo = QComboBox()
     font_sizes = [10, 12, 14, 16, 18, 20, 24, 28, 32]
     for size in font_sizes:
@@ -99,34 +117,27 @@ def build_main_ui(window):
     font_size_combo.setToolTip("Select font size")
     font_size_combo.currentIndexChanged.connect(
         lambda: window.set_font_size(int(font_size_combo.currentText())))
-    window.formatting_toolbar.addWidget(font_size_combo)
-    window.formatting_toolbar.addStretch()
-    top_right_layout.addLayout(window.formatting_toolbar)
-    window.editor = QTextEdit()
-    window.editor.setPlaceholderText("Select a node to edit its content...")
-    top_right_layout.addWidget(window.editor)
-    window.editor.setContextMenuPolicy(Qt.CustomContextMenu)
-    window.editor.customContextMenuRequested.connect(
-        window.show_editor_context_menu)
-    window.scene_settings_toolbar = QWidget()
-    scene_settings_layout = QHBoxLayout(window.scene_settings_toolbar)
-    save_group = QWidget()
-    save_layout = QHBoxLayout(save_group)
-    window.manual_save_button = QPushButton("Manual Save")
-    window.manual_save_button.setToolTip("Manually save the current scene")
-    window.manual_save_button.clicked.connect(window.manual_save_scene)
-    save_layout.addWidget(window.manual_save_button)
-    window.oh_shit_button = QPushButton("Oh Shit")
-    window.oh_shit_button.setToolTip("Show backup versions for this scene")
-    window.oh_shit_button.clicked.connect(window.on_oh_shit)
-    save_layout.addWidget(window.oh_shit_button)
-    save_layout.addStretch()
+    editor_toolbar.addWidget(font_size_combo)
 
-    # Updated dropdowns for Perspective, Character, and Tense with placeholders.
-    pov_group = QWidget()
-    pov_layout = QHBoxLayout(pov_group)
+    # --- Separator between formatting and scene-specific controls ---
+    editor_toolbar.addSeparator()
 
-    # Perspective dropdown
+    # --- Scene-Specific Actions ---
+    manual_save_action = QAction(QIcon("assets/icons/save.svg"), "", window)
+    manual_save_action.setToolTip(
+        "Manual Save: Manually save the current scene")
+    manual_save_action.triggered.connect(window.manual_save_scene)
+    editor_toolbar.addAction(manual_save_action)
+
+    oh_shit_action = QAction(QIcon("assets/icons/share.svg"), "", window)
+    oh_shit_action.setToolTip("Oh Shit: Show backup versions for this scene")
+    oh_shit_action.triggered.connect(window.on_oh_shit)
+    editor_toolbar.addAction(oh_shit_action)
+
+    # --- Separator for scene settings (POV, Character, Tense) ---
+    editor_toolbar.addSeparator()
+
+    # POV dropdown
     window.pov_combo = QComboBox()
     window.pov_combo.setEditable(True)
     window.pov_combo.lineEdit().setReadOnly(True)
@@ -138,9 +149,9 @@ def build_main_ui(window):
     window.pov_combo.setCurrentIndex(-1)
     window.pov_combo.setToolTip("Select Perspective")
     window.pov_combo.currentIndexChanged.connect(window.handle_pov_change)
-    pov_layout.addWidget(window.pov_combo)
+    editor_toolbar.addWidget(window.pov_combo)
 
-    # Character dropdown with increased minimum width
+    # POV Character dropdown
     window.pov_character_combo = QComboBox()
     window.pov_character_combo.setEditable(True)
     window.pov_character_combo.lineEdit().setReadOnly(True)
@@ -153,7 +164,7 @@ def build_main_ui(window):
     window.pov_character_combo.setToolTip("Select POV Character")
     window.pov_character_combo.currentIndexChanged.connect(
         window.handle_pov_character_change)
-    pov_layout.addWidget(window.pov_character_combo)
+    editor_toolbar.addWidget(window.pov_character_combo)
 
     # Tense dropdown
     window.tense_combo = QComboBox()
@@ -166,15 +177,26 @@ def build_main_ui(window):
     window.tense_combo.setCurrentIndex(-1)
     window.tense_combo.setToolTip("Select Tense")
     window.tense_combo.currentIndexChanged.connect(window.handle_tense_change)
-    pov_layout.addWidget(window.tense_combo)
+    editor_toolbar.addWidget(window.tense_combo)
 
-    pov_layout.addStretch()
-    scene_settings_layout.addWidget(save_group)
-    scene_settings_layout.addSpacing(20)
-    scene_settings_layout.addWidget(pov_group)
-    scene_settings_layout.addStretch()
-    top_right_layout.addWidget(window.scene_settings_toolbar)
+    # Add the merged Editor Toolbar above the editor
+    right_layout.addWidget(editor_toolbar)
+
+    # ---- New: Editor and bottom panels in a vertical splitter ----
+
+    # Scene editor with added border/shadow effect
+    window.editor = QTextEdit()
+    window.editor.setPlaceholderText("Select a node to edit its content...")
+    window.editor.setContextMenuPolicy(Qt.CustomContextMenu)
+    window.editor.customContextMenuRequested.connect(
+        window.show_editor_context_menu)
+    # Add a subtle border to help it stand out
+    window.editor.setStyleSheet("border: 1px solid #ccc; padding: 2px;")
+
+    # Bottom stacked widget (summary panel and LLM panel) remains unchanged
     window.bottom_stack = QStackedWidget()
+
+    # Summary panel
     window.summary_panel = QWidget()
     summary_layout = QHBoxLayout(window.summary_panel)
     summary_layout.addStretch()
@@ -185,6 +207,8 @@ def build_main_ui(window):
     window.save_summary_button.clicked.connect(window.save_summary)
     summary_layout.addWidget(window.save_summary_button)
     summary_layout.addStretch()
+
+    # LLM panel
     window.llm_panel = QWidget()
     llm_layout = QVBoxLayout(window.llm_panel)
     input_context_layout = QHBoxLayout()
@@ -194,7 +218,6 @@ def build_main_ui(window):
     window.prompt_input.setPlaceholderText("Enter your action beats here...")
     window.prompt_input.setMinimumHeight(100)
     left_layout.addWidget(window.prompt_input)
-    # Create a horizontal layout for buttons and add it to left_layout instead of reassigning to left_container.
     left_buttons_layout = QHBoxLayout()
     left_layout.addLayout(left_buttons_layout)
     window.prompt_dropdown = QComboBox()
@@ -203,17 +226,35 @@ def build_main_ui(window):
     window.prompt_dropdown.currentIndexChanged.connect(
         window.prompt_dropdown_changed)
     left_buttons_layout.addWidget(window.prompt_dropdown)
-    # Create the Send button
-    window.send_button = QPushButton("Send")
-    window.send_button.setToolTip("Send the prompt to the LLM")
+    # Modified Send Button using icon and updated tooltip
+    window.send_button = QPushButton()
+    window.send_button.setIcon(QIcon("assets/icons/send.svg"))
+    window.send_button.setToolTip("Sends the action beats to the LLM")
     window.send_button.clicked.connect(window.send_prompt)
     left_buttons_layout.addWidget(window.send_button)
-    window.context_toggle_button = QPushButton("Context")
-    window.context_toggle_button.setToolTip("Show extra context settings")
+
+    # Modified Context Toggle Button using icons; no text will be displayed.
+    window.context_toggle_button = QPushButton()
+    window.context_toggle_button.setIcon(QIcon("assets/icons/book.svg"))
+    # Initial tooltip for Context button
+    window.context_toggle_button.setToolTip(
+        "Lets you decide which additional information to send with the prompt")
     window.context_toggle_button.setCheckable(True)
-    window.context_toggle_button.clicked.connect(window.toggle_context_panel)
+
+    # Helper function to toggle context and update icon and tooltip
+    def toggle_context():
+        window.toggle_context_panel()  # calls the existing method which may set text
+        window.context_toggle_button.setText("")  # ensure no text is shown
+        if window.context_panel.isVisible():
+            window.context_toggle_button.setIcon(
+                QIcon("assets/icons/book-open.svg"))
+        else:
+            window.context_toggle_button.setIcon(
+                QIcon("assets/icons/book.svg"))
+
+    window.context_toggle_button.clicked.connect(toggle_context)
     left_buttons_layout.addWidget(window.context_toggle_button)
-    # NEW: Model indicator label
+
     window.model_indicator = QLabel("")
     window.model_indicator.setStyleSheet(
         "font-weight: bold; padding-left: 10px;")
@@ -232,23 +273,28 @@ def build_main_ui(window):
         "LLM output preview will appear here...")
     llm_layout.addWidget(window.preview_text)
     button_layout = QHBoxLayout()
-    window.apply_button = QPushButton("Apply")
-    window.apply_button.setToolTip("Append the preview text to the scene")
+    # Apply Button replaced with feather icon and updated tooltip
+    window.apply_button = QPushButton()
+    window.apply_button.setIcon(QIcon("assets/icons/feather.svg"))
+    window.apply_button.setToolTip(
+        "Appends the LLM's output to your current scene")
     window.apply_button.clicked.connect(window.apply_preview)
     button_layout.addWidget(window.apply_button)
-    window.retry_button = QPushButton("Retry")
-    window.retry_button.setToolTip("Clear preview and re-send the prompt")
-    window.retry_button.clicked.connect(window.retry_prompt)
-    button_layout.addWidget(window.retry_button)
+    # Removed Retry Button entirely
     button_layout.addStretch()
     llm_layout.addLayout(button_layout)
     window.bottom_stack.addWidget(window.summary_panel)
     window.bottom_stack.addWidget(window.llm_panel)
-    right_splitter = QSplitter(Qt.Vertical)
-    right_splitter.addWidget(top_right)
-    right_splitter.addWidget(window.bottom_stack)
-    right_splitter.setStretchFactor(0, 3)
-    right_splitter.setStretchFactor(1, 1)
-    main_splitter.addWidget(right_splitter)
+
+    # Create a vertical splitter to hold the editor and bottom panels
+    editor_bottom_splitter = QSplitter(Qt.Vertical)
+    editor_bottom_splitter.addWidget(window.editor)
+    editor_bottom_splitter.addWidget(window.bottom_stack)
+    # Set stretch factors to give more space to the editor by default
+    editor_bottom_splitter.setStretchFactor(0, 3)
+    editor_bottom_splitter.setStretchFactor(1, 1)
+    right_layout.addWidget(editor_bottom_splitter)
+
+    main_splitter.addWidget(right_side)
     main_splitter.setStretchFactor(1, 1)
     window.setCentralWidget(main_splitter)

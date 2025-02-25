@@ -6,7 +6,10 @@ import json
 import re
 import threading
 import pyttsx3
-from PyQt5.QtWidgets import QMainWindow, QInputDialog, QMenu, QMessageBox, QApplication, QDialog, QFontDialog, QShortcut, QLabel  # NEW: Added QLabel
+from PyQt5.QtWidgets import (
+    QMainWindow, QInputDialog, QMenu, QMessageBox, QApplication, QDialog,
+    QFontDialog, QShortcut, QLabel
+)
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont, QTextCharFormat, QIcon, QKeySequence
 from compendium import CompendiumWindow
@@ -41,12 +44,15 @@ class ProjectWindow(QMainWindow):
         self.structure = load_structure(self.project_name)
         self.init_ui()
 
-        # NEW: Add status bar labels for word count and last save time.
+        # Set tree to use 2 columns: Name and Status.
+        self.tree.setColumnCount(2)
+        self.tree.setHeaderLabels(["Name", "Status"])
+
+        # Status bar labels for word count and last save time.
         self.word_count_label = QLabel("Words: 0")
         self.last_save_label = QLabel("Last Saved: Never")
         self.statusBar().addPermanentWidget(self.word_count_label)
         self.statusBar().addPermanentWidget(self.last_save_label)
-        # Connect editor textChanged signal to update word count.
         self.editor.textChanged.connect(self.update_word_count)
 
         self.load_autosave_setting()
@@ -61,7 +67,7 @@ class ProjectWindow(QMainWindow):
         self.updateSettingTooltips()
         self.populate_prompt_dropdown()
 
-        # NEW: Bind F11 key to open focus mode
+        # Bind F11 key to open focus mode
         self.focus_mode_shortcut = QShortcut(QKeySequence("F11"), self)
         self.focus_mode_shortcut.activated.connect(self.open_focus_mode)
 
@@ -90,6 +96,54 @@ class ProjectWindow(QMainWindow):
 
     def populate_tree(self):
         populate_tree(self.tree, self.structure)
+        self.assign_tree_icons()
+
+    def assign_tree_icons(self):
+        # For nodes at level < 2, use the book icon in column 0 and leave column 1 empty.
+        # For scene nodes (level >= 2), set column 0 with the "edit" icon and scene name,
+        # and set column 1 with the status icon.
+        def set_icon_recursively(item):
+            level = 0
+            temp = item
+            while temp.parent():
+                level += 1
+                temp = temp.parent()
+            if level < 2:
+                item.setIcon(0, QIcon("assets/icons/book.svg"))
+                item.setText(1, "")  # No status icon for non-scenes.
+            else:
+                # Ensure metadata exists.
+                scene_data = item.data(0, Qt.UserRole)
+                if not scene_data or not isinstance(scene_data, dict):
+                    scene_data = {"name": item.text(0), "status": "To Do"}
+                    item.setData(0, Qt.UserRole, scene_data)
+                # Set the left column: scene name with "edit" icon.
+                item.setText(0, scene_data.get("name", "Unnamed Scene"))
+                item.setIcon(0, QIcon("assets/icons/edit.svg"))
+                # Set the right column: status icon.
+                self.update_scene_status_icon(item)
+            # Process children recursively.
+            for i in range(item.childCount()):
+                set_icon_recursively(item.child(i))
+        for i in range(self.tree.topLevelItemCount()):
+            top_item = self.tree.topLevelItem(i)
+            set_icon_recursively(top_item)
+
+    def update_scene_status_icon(self, item):
+        # Retrieve the scene status and update column 1 icon accordingly.
+        scene_data = item.data(0, Qt.UserRole)
+        status = scene_data.get("status", "To Do")
+        if status == "To Do":
+            icon = QIcon("assets/icons/circle.svg")
+        elif status == "In Progress":
+            icon = QIcon("assets/icons/loader.svg")
+        elif status == "Final Draft":
+            icon = QIcon("assets/icons/check-circle.svg")
+        else:
+            icon = QIcon()  # No icon.
+        item.setIcon(1, icon)
+        # Optionally, clear any text in column 1 so that only the icon appears.
+        item.setText(1, "")
 
     def update_structure_from_tree(self):
         self.structure = update_structure_from_tree(
@@ -115,7 +169,6 @@ class ProjectWindow(QMainWindow):
     def init_ui(self):
         build_main_ui(self)
 
-    # NEW: Method to update the word count label
     def update_word_count(self):
         text = self.editor.toPlainText()
         words = text.split()
@@ -172,7 +225,6 @@ class ProjectWindow(QMainWindow):
         if current is None:
             self.editor.clear()
             self.bottom_stack.setCurrentIndex(0)
-            self.scene_settings_toolbar.hide()
             return
         level = 0
         parent = current.parent()
@@ -193,11 +245,9 @@ class ProjectWindow(QMainWindow):
             self.editor.setPlaceholderText(
                 f"Enter summary for {current.text(0)}...")
             self.bottom_stack.setCurrentIndex(0)
-            self.scene_settings_toolbar.hide()
         else:
             self.editor.setPlaceholderText("Enter scene content...")
             self.bottom_stack.setCurrentIndex(1)
-            self.scene_settings_toolbar.show()
         self.updateSettingTooltips()
 
     def load_latest_autosave_for_item(self, item):
@@ -246,6 +296,13 @@ class ProjectWindow(QMainWindow):
             add_chapter_action = menu.addAction("Add Chapter")
         elif level == 1:
             add_scene_action = menu.addAction("Add Scene")
+        # For scene nodes (level >= 2), add a submenu for setting the scene status.
+        if level >= 2:
+            status_menu = menu.addMenu("Set Scene Status")
+            for status_option in ["To Do", "In Progress", "Final Draft"]:
+                action_status = status_menu.addAction(status_option)
+                action_status.triggered.connect(
+                    lambda checked, s=status_option: self.set_scene_status(item, s))
         action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
         if action == rename_action:
             rename_item(self, item)
@@ -259,6 +316,17 @@ class ProjectWindow(QMainWindow):
             add_chapter(self, item)
         elif level == 1 and 'add_scene_action' in locals() and action == add_scene_action:
             add_scene(self, item)
+
+    def set_scene_status(self, item, new_status):
+        scene_data = item.data(0, Qt.UserRole)
+        if not isinstance(scene_data, dict):
+            scene_data = {"name": item.text(0), "status": new_status}
+        else:
+            scene_data["status"] = new_status
+        item.setData(0, Qt.UserRole, scene_data)
+        # Update only the status icon in column 1.
+        self.update_scene_status_icon(item)
+        self.update_structure_from_tree()
 
     def start_autosave_timer(self):
         self.autosave_timer = QTimer(self)
@@ -294,7 +362,6 @@ class ProjectWindow(QMainWindow):
         filepath = autosave_manager.save_scene(
             self.project_name, hierarchy, content)
         if filepath:
-            # NEW: Update last save time label
             now = time.strftime("%Y-%m-%d %H:%M:%S")
             self.last_save_label.setText(f"Last Saved: {now}")
             self.statusBar().showMessage("Scene manually saved", 3000)
@@ -302,6 +369,7 @@ class ProjectWindow(QMainWindow):
             if not isinstance(scene_data, dict):
                 scene_data = {"name": current_item.text(0)}
             scene_data["content"] = content
+            scene_data["status"] = scene_data.get("status", "To Do")
             current_item.setData(0, Qt.UserRole, scene_data)
             self.update_structure_from_tree()
         else:
@@ -329,7 +397,6 @@ class ProjectWindow(QMainWindow):
         filepath = autosave_manager.save_scene(
             self.project_name, hierarchy, content)
         if filepath:
-            # NEW: Update last save time label for autosave
             now = time.strftime("%Y-%m-%d %H:%M:%S")
             self.last_save_label.setText(f"Last Saved: {now}")
             self.statusBar().showMessage("Scene autosaved", 3000)
@@ -337,6 +404,7 @@ class ProjectWindow(QMainWindow):
             if not isinstance(scene_data, dict):
                 scene_data = {"name": current_item.text(0)}
             scene_data["content"] = content
+            scene_data["status"] = scene_data.get("status", "To Do")
             current_item.setData(0, Qt.UserRole, scene_data)
             self.update_structure_from_tree()
 
@@ -625,9 +693,7 @@ class ProjectWindow(QMainWindow):
                         text,
                         start_position=start_position,
                         on_complete=lambda: QTimer.singleShot(
-                            0, lambda: self.tts_button.setIcon(
-                                QIcon("assets/icons/play-circle.svg"))
-                        )
+                            0, lambda: self.tts_button.setIcon(QIcon("assets/icons/play-circle.svg")))
                     )
                 except Exception as e:
                     print("Error during TTS:", e)
@@ -638,7 +704,6 @@ class ProjectWindow(QMainWindow):
     def perform_tts(self):
         self.toggle_tts()
 
-    # NEW: Methods for Focus Mode integration
     def open_focus_mode(self):
         scene_text = self.editor.toPlainText()
         base_dir = os.path.dirname(os.path.abspath(__file__))

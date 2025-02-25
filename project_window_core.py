@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QFontDialog, QShortcut, QLabel
 )
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont, QTextCharFormat, QIcon, QKeySequence, QPixmap, QPainter, QColor
+from PyQt5.QtGui import QFont, QTextCharFormat, QIcon, QKeySequence, QPixmap, QPainter, QColor, QImage
 from compendium import CompendiumWindow
 from workshop import WorkshopWindow
 from llm_integration import send_prompt_to_llm, build_final_prompt
@@ -27,6 +27,7 @@ from dialogs import CreateSummaryDialog
 from project_ui import build_main_ui
 import project_settings_manager as settings_manager
 from project_structure_manager import add_act, add_chapter, add_scene, rename_item, move_item_up, move_item_down
+from theme_manager import ThemeManager  # <-- Added import for theme management
 
 
 class ProjectWindow(QMainWindow):
@@ -129,42 +130,55 @@ class ProjectWindow(QMainWindow):
             top_item = self.tree.topLevelItem(i)
             set_icon_recursively(top_item)
 
-    def get_tinted_icon(self, file_path, scale_factor=0.8, tint_color=QColor(150, 150, 150)):
+    from PyQt5.QtGui import QImage, qAlpha  # make sure qAlpha is imported
+
+    def get_tinted_icon(self, file_path, tint_color=QColor(150, 150, 150)):
         """
-        Helper method to load an icon from file_path, scale it down by scale_factor,
-        and apply a tint using tint_color.
+        Loads an icon from file_path and applies a tint using QPainter.
+        If tint_color is black, returns the original icon.
+        Otherwise, fills a pixmap with tint_color and applies the source icon as a mask.
         """
-        # Load the original pixmap from the file.
-        pixmap = QPixmap(file_path)
-        # Calculate the new size (20% smaller by default).
-        new_size = pixmap.size() * scale_factor
-        scaled_pixmap = pixmap.scaled(
-            new_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        # Create a transparent pixmap to hold the tinted icon.
-        tinted_pixmap = QPixmap(scaled_pixmap.size())
-        tinted_pixmap.fill(Qt.transparent)
-        # Use a QPainter to apply the tint.
-        painter = QPainter(tinted_pixmap)
-        painter.drawPixmap(0, 0, scaled_pixmap)
-        painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
-        painter.fillRect(tinted_pixmap.rect(), tint_color)
+        # If tint_color is black, return the original icon unchanged.
+        if tint_color == QColor("black"):
+            return QIcon(file_path)
+
+        # Load the original pixmap.
+        original_pix = QPixmap(file_path)
+        if original_pix.isNull():
+            return QIcon()
+
+        # Create a new pixmap with the same size as the original.
+        tinted_pix = QPixmap(original_pix.size())
+        # Fill it entirely with the tint color.
+        tinted_pix.fill(tint_color)
+
+        # Use QPainter to apply the original pixmap's alpha as a mask.
+        painter = QPainter(tinted_pix)
+        # Set composition mode so that the alpha of the original is used
+        painter.setCompositionMode(QPainter.CompositionMode_DestinationIn)
+        painter.drawPixmap(0, 0, original_pix)
         painter.end()
-        return QIcon(tinted_pixmap)
+
+        return QIcon(tinted_pix)
 
     def update_scene_status_icon(self, item):
-        # Retrieve the scene status and update column 1 icon accordingly.
+        # Use the stored tint; if not set, fall back to a default (grey).
+        tint = self.icon_tint if hasattr(
+            self, 'icon_tint') else QColor(150, 150, 150)
         scene_data = item.data(0, Qt.UserRole)
         status = scene_data.get("status", "To Do")
         if status == "To Do":
-            icon = self.get_tinted_icon("assets/icons/circle.svg")
+            icon = self.get_tinted_icon(
+                "assets/icons/circle.svg", tint_color=tint)
         elif status == "In Progress":
-            icon = self.get_tinted_icon("assets/icons/loader.svg")
+            icon = self.get_tinted_icon(
+                "assets/icons/loader.svg", tint_color=tint)
         elif status == "Final Draft":
-            icon = self.get_tinted_icon("assets/icons/check-circle.svg")
+            icon = self.get_tinted_icon(
+                "assets/icons/check-circle.svg", tint_color=tint)
         else:
             icon = QIcon()  # No icon.
         item.setIcon(1, icon)
-        # Optionally, clear any text in column 1 so that only the icon appears.
         item.setText(1, "")
 
     def update_structure_from_tree(self):
@@ -469,8 +483,8 @@ class ProjectWindow(QMainWindow):
     def handle_pov_change(self, index):
         value = self.pov_combo.currentText()
         if value == "Custom...":
-            custom, ok = QInputDialog.getText(self, "Custom POV", "Enter custom POV:",
-                                              text=self.current_pov if self.current_pov not in ["First Person", "Omniscient", "Third Person Limited"] else "")
+            custom, ok = QInputDialog.getText(self, "Custom POV", "Enter custom POV:", text=self.current_pov if self.current_pov not in [
+                                              "First Person", "Omniscient", "Third Person Limited"] else "")
             if ok and custom.strip():
                 custom = custom.strip()
                 if self.pov_combo.findText(custom) == -1:
@@ -509,8 +523,8 @@ class ProjectWindow(QMainWindow):
     def handle_tense_change(self, index):
         value = self.tense_combo.currentText()
         if value == "Custom...":
-            custom, ok = QInputDialog.getText(self, "Custom Tense", "Enter custom Tense:",
-                                              text=self.current_tense if self.current_tense not in ["Past Tense", "Present Tense"] else "")
+            custom, ok = QInputDialog.getText(self, "Custom Tense", "Enter custom Tense:", text=self.current_tense if self.current_tense not in [
+                                              "Past Tense", "Present Tense"] else "")
             if ok and custom.strip():
                 custom = custom.strip()
                 if self.tense_combo.findText(custom) == -1:
@@ -715,7 +729,9 @@ class ProjectWindow(QMainWindow):
                         text,
                         start_position=start_position,
                         on_complete=lambda: QTimer.singleShot(
-                            0, lambda: self.tts_button.setIcon(QIcon("assets/icons/play-circle.svg")))
+                            0, lambda: self.tts_button.setIcon(
+                                QIcon("assets/icons/play-circle.svg"))
+                        )
                     )
                 except Exception as e:
                     print("Error during TTS:", e)
@@ -737,6 +753,64 @@ class ProjectWindow(QMainWindow):
 
     def focus_mode_closed(self, updated_text):
         self.editor.setPlainText(updated_text)
+
+    # === New: Method to update icons based on the current theme ===
+    def update_icons(self):
+        # Recalculate the tint color from the current theme.
+        tint_str = ThemeManager.ICON_TINTS.get(self.current_theme, "black")
+        tint = QColor(tint_str)
+        self.icon_tint = tint
+
+        # Update toolbar actions with new tinted icons.
+        self.compendium_action.setIcon(self.get_tinted_icon(
+            "assets/icons/book.svg", tint_color=tint))
+        self.prompt_options_action.setIcon(self.get_tinted_icon(
+            "assets/icons/settings.svg", tint_color=tint))
+        self.workshop_action.setIcon(self.get_tinted_icon(
+            "assets/icons/message-square.svg", tint_color=tint))
+        self.focus_mode_action.setIcon(self.get_tinted_icon(
+            "assets/icons/maximize-2.svg", tint_color=tint))
+
+        # Update editor toolbar icons.
+        self.bold_action.setIcon(self.get_tinted_icon(
+            "assets/icons/bold.svg", tint_color=tint))
+        self.italic_action.setIcon(self.get_tinted_icon(
+            "assets/icons/italic.svg", tint_color=tint))
+        self.underline_action.setIcon(self.get_tinted_icon(
+            "assets/icons/underline.svg", tint_color=tint))
+        self.tts_action.setIcon(self.get_tinted_icon(
+            "assets/icons/play-circle.svg", tint_color=tint))
+        self.align_left_action.setIcon(self.get_tinted_icon(
+            "assets/icons/align-left.svg", tint_color=tint))
+        self.align_center_action.setIcon(self.get_tinted_icon(
+            "assets/icons/align-center.svg", tint_color=tint))
+        self.align_right_action.setIcon(self.get_tinted_icon(
+            "assets/icons/align-right.svg", tint_color=tint))
+        self.manual_save_action.setIcon(self.get_tinted_icon(
+            "assets/icons/save.svg", tint_color=tint))
+        self.oh_shit_action.setIcon(self.get_tinted_icon(
+            "assets/icons/share.svg", tint_color=tint))
+
+        # Update send and context toggle buttons.
+        self.send_button.setIcon(self.get_tinted_icon(
+            "assets/icons/send.svg", tint_color=tint))
+        if self.context_panel.isVisible():
+            self.context_toggle_button.setIcon(self.get_tinted_icon(
+                "assets/icons/book-open.svg", tint_color=tint))
+        else:
+            self.context_toggle_button.setIcon(self.get_tinted_icon(
+                "assets/icons/book.svg", tint_color=tint))
+        self.apply_button.setIcon(self.get_tinted_icon(
+            "assets/icons/feather.svg", tint_color=tint))
+
+        # Optionally update the tree icons (which use the stored tint).
+        self.assign_tree_icons()
+
+    # === New: Method to change theme and update icons dynamically ===
+    def change_theme(self, new_theme):
+        self.current_theme = new_theme
+        ThemeManager.apply_to_app(new_theme)
+        self.update_icons()
 
 
 if __name__ == "__main__":

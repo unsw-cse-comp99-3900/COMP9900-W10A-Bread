@@ -6,7 +6,7 @@ import json
 import re
 import threading
 import pyttsx3
-from PyQt5.QtWidgets import QMainWindow, QInputDialog, QMenu, QMessageBox, QApplication, QDialog, QFontDialog, QShortcut
+from PyQt5.QtWidgets import QMainWindow, QInputDialog, QMenu, QMessageBox, QApplication, QDialog, QFontDialog, QShortcut, QLabel  # NEW: Added QLabel
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont, QTextCharFormat, QIcon, QKeySequence
 from compendium import CompendiumWindow
@@ -40,6 +40,15 @@ class ProjectWindow(QMainWindow):
         self.tts_playing = False
         self.structure = load_structure(self.project_name)
         self.init_ui()
+
+        # NEW: Add status bar labels for word count and last save time.
+        self.word_count_label = QLabel("Words: 0")
+        self.last_save_label = QLabel("Last Saved: Never")
+        self.statusBar().addPermanentWidget(self.word_count_label)
+        self.statusBar().addPermanentWidget(self.last_save_label)
+        # Connect editor textChanged signal to update word count.
+        self.editor.textChanged.connect(self.update_word_count)
+
         self.load_autosave_setting()
         if self.autosave_enabled:
             self.start_autosave_timer()
@@ -105,6 +114,13 @@ class ProjectWindow(QMainWindow):
 
     def init_ui(self):
         build_main_ui(self)
+
+    # NEW: Method to update the word count label
+    def update_word_count(self):
+        text = self.editor.toPlainText()
+        words = text.split()
+        count = len(words)
+        self.word_count_label.setText(f"Words: {count}")
 
     def toggle_context_panel(self):
         if self.context_panel.isVisible():
@@ -278,6 +294,9 @@ class ProjectWindow(QMainWindow):
         filepath = autosave_manager.save_scene(
             self.project_name, hierarchy, content)
         if filepath:
+            # NEW: Update last save time label
+            now = time.strftime("%Y-%m-%d %H:%M:%S")
+            self.last_save_label.setText(f"Last Saved: {now}")
             self.statusBar().showMessage("Scene manually saved", 3000)
             scene_data = current_item.data(0, Qt.UserRole)
             if not isinstance(scene_data, dict):
@@ -310,6 +329,9 @@ class ProjectWindow(QMainWindow):
         filepath = autosave_manager.save_scene(
             self.project_name, hierarchy, content)
         if filepath:
+            # NEW: Update last save time label for autosave
+            now = time.strftime("%Y-%m-%d %H:%M:%S")
+            self.last_save_label.setText(f"Last Saved: {now}")
             self.statusBar().showMessage("Scene autosaved", 3000)
             scene_data = current_item.data(0, Qt.UserRole)
             if not isinstance(scene_data, dict):
@@ -447,11 +469,8 @@ class ProjectWindow(QMainWindow):
         selected_prompt = self._prose_prompts[index -
                                               1] if index - 1 < len(self._prose_prompts) else None
         if selected_prompt:
-            # Instead of pasting the prompt text into the action beats panel,
-            # simply store the selected prompt details for later use.
             self.current_prose_prompt = selected_prompt.get("text", "")
             self.current_prose_config = selected_prompt
-            # Update the model indicator if it exists
             if hasattr(self, "model_indicator"):
                 self.model_indicator.setText(
                     f"[Model: {selected_prompt.get('model', 'Unknown')}]")
@@ -621,20 +640,15 @@ class ProjectWindow(QMainWindow):
 
     # NEW: Methods for Focus Mode integration
     def open_focus_mode(self):
-        # Retrieve current scene text from the editor
         scene_text = self.editor.toPlainText()
-        # Determine the directory for background images
         base_dir = os.path.dirname(os.path.abspath(__file__))
         image_directory = os.path.join(base_dir, "assets", "backgrounds")
-        # Create the FocusMode window with no parent to ensure it is top-level and full-screen
         from focus_mode import FocusMode
         self.focus_window = FocusMode(image_directory, scene_text, parent=None)
-        # Set the callback to receive updated text when focus mode closes
         self.focus_window.on_close = self.focus_mode_closed
         self.focus_window.show()
 
     def focus_mode_closed(self, updated_text):
-        # Update the scene text with changes from Focus Mode
         self.editor.setPlainText(updated_text)
 
 

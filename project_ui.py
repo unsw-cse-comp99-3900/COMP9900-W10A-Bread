@@ -14,22 +14,26 @@ def build_main_ui(window):
     window.addToolBar(toolbar)
     compendium_action = QAction(
         QIcon("assets/icons/book.svg"), "Compendium", window)
-    compendium_action.setStatusTip("Open Compendium")
+    compendium_action.setStatusTip(
+        "Opens the Compendium, to view and edit your worldbuilding database")
     compendium_action.triggered.connect(window.open_compendium)
     toolbar.addAction(compendium_action)
     prompt_options_action = QAction(
         QIcon("assets/icons/settings.svg"), "Prompt Options", window)
-    prompt_options_action.setStatusTip("Configure your writing prompts")
+    prompt_options_action.setStatusTip(
+        "Configure your writing prompts and LLM settings")
     prompt_options_action.triggered.connect(window.open_prompts_window)
     toolbar.addAction(prompt_options_action)
     workshop_action = QAction(
         QIcon("assets/icons/message-square.svg"), "Workshop", window)
-    workshop_action.setStatusTip("Open Workshop Chat")
+    workshop_action.setStatusTip(
+        "Opens the Workshop Chat, where you can chat directly with your chosen LLM")
     workshop_action.triggered.connect(window.open_workshop)
     toolbar.addAction(workshop_action)
     focus_mode_action = QAction(
         QIcon("assets/icons/maximize-2.svg"), "Focus Mode", window)
-    focus_mode_action.setStatusTip("Enter Focus Mode")
+    focus_mode_action.setStatusTip(
+        "Press button or F11 to enter Focus Mode, F12 to cycle through images")
     focus_mode_action.triggered.connect(window.open_focus_mode)
     toolbar.addAction(focus_mode_action)
     main_splitter = QSplitter(Qt.Horizontal)

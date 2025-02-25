@@ -155,8 +155,8 @@ class ModelFetcher(QObject):
             response = requests.get(models_endpoint, timeout=10)
             if response.status_code == 200:
                 models_data = response.json()
-                if isinstance(models_data, dict) and "models" in models_data:
-                    model_list = models_data["models"]
+                if isinstance(models_data, dict) and "data" in models_data:
+                    model_list = [model["id"] for model in models_data["data"]]
                 elif isinstance(models_data, list):
                     model_list = models_data
                 else:

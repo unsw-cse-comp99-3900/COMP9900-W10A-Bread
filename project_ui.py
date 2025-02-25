@@ -94,11 +94,17 @@ def build_main_ui(window):
     window.underline_action.triggered.connect(window.toggle_underline)
     editor_toolbar.addAction(window.underline_action)
 
+    # Separator between text styling and TTS actions
+    editor_toolbar.addSeparator()
+
     window.tts_action = QAction(window.get_tinted_icon(
         "assets/icons/play-circle.svg", tint_color=tint), "", window)
     window.tts_action.setToolTip("Play TTS (or Stop if playing)")
     window.tts_action.triggered.connect(window.toggle_tts)
     editor_toolbar.addAction(window.tts_action)
+
+    # Separator between TTS and alignment actions
+    editor_toolbar.addSeparator()
 
     window.align_left_action = QAction(window.get_tinted_icon(
         "assets/icons/align-left.svg", tint_color=tint), "", window)

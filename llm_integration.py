@@ -63,7 +63,7 @@ def send_prompt_to_llm(final_prompt, overrides=None, conversation_history=None):
     print(f"🔍 DEBUG: API Key Retrieved = '{api_key}' (length: {len(api_key)})")
 
     # Skip the API key check if using a local provider
-    if provider != "Local" and not api_key:
+    if provider not in ["Local", "Ollama"] and not api_key:
         print("❌ ERROR: API Key is missing or empty! Check settings.json.")
         return "[Error: Missing API Key]"
 

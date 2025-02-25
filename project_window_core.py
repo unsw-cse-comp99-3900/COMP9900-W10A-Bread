@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QFontDialog, QShortcut, QLabel
 )
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont, QTextCharFormat, QIcon, QKeySequence
+from PyQt5.QtGui import QFont, QTextCharFormat, QIcon, QKeySequence, QPixmap, QPainter, QColor
 from compendium import CompendiumWindow
 from workshop import WorkshopWindow
 from llm_integration import send_prompt_to_llm, build_final_prompt
@@ -129,16 +129,38 @@ class ProjectWindow(QMainWindow):
             top_item = self.tree.topLevelItem(i)
             set_icon_recursively(top_item)
 
+    def get_tinted_icon(self, file_path, scale_factor=0.8, tint_color=QColor(150, 150, 150)):
+        """
+        Helper method to load an icon from file_path, scale it down by scale_factor,
+        and apply a tint using tint_color.
+        """
+        # Load the original pixmap from the file.
+        pixmap = QPixmap(file_path)
+        # Calculate the new size (20% smaller by default).
+        new_size = pixmap.size() * scale_factor
+        scaled_pixmap = pixmap.scaled(
+            new_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        # Create a transparent pixmap to hold the tinted icon.
+        tinted_pixmap = QPixmap(scaled_pixmap.size())
+        tinted_pixmap.fill(Qt.transparent)
+        # Use a QPainter to apply the tint.
+        painter = QPainter(tinted_pixmap)
+        painter.drawPixmap(0, 0, scaled_pixmap)
+        painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+        painter.fillRect(tinted_pixmap.rect(), tint_color)
+        painter.end()
+        return QIcon(tinted_pixmap)
+
     def update_scene_status_icon(self, item):
         # Retrieve the scene status and update column 1 icon accordingly.
         scene_data = item.data(0, Qt.UserRole)
         status = scene_data.get("status", "To Do")
         if status == "To Do":
-            icon = QIcon("assets/icons/circle.svg")
+            icon = self.get_tinted_icon("assets/icons/circle.svg")
         elif status == "In Progress":
-            icon = QIcon("assets/icons/loader.svg")
+            icon = self.get_tinted_icon("assets/icons/loader.svg")
         elif status == "Final Draft":
-            icon = QIcon("assets/icons/check-circle.svg")
+            icon = self.get_tinted_icon("assets/icons/check-circle.svg")
         else:
             icon = QIcon()  # No icon.
         item.setIcon(1, icon)

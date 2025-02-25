@@ -5,7 +5,7 @@ import glob
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit,
     QPushButton, QMessageBox, QInputDialog, QTreeWidget, QTreeWidgetItem,
-    QTabWidget, QApplication, QSplitter, QWidget, QScrollArea, QLabel
+    QSplitter, QWidget, QScrollArea, QLabel, QApplication
 )
 from PyQt5.QtCore import Qt
 from prompts import load_project_options, get_workshop_prompts
@@ -54,33 +54,42 @@ def get_compendium_text(category, entry):
 
 
 class ExtendedContextDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, embedded=False):
         super().__init__(parent)
+        self.embedded = embedded
         self.setWindowTitle("Select Context")
-        self.resize(500, 400)
+        # Only resize if not embedded
+        if not self.embedded:
+            self.resize(500, 400)
         self.selected_contexts = []
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout(self)
-        self.tabs = QTabWidget()
-        layout.addWidget(self.tabs)
-
+        # Use a QSplitter for side-by-side panels
+        splitter = QSplitter(Qt.Horizontal, self)
+        
         self.project_tree = QTreeWidget()
         self.project_tree.setHeaderHidden(True)
         self.build_project_tree()
         self.project_tree.itemChanged.connect(self.handle_item_changed)
-        self.tabs.addTab(self.project_tree, "Project Structure")
-
+        splitter.addWidget(self.project_tree)
+        
         self.compendium_tree = QTreeWidget()
         self.compendium_tree.setHeaderHidden(True)
         self.build_compendium_tree()
         self.compendium_tree.itemChanged.connect(self.handle_item_changed)
-        self.tabs.addTab(self.compendium_tree, "Compendium")
-
-        ok_button = QPushButton("OK")
-        ok_button.clicked.connect(self.on_ok)
-        layout.addWidget(ok_button)
+        splitter.addWidget(self.compendium_tree)
+        
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 1)
+        layout.addWidget(splitter)
+        
+        # Only add the OK button if not embedded.
+        if not self.embedded:
+            ok_button = QPushButton("OK")
+            ok_button.clicked.connect(self.on_ok)
+            layout.addWidget(ok_button)
 
     def build_project_tree(self):
         self.project_tree.clear()
@@ -91,18 +100,20 @@ class ExtendedContextDialog(QDialog):
             structure = {"acts": []}
         for act in structure.get("acts", []):
             act_item = QTreeWidgetItem(
-                self.project_tree, [act.get("name", "Unnamed Act")])
+                self.project_tree, [act.get("name", "Unnamed Act")]
+            )
             act_item.setFlags(act_item.flags() & ~Qt.ItemIsUserCheckable)
             for chapter in act.get("chapters", []):
                 chap_item = QTreeWidgetItem(
-                    act_item, [chapter.get("name", "Unnamed Chapter")])
+                    act_item, [chapter.get("name", "Unnamed Chapter")]
+                )
                 chap_item.setFlags(chap_item.flags() & ~Qt.ItemIsUserCheckable)
                 for scene in chapter.get("scenes", []):
                     scene_item = QTreeWidgetItem(
-                        chap_item, [scene.get("name", "Unnamed Scene")])
+                        chap_item, [scene.get("name", "Unnamed Scene")]
+                    )
                     # Only scene items are checkable
-                    scene_item.setFlags(scene_item.flags()
-                                        | Qt.ItemIsUserCheckable)
+                    scene_item.setFlags(scene_item.flags() | Qt.ItemIsUserCheckable)
                     scene_item.setCheckState(0, Qt.Unchecked)
         self.project_tree.expandAll()
 
@@ -173,7 +184,8 @@ class ExtendedContextDialog(QDialog):
         self.selected_contexts = self.get_selected_contexts()
         if not self.selected_contexts:
             QMessageBox.warning(
-                self, "No Selection", "Please select at least one scene or compendium entry.")
+                self, "No Selection", "Please select at least one scene or compendium entry."
+            )
             return
         self.accept()
 
@@ -182,7 +194,11 @@ class WorkshopWindow(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Workshop")
+        # Allow the user to maximize the window by including the maximize hint.
+        self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
         self.resize(800, 600)
+        # Optionally, start maximized:
+        self.setWindowState(self.windowState() | Qt.WindowMaximized)
         if self.parent() is not None and hasattr(self.parent(), "project_name"):
             self.project_name = self.parent().project_name
         else:
@@ -231,22 +247,22 @@ class WorkshopWindow(QDialog):
 
         splitter.addWidget(left_container)
 
+        # Build the context panel using a splitter with the two context trees,
+        # using the ExtendedContextDialog in embedded mode (so no OK button).
         self.context_panel = QWidget()
         context_layout = QVBoxLayout(self.context_panel)
-        self.context_tabs = QTabWidget()
-        self.extended_context_dialog = ExtendedContextDialog(self)
+        context_splitter = QSplitter(Qt.Horizontal, self.context_panel)
 
-        scroll1 = QScrollArea()
-        scroll1.setWidget(self.extended_context_dialog.project_tree)
-        scroll1.setWidgetResizable(True)
-        self.context_tabs.addTab(scroll1, "Project Structure")
+        self.extended_context_dialog = ExtendedContextDialog(self, embedded=True)
+        # Remove the dialog frame since we're embedding its trees.
+        self.extended_context_dialog.setWindowFlags(Qt.Widget)
 
-        scroll2 = QScrollArea()
-        scroll2.setWidget(self.extended_context_dialog.compendium_tree)
-        scroll2.setWidgetResizable(True)
-        self.context_tabs.addTab(scroll2, "Compendium")
-
-        context_layout.addWidget(self.context_tabs)
+        context_splitter.addWidget(self.extended_context_dialog.project_tree)
+        context_splitter.addWidget(self.extended_context_dialog.compendium_tree)
+        context_splitter.setStretchFactor(0, 1)
+        context_splitter.setStretchFactor(1, 1)
+        context_layout.addWidget(context_splitter)
+        self.context_panel.setLayout(context_layout)
         self.context_panel.setVisible(False)
         splitter.addWidget(self.context_panel)
 
@@ -254,7 +270,6 @@ class WorkshopWindow(QDialog):
         main_layout.addWidget(splitter)
 
     def toggle_context_panel(self):
-        # Toggle the context panel and update the button text.
         if self.context_panel.isVisible():
             self.context_panel.setVisible(False)
             self.context_button.setText("Context")
@@ -266,11 +281,13 @@ class WorkshopWindow(QDialog):
         prompts = get_workshop_prompts(self.project_name)
         if not prompts:
             QMessageBox.information(
-                self, "Workshop Prompt", "No workshop prompts found.")
+                self, "Workshop Prompt", "No workshop prompts found."
+            )
             return
         prompt_names = [p.get("name", "Unnamed") for p in prompts]
         item, ok = QInputDialog.getItem(
-            self, "Select Workshop Prompt", "Choose a prompt:", prompt_names, 0, False)
+            self, "Select Workshop Prompt", "Choose a prompt:", prompt_names, 0, False
+        )
         if ok and item:
             for p in prompts:
                 if p.get("name", "") == item:
@@ -281,14 +298,12 @@ class WorkshopWindow(QDialog):
                     break
 
     def get_scene_text(self, scene_name):
-        """Helper function to retrieve full scene content from the project structure."""
         print(f"DEBUG: Looking for scene content for: {scene_name}")
         for act in self.structure.get("acts", []):
             for chapter in act.get("chapters", []):
                 for scene in chapter.get("scenes", []):
                     if scene.get("name", "").lower() == scene_name.lower():
-                        print(
-                            f"DEBUG: Found scene content: {scene.get('content')}")
+                        print(f"DEBUG: Found scene content: {scene.get('content')}")
                         return scene.get("content", f"[No content for scene {scene_name}]")
         print(f"DEBUG: No scene content found for: {scene_name}")
         return f"[No content for scene {scene_name}]"
@@ -300,7 +315,6 @@ class WorkshopWindow(QDialog):
 
         augmented_message = user_message
 
-        # Always fetch selected contexts, regardless of panel visibility.
         contexts = self.extended_context_dialog.get_selected_contexts()
         print("DEBUG: Selected contexts:", contexts)
         if contexts:
@@ -308,16 +322,13 @@ class WorkshopWindow(QDialog):
             for ctx in contexts:
                 print("DEBUG: Processing context:", ctx)
                 if ":" in ctx:
-                    # Treat as a compendium entry.
                     category, entry = ctx.split(":", 1)
                     category = category.strip()
                     entry = entry.strip()
                     compendium_text = get_compendium_text(category, entry)
-                    print(
-                        f"DEBUG: Retrieved compendium text for {category} - {entry}: {compendium_text}")
+                    print(f"DEBUG: Retrieved compendium text for {category} - {entry}: {compendium_text}")
                     augmented_message += f"\n[Compendium {category} - {entry}]:\n{compendium_text}\n"
                 else:
-                    # Otherwise, treat as a scene.
                     print("DEBUG: Detected scene context:", ctx)
                     scene_text = self.get_scene_text(ctx)
                     augmented_message += f"\n[Scene {ctx}]:\n{scene_text}\n"
@@ -335,8 +346,7 @@ class WorkshopWindow(QDialog):
                 "content": self.workshop_prompt_config.get("text", "")
             })
 
-        conversation_payload.append(
-            {"role": "user", "content": augmented_message})
+        conversation_payload.append({"role": "user", "content": augmented_message})
 
         overrides = {}
         if self.workshop_prompt_config:
@@ -349,21 +359,18 @@ class WorkshopWindow(QDialog):
 
         if estimate_conversation_tokens(conversation_payload) > TOKEN_LIMIT:
             summary = summarize_conversation(conversation_payload)
-            conversation_payload = [conversation_payload[0], {
-                "role": "system", "content": summary}]
-            self.chat_log.append(
-                "LLM: [Conversation summarized to reduce token count.]")
+            conversation_payload = [conversation_payload[0], {"role": "system", "content": summary}]
+            self.chat_log.append("LLM: [Conversation summarized to reduce token count.]")
 
         token_count = estimate_conversation_tokens(conversation_payload)
         self.model_label.setText(
-            f"Model: {overrides.get('provider', 'Local')}/{overrides.get('model', 'Local Model')} ({token_count} tokens sent)")
+            f"Model: {overrides.get('provider', 'Local')}/{overrides.get('model', 'Local Model')} ({token_count} tokens sent)"
+        )
 
-        response = send_prompt_to_llm(
-            "", overrides=overrides, conversation_history=conversation_payload)
+        response = send_prompt_to_llm("", overrides=overrides, conversation_history=conversation_payload)
 
         self.chat_log.append("LLM: " + response)
         QApplication.processEvents()
 
         self.conversation_history = conversation_payload
-        self.conversation_history.append(
-            {"role": "assistant", "content": response})
+        self.conversation_history.append({"role": "assistant", "content": response})

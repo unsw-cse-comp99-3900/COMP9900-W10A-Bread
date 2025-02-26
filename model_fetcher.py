@@ -95,6 +95,7 @@ class ModelFetcher(QObject):
                 else:
                     raise ValueError(f"Expected a list or dict with 'data', but got {type(models_data).__name__}")
                 model_list = [model["id"] for model in models_list if "id" in model]
+                model_list.sort()
                 self._save_cache("OpenRouter", model_list)
                 self.models_updated.emit(model_list, "")
             else:
@@ -106,6 +107,7 @@ class ModelFetcher(QObject):
         except Exception as e:
             error_msg = f"Unexpected error: {str(e)}"
             self._return_default_models("OpenRouter", error_msg)
+
 
     def _fetch_openai_models(self, config):
         """Fetch models dynamically from the OpenAI API."""

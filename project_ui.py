@@ -329,4 +329,7 @@ def build_main_ui(window):
     main_splitter.setStretchFactor(0, 1)  # Project Tree
     main_splitter.setStretchFactor(1, 3)  # Right Side
 
+    # Save a reference to the main splitter for later restoring its state
+    window.main_splitter = main_splitter
+
     window.setCentralWidget(main_splitter)

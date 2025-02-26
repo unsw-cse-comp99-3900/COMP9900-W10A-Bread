@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QMainWindow, QInputDialog, QMenu, QMessageBox, QApplication, QDialog,
     QFontDialog, QShortcut, QLabel
 )
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QSettings
 from PyQt5.QtGui import QFont, QTextCharFormat, QIcon, QKeySequence, QPixmap, QPainter, QColor, QImage
 from compendium import CompendiumWindow
 from workshop import WorkshopWindow
@@ -44,6 +44,8 @@ class ProjectWindow(QMainWindow):
         self.tts_playing = False
         self.structure = load_structure(self.project_name)
         self.init_ui()
+        self.readSettings()  # Restore saved window and splitter settings
+
 
         # Set tree to use 2 columns: Name and Status.
         self.tree.setColumnCount(2)
@@ -204,6 +206,36 @@ class ProjectWindow(QMainWindow):
 
     def init_ui(self):
         build_main_ui(self)
+        
+    def readSettings(self):
+        settings = QSettings("MyCompany", "WritingwayProject")
+        geometry = settings.value(f"{self.project_name}/geometry")
+        if geometry is not None:
+            self.restoreGeometry(geometry)
+        windowState = settings.value(f"{self.project_name}/windowState")
+        if windowState is not None:
+            self.restoreState(windowState)
+        main_splitter_state = settings.value(f"{self.project_name}/mainSplitterState")
+        if main_splitter_state is not None and hasattr(self, "main_splitter"):
+            self.main_splitter.restoreState(main_splitter_state)
+        # Restore tree header state (for column widths and order)
+        treeHeaderState = settings.value(f"{self.project_name}/treeHeaderState")
+        if treeHeaderState is not None and hasattr(self, "tree"):
+            self.tree.header().restoreState(treeHeaderState)
+
+    def writeSettings(self):
+        settings = QSettings("MyCompany", "WritingwayProject")
+        settings.setValue(f"{self.project_name}/geometry", self.saveGeometry())
+        settings.setValue(f"{self.project_name}/windowState", self.saveState())
+        if hasattr(self, "main_splitter"):
+            settings.setValue(f"{self.project_name}/mainSplitterState", self.main_splitter.saveState())
+        # Save tree header state (for column widths and order)
+        if hasattr(self, "tree"):
+            settings.setValue(f"{self.project_name}/treeHeaderState", self.tree.header().saveState())
+
+    def closeEvent(self, event):
+        self.writeSettings()  # Save settings before closing
+        event.accept()
 
     def update_word_count(self):
         text = self.editor.toPlainText()

@@ -3,6 +3,8 @@ from PyQt5.QtWidgets import QWidget, QSplitter, QTreeWidget, QTextEdit, QVBoxLay
 from PyQt5.QtCore import Qt, QPoint
 import json, os, re
 
+DEBUG = False  # Set to True to enable debug prints
+
 def sanitize(text):
     return re.sub(r'\W+', '', text)
 
@@ -14,7 +16,8 @@ class CompendiumPanel(QWidget):
         # Determine the project name from the parent window and set the new compendium file path.
         project_name = getattr(self.parent(), "project_name", "default")
         self.new_compendium_file = os.path.join(os.getcwd(), "Projects", sanitize(project_name), "compendium.json")
-        print("New compendium file path:", self.new_compendium_file)
+        if DEBUG:
+            print("New compendium file path:", self.new_compendium_file)
         
         # Ensure the project directory exists.
         project_dir = os.path.dirname(self.new_compendium_file)
@@ -24,7 +27,8 @@ class CompendiumPanel(QWidget):
         # Check for an old compendium file in the main directory.
         self.old_compendium_file = os.path.join(os.getcwd(), "compendium.json")
         if os.path.exists(self.old_compendium_file):
-            print("Old compendium file found at", self.old_compendium_file)
+            if DEBUG:
+                print("Old compendium file found at", self.old_compendium_file)
             try:
                 with open(self.old_compendium_file, "r", encoding="utf-8") as f:
                     old_data = json.load(f)
@@ -33,9 +37,11 @@ class CompendiumPanel(QWidget):
                     json.dump(old_data, f, indent=2)
                 # Delete the old compendium file.
                 os.remove(self.old_compendium_file)
-                print("Migrated compendium data to", self.new_compendium_file)
+                if DEBUG:
+                    print("Migrated compendium data to", self.new_compendium_file)
             except Exception as e:
-                print("Error migrating old compendium file:", e)
+                if DEBUG:
+                    print("Error migrating old compendium file:", e)
         
         # Set self.compendium_file to the new location.
         self.compendium_file = self.new_compendium_file
@@ -73,11 +79,13 @@ class CompendiumPanel(QWidget):
             try:
                 with open(self.compendium_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                print("Compendium data loaded:", data)
+                if DEBUG:
+                    print("Compendium data loaded:", data)
                 
                 # Detect if data is in the old format (categories as dict) and convert if needed.
                 if isinstance(data.get("categories"), dict):
-                    print("Old format detected. Converting data...")
+                    if DEBUG:
+                        print("Old format detected. Converting data...")
                     old_categories = data["categories"]
                     category_order = data.get("category_order", list(old_categories.keys()))
                     new_categories = []
@@ -97,7 +105,8 @@ class CompendiumPanel(QWidget):
                     # Save the converted data back to file.
                     with open(self.compendium_file, "w", encoding="utf-8") as f:
                         json.dump(data, f, indent=2)
-                    print("Conversion complete. Data saved in new format.")
+                    if DEBUG:
+                        print("Conversion complete. Data saved in new format.")
                 
                 # Now data["categories"] should be a list.
                 for cat in data.get("categories", []):
@@ -110,17 +119,21 @@ class CompendiumPanel(QWidget):
                         entry_item.setData(1, Qt.UserRole, entry.get("content", ""))
                     cat_item.setExpanded(True)
             except Exception as e:
-                print("Error loading compendium data:", e)
+                if DEBUG:
+                    print("Error loading compendium data:", e)
         else:
-            print("Compendium file not found at", self.compendium_file)
+            if DEBUG:
+                print("Compendium file not found at", self.compendium_file)
             # Create default structure if file does not exist.
             default_data = {"categories": [{"name": "Default Category", "entries": [{"name": "Default Entry", "content": "This is the default entry content."}]}]}
             try:
                 with open(self.compendium_file, "w", encoding="utf-8") as f:
                     json.dump(default_data, f, indent=2)
-                print("Created default compendium data at", self.compendium_file)
+                if DEBUG:
+                    print("Created default compendium data at", self.compendium_file)
             except Exception as e:
-                print("Error creating default compendium file:", e)
+                if DEBUG:
+                    print("Error creating default compendium file:", e)
             self.populate_compendium()  # Reload now that the file exists.
 
     def on_item_changed(self, current, previous):
@@ -216,7 +229,8 @@ class CompendiumPanel(QWidget):
     def save_entry(self, entry_item):
         content = self.editor.toPlainText()
         entry_item.setData(1, Qt.UserRole, content)
-        print("Saved entry:", entry_item.text(0))
+        if DEBUG:
+            print("Saved entry:", entry_item.text(0))
         self.save_compendium_to_file()
 
     def delete_entry(self, entry_item):
@@ -281,6 +295,8 @@ class CompendiumPanel(QWidget):
         try:
             with open(self.compendium_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
-            print("Compendium data saved to", self.compendium_file)
+            if DEBUG:
+                print("Compendium data saved to", self.compendium_file)
         except Exception as e:
-            print("Error saving compendium data:", e)
+            if DEBUG:
+                print("Error saving compendium data:", e)

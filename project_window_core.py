@@ -226,8 +226,12 @@ class ProjectWindow(QMainWindow):
         self.workshop_window.show()
 
     def open_compendium(self):
-        self.compendium_window = CompendiumWindow(self)
-        self.compendium_window.exec_()
+        # Toggle the visibility of the embedded compendium panel.
+        if hasattr(self, "compendium_panel"):
+            visible = self.compendium_panel.isVisible()
+            self.compendium_panel.setVisible(not visible)
+        else:
+            print("Compendium panel not found.")
 
     def open_prompts_window(self):
         from prompts import PromptsWindow

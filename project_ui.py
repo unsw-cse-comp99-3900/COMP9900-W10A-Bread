@@ -6,9 +6,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtCore import Qt
 from context_panel import ContextPanel
-# Import the ThemeManager for icon tint mapping
 from theme_manager import ThemeManager
-
 
 def build_main_ui(window):
     # Ensure the main window has a current_theme attribute; default to "Standard" if not set.
@@ -29,7 +27,7 @@ def build_main_ui(window):
     window.compendium_action = QAction(window.get_tinted_icon(
         "assets/icons/book.svg", tint_color=tint), "", window)
     window.compendium_action.setToolTip(
-        "Compendium: Opens the Compendium to view and edit your worldbuilding database")
+        "Compendium: Toggle the embedded compendium panel to view/edit your worldbuilding database")
     window.compendium_action.triggered.connect(window.open_compendium)
     global_toolbar.addAction(window.compendium_action)
 
@@ -52,22 +50,40 @@ def build_main_ui(window):
     window.focus_mode_action.triggered.connect(window.open_focus_mode)
     global_toolbar.addAction(window.focus_mode_action)
 
-    # Main layout: Left is the project tree, right is the editor area and toolbars
+    # -----------------------------------------------------
+    # New Layout Structure:
+    # The main window will be divided horizontally into two parts:
+    #   Left: Project Tree
+    #   Right: A vertical splitter that contains:
+    #         (a) Top: A horizontal splitter with the compendium panel and scene editor
+    #         (b) Bottom: The bottom stack (LLM preview, action beats, etc.)
+    # -----------------------------------------------------
     main_splitter = QSplitter(Qt.Horizontal)
 
-    # Project tree on the left
+    # --- Left Panel: Project Tree ---
     window.tree = QTreeWidget()
     window.tree.setHeaderLabel("Project Structure")
     window.tree.setContextMenuPolicy(Qt.CustomContextMenu)
-    window.tree.customContextMenuRequested.connect(
-        window.show_tree_context_menu)
+    window.tree.customContextMenuRequested.connect(window.show_tree_context_menu)
     window.populate_tree()
     window.tree.currentItemChanged.connect(window.tree_item_changed)
     main_splitter.addWidget(window.tree)
 
-    # Right side: Editor area with an Editor Toolbar on top
-    right_side = QWidget()
-    right_layout = QVBoxLayout(right_side)
+    # --- Right Panel: Vertical Splitter ---
+    right_vertical_splitter = QSplitter(Qt.Vertical)
+
+    # ---- Top Row: Horizontal Splitter for Compendium and Scene Editor ----
+    top_horizontal_splitter = QSplitter(Qt.Horizontal)
+
+    # Import and create the compendium panel (initially hidden)
+    from compendium_panel import CompendiumPanel
+    window.compendium_panel = CompendiumPanel(window)
+    window.compendium_panel.setVisible(False)  # Toggle with the compendium button
+    top_horizontal_splitter.addWidget(window.compendium_panel)
+
+    # Scene Editor Area (with its editor toolbar)
+    editor_container = QWidget()
+    editor_layout = QVBoxLayout(editor_container)
 
     # Editor Toolbar: Merges formatting actions and scene-specific controls
     editor_toolbar = QToolBar("Editor Toolbar", window)
@@ -128,8 +144,7 @@ def build_main_ui(window):
     from PyQt5.QtWidgets import QFontComboBox
     font_combo = QFontComboBox()
     font_combo.setToolTip("Select a font")
-    font_combo.currentFontChanged.connect(
-        lambda font: window.editor.setCurrentFont(font))
+    font_combo.currentFontChanged.connect(lambda font: window.editor.setCurrentFont(font))
     editor_toolbar.addWidget(font_combo)
 
     font_size_combo = QComboBox()
@@ -138,29 +153,26 @@ def build_main_ui(window):
         font_size_combo.addItem(str(size))
     font_size_combo.setCurrentText("12")
     font_size_combo.setToolTip("Select font size")
-    font_size_combo.currentIndexChanged.connect(
-        lambda: window.set_font_size(int(font_size_combo.currentText())))
+    font_size_combo.currentIndexChanged.connect(lambda: window.set_font_size(int(font_size_combo.currentText())))
     editor_toolbar.addWidget(font_size_combo)
 
-    # --- Separator between formatting and scene-specific controls ---
+    # Separator between formatting and scene-specific controls
     editor_toolbar.addSeparator()
 
-    # --- Scene-Specific Actions ---
+    # Scene-Specific Actions
     window.manual_save_action = QAction(window.get_tinted_icon(
         "assets/icons/save.svg", tint_color=tint), "", window)
-    window.manual_save_action.setToolTip(
-        "Manual Save: Manually save the current scene")
+    window.manual_save_action.setToolTip("Manual Save: Manually save the current scene")
     window.manual_save_action.triggered.connect(window.manual_save_scene)
     editor_toolbar.addAction(window.manual_save_action)
 
     window.oh_shit_action = QAction(window.get_tinted_icon(
         "assets/icons/share.svg", tint_color=tint), "", window)
-    window.oh_shit_action.setToolTip(
-        "Oh Shit: Show backup versions for this scene")
+    window.oh_shit_action.setToolTip("Oh Shit: Show backup versions for this scene")
     window.oh_shit_action.triggered.connect(window.on_oh_shit)
     editor_toolbar.addAction(window.oh_shit_action)
 
-    # --- Separator for scene settings (POV, Character, Tense) ---
+    # Separator for scene settings (POV, Character, Tense)
     editor_toolbar.addSeparator()
 
     # POV dropdown
@@ -168,8 +180,7 @@ def build_main_ui(window):
     window.pov_combo.setEditable(True)
     window.pov_combo.lineEdit().setReadOnly(True)
     window.pov_combo.lineEdit().setPlaceholderText("Perspective")
-    pov_options = ["First Person", "Omniscient",
-                   "Third Person Limited", "Custom..."]
+    pov_options = ["First Person", "Omniscient", "Third Person Limited", "Custom..."]
     for option in pov_options:
         window.pov_combo.addItem(option)
     window.pov_combo.setCurrentIndex(-1)
@@ -188,8 +199,7 @@ def build_main_ui(window):
         window.pov_character_combo.addItem(option)
     window.pov_character_combo.setCurrentIndex(-1)
     window.pov_character_combo.setToolTip("Select POV Character")
-    window.pov_character_combo.currentIndexChanged.connect(
-        window.handle_pov_character_change)
+    window.pov_character_combo.currentIndexChanged.connect(window.handle_pov_character_change)
     editor_toolbar.addWidget(window.pov_character_combo)
 
     # Tense dropdown
@@ -205,20 +215,23 @@ def build_main_ui(window):
     window.tense_combo.currentIndexChanged.connect(window.handle_tense_change)
     editor_toolbar.addWidget(window.tense_combo)
 
-    # Add the merged Editor Toolbar above the editor
-    right_layout.addWidget(editor_toolbar)
+    # Add the Editor Toolbar above the scene editor
+    editor_layout.addWidget(editor_toolbar)
 
-    # ---- New: Editor and bottom panels in a vertical splitter ----
-
-    # Scene editor with added border/shadow effect
+    # Scene Editor
     window.editor = QTextEdit()
     window.editor.setPlaceholderText("Select a node to edit its content...")
     window.editor.setContextMenuPolicy(Qt.CustomContextMenu)
-    window.editor.customContextMenuRequested.connect(
-        window.show_editor_context_menu)
+    window.editor.customContextMenuRequested.connect(window.show_editor_context_menu)
     window.editor.setStyleSheet("border: 1px solid #ccc; padding: 2px;")
+    editor_layout.addWidget(window.editor)
 
-    # Bottom stacked widget (summary panel and LLM panel)
+    # Add the top_horizontal_splitter's second widget: the editor container
+    top_horizontal_splitter.addWidget(editor_container)
+    top_horizontal_splitter.setStretchFactor(0, 1)  # Compendium Panel
+    top_horizontal_splitter.setStretchFactor(1, 3)  # Editor Area
+
+    # ---- Bottom Row: Bottom Stack (Summary panel, LLM preview, and Action Beats) ----
     window.bottom_stack = QStackedWidget()
 
     # Summary panel
@@ -233,13 +246,11 @@ def build_main_ui(window):
     summary_layout.addWidget(window.save_summary_button)
     summary_layout.addStretch()
 
-    # LLM panel with re-ordered layout:
-    #  - Top part: LLM output preview + Apply button
-    #  - Bottom part: Action beats (prompt input, dropdown, send button, context toggle, and model indicator + context panel)
+    # LLM panel (with re-ordered layout)
     window.llm_panel = QWidget()
     llm_layout = QVBoxLayout(window.llm_panel)
 
-    # ---- Preview Group (Middle) ----
+    # Preview Group (Middle)
     preview_group = QWidget()
     preview_layout = QVBoxLayout(preview_group)
     window.preview_text = QTextEdit()
@@ -248,8 +259,7 @@ def build_main_ui(window):
     preview_layout.addWidget(window.preview_text)
     preview_button_layout = QHBoxLayout()
     window.apply_button = QPushButton()
-    window.apply_button.setIcon(window.get_tinted_icon(
-        "assets/icons/save.svg", tint_color=tint))
+    window.apply_button.setIcon(window.get_tinted_icon("assets/icons/save.svg", tint_color=tint))
     window.apply_button.setToolTip("Appends the LLM's output to your current scene")
     window.apply_button.clicked.connect(window.apply_preview)
     preview_button_layout.addWidget(window.apply_button)
@@ -257,7 +267,7 @@ def build_main_ui(window):
     preview_layout.addLayout(preview_button_layout)
     llm_layout.addWidget(preview_group)
 
-    # ---- Action Beats Group (Bottom) ----
+    # Action Beats Group (Bottom)
     action_group = QWidget()
     action_layout = QHBoxLayout(action_group)
     left_container = QWidget()
@@ -303,18 +313,20 @@ def build_main_ui(window):
     action_layout.addWidget(window.context_panel, stretch=1)
     llm_layout.addWidget(action_group)
 
-    # Add the panels to the stacked widget
+    # Add panels to the bottom stack
     window.bottom_stack.addWidget(window.summary_panel)
     window.bottom_stack.addWidget(window.llm_panel)
 
-    # Vertical splitter for editor and bottom panels
-    editor_bottom_splitter = QSplitter(Qt.Vertical)
-    editor_bottom_splitter.addWidget(window.editor)
-    editor_bottom_splitter.addWidget(window.bottom_stack)
-    editor_bottom_splitter.setStretchFactor(0, 3)
-    editor_bottom_splitter.setStretchFactor(1, 1)
-    right_layout.addWidget(editor_bottom_splitter)
+    # Assemble the right vertical splitter:
+    right_vertical_splitter.addWidget(top_horizontal_splitter)  # Top: compendium + scene editor
+    right_vertical_splitter.addWidget(window.bottom_stack)        # Bottom: LLM preview and action beats
+    right_vertical_splitter.setStretchFactor(0, 3)
+    right_vertical_splitter.setStretchFactor(1, 1)
 
-    main_splitter.addWidget(right_side)
-    main_splitter.setStretchFactor(1, 1)
+    # Finally, add the left panel (project tree) and the right vertical splitter to the main splitter
+    main_splitter.addWidget(window.tree)
+    main_splitter.addWidget(right_vertical_splitter)
+    main_splitter.setStretchFactor(0, 1)  # Project Tree
+    main_splitter.setStretchFactor(1, 3)  # Right Side
+
     window.setCentralWidget(main_splitter)

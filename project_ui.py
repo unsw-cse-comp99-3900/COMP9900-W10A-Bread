@@ -233,10 +233,33 @@ def build_main_ui(window):
     summary_layout.addWidget(window.save_summary_button)
     summary_layout.addStretch()
 
-    # LLM panel
+    # LLM panel with re-ordered layout:
+    #  - Top part: LLM output preview + Apply button
+    #  - Bottom part: Action beats (prompt input, dropdown, send button, context toggle, and model indicator + context panel)
     window.llm_panel = QWidget()
     llm_layout = QVBoxLayout(window.llm_panel)
-    input_context_layout = QHBoxLayout()
+
+    # ---- Preview Group (Middle) ----
+    preview_group = QWidget()
+    preview_layout = QVBoxLayout(preview_group)
+    window.preview_text = QTextEdit()
+    window.preview_text.setReadOnly(True)
+    window.preview_text.setPlaceholderText("LLM output preview will appear here...")
+    preview_layout.addWidget(window.preview_text)
+    preview_button_layout = QHBoxLayout()
+    window.apply_button = QPushButton()
+    window.apply_button.setIcon(window.get_tinted_icon(
+        "assets/icons/save.svg", tint_color=tint))
+    window.apply_button.setToolTip("Appends the LLM's output to your current scene")
+    window.apply_button.clicked.connect(window.apply_preview)
+    preview_button_layout.addWidget(window.apply_button)
+    preview_button_layout.addStretch()
+    preview_layout.addLayout(preview_button_layout)
+    llm_layout.addWidget(preview_group)
+
+    # ---- Action Beats Group (Bottom) ----
+    action_group = QWidget()
+    action_layout = QHBoxLayout(action_group)
     left_container = QWidget()
     left_layout = QVBoxLayout(left_container)
     window.prompt_input = QTextEdit()
@@ -244,70 +267,43 @@ def build_main_ui(window):
     window.prompt_input.setMinimumHeight(100)
     left_layout.addWidget(window.prompt_input)
     left_buttons_layout = QHBoxLayout()
-    left_layout.addLayout(left_buttons_layout)
     window.prompt_dropdown = QComboBox()
     window.prompt_dropdown.setToolTip("Select a prose prompt")
     window.prompt_dropdown.addItem("Select Prose Prompt")
-    window.prompt_dropdown.currentIndexChanged.connect(
-        window.prompt_dropdown_changed)
+    window.prompt_dropdown.currentIndexChanged.connect(window.prompt_dropdown_changed)
     left_buttons_layout.addWidget(window.prompt_dropdown)
-    # Modified Send Button using tinted icon
     window.send_button = QPushButton()
-    window.send_button.setIcon(window.get_tinted_icon(
-        "assets/icons/send.svg", tint_color=tint))
+    window.send_button.setIcon(window.get_tinted_icon("assets/icons/send.svg", tint_color=tint))
     window.send_button.setToolTip("Sends the action beats to the LLM")
     window.send_button.clicked.connect(window.send_prompt)
     left_buttons_layout.addWidget(window.send_button)
-
-    # Modified Context Toggle Button using tinted icons
     window.context_toggle_button = QPushButton()
-    window.context_toggle_button.setIcon(
-        window.get_tinted_icon("assets/icons/book.svg", tint_color=tint))
-    window.context_toggle_button.setToolTip(
-        "Lets you decide which additional information to send with the prompt")
+    window.context_toggle_button.setIcon(window.get_tinted_icon("assets/icons/book.svg", tint_color=tint))
+    window.context_toggle_button.setToolTip("Lets you decide which additional information to send with the prompt")
     window.context_toggle_button.setCheckable(True)
-
     def toggle_context():
         window.toggle_context_panel()
         window.context_toggle_button.setText("")
         if window.context_panel.isVisible():
-            window.context_toggle_button.setIcon(window.get_tinted_icon(
-                "assets/icons/book-open.svg", tint_color=tint))
+            window.context_toggle_button.setIcon(window.get_tinted_icon("assets/icons/book-open.svg", tint_color=tint))
         else:
-            window.context_toggle_button.setIcon(
-                window.get_tinted_icon("assets/icons/book.svg", tint_color=tint))
-
+            window.context_toggle_button.setIcon(window.get_tinted_icon("assets/icons/book.svg", tint_color=tint))
     window.context_toggle_button.clicked.connect(toggle_context)
     left_buttons_layout.addWidget(window.context_toggle_button)
-
     window.model_indicator = QLabel("")
-    window.model_indicator.setStyleSheet(
-        "font-weight: bold; padding-left: 10px;")
+    window.model_indicator.setStyleSheet("font-weight: bold; padding-left: 10px;")
     window.model_indicator.setToolTip("Selected prompt's model")
     left_buttons_layout.addWidget(window.model_indicator)
     left_buttons_layout.addStretch()
+    left_layout.addLayout(left_buttons_layout)
     left_layout.addStretch()
-    input_context_layout.addWidget(left_container, stretch=2)
+    action_layout.addWidget(left_container, stretch=2)
     window.context_panel = ContextPanel(window.structure, window.project_name)
     window.context_panel.setVisible(False)
-    input_context_layout.addWidget(window.context_panel, stretch=1)
-    llm_layout.addLayout(input_context_layout)
-    window.preview_text = QTextEdit()
-    window.preview_text.setReadOnly(True)
-    window.preview_text.setPlaceholderText(
-        "LLM output preview will appear here...")
-    llm_layout.addWidget(window.preview_text)
-    button_layout = QHBoxLayout()
-    # Apply Button using tinted feather icon
-    window.apply_button = QPushButton()
-    window.apply_button.setIcon(window.get_tinted_icon(
-        "assets/icons/feather.svg", tint_color=tint))
-    window.apply_button.setToolTip(
-        "Appends the LLM's output to your current scene")
-    window.apply_button.clicked.connect(window.apply_preview)
-    button_layout.addWidget(window.apply_button)
-    button_layout.addStretch()
-    llm_layout.addLayout(button_layout)
+    action_layout.addWidget(window.context_panel, stretch=1)
+    llm_layout.addWidget(action_group)
+
+    # Add the panels to the stacked widget
     window.bottom_stack.addWidget(window.summary_panel)
     window.bottom_stack.addWidget(window.llm_panel)
 

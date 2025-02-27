@@ -1,4 +1,3 @@
-# rewrite_feature.py
 import os
 import json
 from PyQt5.QtWidgets import (
@@ -6,7 +5,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QMessageBox
 )
 from PyQt5.QtCore import Qt
-from llm_integration import send_prompt_to_llm
+from prompt_handler import send_final_prompt  # Updated import
 
 def get_rewrite_prompts(project_name):
     """
@@ -108,7 +107,7 @@ class RewriteDialog(QDialog):
         final_prompt = f"{prompt_text}\n\nOriginal Passage:\n{self.original_text}"
         self.new_edit.setPlainText("Generating rewrite...")
         
-        # Build the overrides dictionary to force local LLM usage.
+        # Build the overrides dictionary to force specific settings.
         overrides = {
             "provider": prompt_data.get("provider", "Local"),
             "model": prompt_data.get("model", "Local Model"),
@@ -117,8 +116,8 @@ class RewriteDialog(QDialog):
         }
         
         try:
-            # Send the prompt to the
-            rewritten = send_prompt_to_llm(final_prompt, overrides=overrides)
+            # Updated: use send_final_prompt from prompt_handler to properly load API key if missing.
+            rewritten = send_final_prompt(final_prompt, prompt_config=overrides)
         except Exception as e:
             QMessageBox.warning(self, "Rewrite", f"Error sending prompt to LLM: {e}")
             return

@@ -33,7 +33,7 @@ class RewriteDialog(QDialog):
       - Provides a dropdown list of available rewrite prompts.
       - A "Generate Rewrite" button sends the selected prompt and the original passage to the LLM.
       - Displays the rewritten text for comparison.
-      - "Retry" allows re-generation with the same prompt.
+      - "Generate" allows re-generation with the same prompt.
       - "Apply" confirms the change (the dialog is accepted) so the caller can replace the selected text.
     """
     def __init__(self, project_name, original_text, parent=None):
@@ -51,7 +51,6 @@ class RewriteDialog(QDialog):
         orig_label = QLabel("Original Text:")
         layout.addWidget(orig_label)
         self.orig_edit = QTextEdit()
-        self.orig_edit.setReadOnly(True)
         self.orig_edit.setPlainText(self.original_text)
         layout.addWidget(self.orig_edit)
         
@@ -86,7 +85,7 @@ class RewriteDialog(QDialog):
         self.apply_button = QPushButton("Apply")
         self.apply_button.clicked.connect(self.apply_rewrite)
         button_layout.addWidget(self.apply_button)
-        self.retry_button = QPushButton("Retry")
+        self.retry_button = QPushButton("Generate")
         self.retry_button.clicked.connect(self.retry_rewrite)
         button_layout.addWidget(self.retry_button)
         self.cancel_button = QPushButton("Cancel")
@@ -111,13 +110,19 @@ class RewriteDialog(QDialog):
         
         # Build the overrides dictionary to force local LLM usage.
         overrides = {
-            "provider": "Local",
-            "model": "Local Model",
+            "provider": prompt_data.get("provider", "Local"),
+            "model": prompt_data.get("model", "Local Model"),
             "max_tokens": prompt_data.get("max_tokens", 2000),
             "temperature": prompt_data.get("temperature", 1.0)
         }
         
-        rewritten = send_prompt_to_llm(final_prompt, overrides=overrides)
+        try:
+            # Send the prompt to the
+            rewritten = send_prompt_to_llm(final_prompt, overrides=overrides)
+        except Exception as e:
+            QMessageBox.warning(self, "Rewrite", f"Error sending prompt to LLM: {e}")
+            return
+
         if not rewritten:
             QMessageBox.warning(self, "Rewrite", "LLM returned no output.")
             return

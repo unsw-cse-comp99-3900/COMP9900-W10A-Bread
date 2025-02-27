@@ -51,7 +51,6 @@ class RewriteDialog(QDialog):
         orig_label = QLabel("Original Text:")
         layout.addWidget(orig_label)
         self.orig_edit = QTextEdit()
-        self.orig_edit.setReadOnly(True)
         self.orig_edit.setPlainText(self.original_text)
         layout.addWidget(self.orig_edit)
         

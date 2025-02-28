@@ -96,7 +96,7 @@ class ProviderConfigWidget(QWidget):
         
         # For OpenRouter, test using the models endpoint.
         test_url = url
-        if provider == "OpenRouter":
+        if provider in ["OpenRouter", "Ollama"]:
             test_url = url.replace("/chat/completions", "/models")
             headers["HTTP-Referer"] = "http://localhost:1234"
         

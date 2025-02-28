@@ -10,7 +10,7 @@ def build_final_prompt(action_beats, prose_prompt, pov, pov_character, tense):
     final_prompt += "\n" + action_beats
     return final_prompt
 
-def get_llm_settings():
+def get_llm_settings(provider):
     settings = {}
     if os.path.exists(SETTINGS_FILE):
         try:
@@ -18,6 +18,11 @@ def get_llm_settings():
                 data = json.load(f)
             if "llm" in data:
                 settings = data["llm"]
+            elif "llm_configs" in data:
+                for config in data["llm_configs"]:
+                    if config.get("provider") == provider:
+                        settings = config
+                        break
             elif "llm_configs" in data and "active_llm_config" in data:
                 active_config = data["active_llm_config"]
                 for config in data["llm_configs"]:
@@ -38,7 +43,7 @@ def get_llm_settings():
     return settings
 
 def send_prompt_to_llm(final_prompt, overrides=None, conversation_history=None):
-    llm_settings = get_llm_settings()
+    llm_settings = get_llm_settings(overrides.get("provider", "Local") if overrides else None)
     if overrides:
         llm_settings.update(overrides)
     
@@ -49,11 +54,7 @@ def send_prompt_to_llm(final_prompt, overrides=None, conversation_history=None):
     
     if llm_settings.get("provider") == "Local":
         llm_settings["endpoint"] = "http://localhost:1234/v1/chat/completions"
-    elif llm_settings.get("provider") == "OpenRouter":
-        llm_settings["endpoint"] = "https://openrouter.ai/api/v1/chat/completions"
-    elif llm_settings.get("provider") == "Ollama":
-        llm_settings["endpoint"] = "http://localhost:11434/v1/chat/completions"
-    
+        
     provider = llm_settings.get("provider", "Local")
     endpoint = llm_settings.get("endpoint", "http://localhost:1234/v1/chat/completions")
     model = llm_settings.get("model", "local-model")
@@ -81,11 +82,13 @@ def send_prompt_to_llm(final_prompt, overrides=None, conversation_history=None):
         "max_tokens": overrides.get("max_tokens", 2000) if overrides else 2000,
         "temperature": overrides.get("temperature", 1.0) if overrides else 1.0
     }
+
     if conversation_history:
         payload["messages"] = conversation_history
     else:
         payload["messages"] = [{"role": "user", "content": final_prompt}]
     
+    print(f"🔍 DEBUG: Endpoint = {endpoint}")
     print(f"🔍 DEBUG: Headers = {headers}")
     print(f"🔍 DEBUG: Payload = {json.dumps(payload, indent=2)}")
     

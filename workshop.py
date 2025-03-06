@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from prompts import load_project_options, get_workshop_prompts
-from llm_integration import send_prompt_to_llm
+from llm_api_aggregator import WWApiAggregator
 from conversation_history_manager import estimate_conversation_tokens, summarize_conversation, prune_conversation_history
 
 TOKEN_LIMIT = 2000
@@ -367,7 +367,7 @@ class WorkshopWindow(QDialog):
             f"Model: {overrides.get('provider', 'Local')}/{overrides.get('model', 'Local Model')} ({token_count} tokens sent)"
         )
 
-        response = send_prompt_to_llm("", overrides=overrides, conversation_history=conversation_payload)
+        response = WWApiAggregator.send_prompt_to_llm("", overrides=overrides, conversation_history=conversation_payload)
 
         self.chat_log.append("LLM: " + response)
         QApplication.processEvents()

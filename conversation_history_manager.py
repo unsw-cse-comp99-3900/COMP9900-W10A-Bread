@@ -1,5 +1,5 @@
 import math
-from llm_integration import send_prompt_to_llm
+from llm_api_aggregator import WWApiAggregator
 
 def estimate_tokens(text):
     return len(text.split())
@@ -13,7 +13,7 @@ def estimate_conversation_tokens(conversation_history):
 def summarize_conversation(conversation_history, max_tokens=500, summarization_prompt_prefix="Summarize the following conversation:"):
     conversation_text = "\n".join([f'{msg["role"]}: {msg["content"]}' for msg in conversation_history])
     summarization_prompt = f"{summarization_prompt_prefix}\n{conversation_text}"
-    summary = send_prompt_to_llm(summarization_prompt, overrides={"max_tokens": max_tokens})
+    summary = WWApiAggregator.send_prompt_to_llm(summarization_prompt, overrides={"max_tokens": max_tokens})
     return summary
 
 def prune_conversation_history(conversation_history, token_limit):

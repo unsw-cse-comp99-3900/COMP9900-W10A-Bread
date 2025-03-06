@@ -2,7 +2,7 @@ import os
 import json
 from PyQt5.QtWidgets import QMessageBox, QInputDialog, QApplication
 from PyQt5.QtCore import Qt
-from llm_integration import send_prompt_to_llm  # Function to send a prompt to the LLM
+from llm_api_aggregator import WWApiAggregator
 
 def get_summary_prompts(project_name):
     """
@@ -103,9 +103,15 @@ def create_summary(project_window):
     project_window.statusBar().showMessage("Generating summary, please wait...", 5000)
     QApplication.processEvents()  # Update UI
 
-    # Force an override to use a valid model ID (adjust as needed).
-    overrides = {"model": "gpt-3.5-turbo"}
-    generated_summary = send_prompt_to_llm(final_prompt, overrides=overrides)
+    # Build the overrides dictionary to force local LLM usage.
+    overrides = {
+        "provider": p.get("provider", ""),
+        "model": p.get("model", ""),
+        "max_tokens": p.get("max_tokens", 2000),
+        "temperature": p.get("temperature", 1.0)
+    }
+
+    generated_summary = WWApiAggregator.send_prompt_to_llm(final_prompt, overrides=overrides)
     if not generated_summary:
         QMessageBox.warning(project_window, "Summary", "LLM returned no output.")
         return

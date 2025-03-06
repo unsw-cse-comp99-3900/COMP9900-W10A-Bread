@@ -299,11 +299,17 @@ class SettingsDialog(QDialog):
         self.llm_configs = WWSettingsManager.get_llm_configs()
         self.default_provider = WWSettingsManager.get_active_llm_name()
 
-        if os.path.exists("lang_settings.json"):
-            with open("lang_settings.json", "r") as f:
-                self.ui_labels = json.load(f)
-        else:
-            self.ui_labels = UI_LABELS
+        self.ui_labels = UI_LABELS
+        try:
+            if os.path.exists("lang_settings.json"):
+                with open("lang_settings.json", "r", encoding="utf-8") as f:
+                    self.ui_labels = json.load(f)
+        except UnicodeDecodeError as e:
+            self.logger.error(f"Warn: Error reading unicode in language settings file: {e}")
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Warn: Error parsing language settings file: {e}")
+        except Exception as e:
+            self.logger.error(f"Warn: Unexpected error: {e}")
 
         self.labels = self.ui_labels.get(self.general_settings["language"], self.ui_labels["en"])
 

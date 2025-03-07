@@ -7,6 +7,9 @@ from PyQt5.QtCore import Qt
 # Assume get_compendium_text is imported from a shared module or defined elsewhere.
 from workshop import get_compendium_text  # Use the function from workshop.py
 
+# Reuse the sanitize function from compendium_panel.py
+def sanitize(text):
+    return re.sub(r'\W+', '', text)
 
 class ContextPanel(QWidget):
     """
@@ -87,7 +90,9 @@ class ContextPanel(QWidget):
         data = {}
         """Build a tree from the compendium data."""
         self.compendium_tree.clear()
-        filename = "compendium.json"
+        # Use the project-specific compendium file path
+        project_name_sanitized = sanitize(self.project_name)
+        filename = os.path.join(os.getcwd(), "Projects", project_name_sanitized, "compendium.json")
         try:
             if os.path.exists(filename):
                 with open(filename, "r", encoding="utf-8") as f:
@@ -95,16 +100,27 @@ class ContextPanel(QWidget):
         except Exception:
             data = {}
 
-        categories = data.get("categories", {})
-        for cat, entries in categories.items():
-            cat_item = QTreeWidgetItem(self.compendium_tree, [cat])
+        # Get categories from the new format (list) or legacy format (dict)
+        categories = data.get("categories", [])
+        if isinstance(categories, dict):
+            # Legacy format: convert dict to list of category objects.
+            new_categories = []
+            for cat, entries in categories.items():
+                new_categories.append({"name": cat, "entries": entries})
+            categories = new_categories
+
+        for cat in categories:
+            cat_name = cat.get("name", "Unnamed Category")
+            entries = cat.get("entries", [])
+            cat_item = QTreeWidgetItem(self.compendium_tree, [cat_name])
             cat_item.setFlags(cat_item.flags() & ~Qt.ItemIsUserCheckable)
-            for entry in sorted(entries.keys()):
-                entry_item = QTreeWidgetItem(cat_item, [entry])
+            for entry in sorted(entries, key=lambda e: e.get("name", "")):
+                entry_name = entry.get("name", "Unnamed Entry")
+                entry_item = QTreeWidgetItem(cat_item, [entry_name])
                 entry_item.setFlags(entry_item.flags() | Qt.ItemIsUserCheckable)
                 entry_item.setCheckState(0, Qt.Unchecked)
                 entry_item.setData(
-                    0, Qt.UserRole, {"type": "compendium", "category": cat, "label": entry}
+                    0, Qt.UserRole, {"type": "compendium", "category": cat_name, "label": entry_name}
                 )
         self.compendium_tree.expandAll()
 

@@ -1,4 +1,3 @@
-# compendium_panel.py
 from PyQt5.QtWidgets import QWidget, QSplitter, QTreeWidget, QTextEdit, QVBoxLayout, QMenu, QTreeWidgetItem, QInputDialog
 from PyQt5.QtCore import Qt, QPoint
 import json, os, re
@@ -149,9 +148,15 @@ class CompendiumPanel(QWidget):
 
     def show_tree_context_menu(self, pos: QPoint):
         item = self.tree.itemAt(pos)
-        if item is None:
-            return
         menu = QMenu(self)
+        # If no item is clicked, show context menu for adding a new category.
+        if item is None:
+            action_new_category = menu.addAction("New Category")
+            action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
+            if action == action_new_category:
+                self.new_category()
+            return
+
         item_type = item.data(0, Qt.UserRole)
         if item_type == "category":
             # Right-click menu for categories.
@@ -193,7 +198,13 @@ class CompendiumPanel(QWidget):
             elif action == action_move_down:
                 self.move_item(item, direction="down")
 
-    # --- Category Actions ---
+    def new_category(self):
+        """Create a new top-level category in the compendium tree."""
+        new_item = QTreeWidgetItem(self.tree, ["New Category"])
+        new_item.setData(0, Qt.UserRole, "category")
+        new_item.setExpanded(True)
+        self.save_compendium_to_file()
+
     def new_entry(self, category_item):
         new_item = QTreeWidgetItem(category_item, ["New Entry"])
         new_item.setData(0, Qt.UserRole, "entry")
@@ -239,10 +250,8 @@ class CompendiumPanel(QWidget):
             parent.removeChild(entry_item)
             self.save_compendium_to_file()
 
-    from PyQt5.QtGui import QCursor
-
     def move_entry(self, entry_item):
-        from PyQt5.QtGui import QCursor  # Import here if not imported globally
+        from PyQt5.QtGui import QCursor
         # Create a menu listing all categories.
         menu = QMenu(self)
         root = self.tree.invisibleRootItem()

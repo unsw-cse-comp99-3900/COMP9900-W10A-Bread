@@ -1,3 +1,4 @@
+# rewrite_feature.py
 import os
 import json
 from PyQt5.QtWidgets import (
@@ -5,7 +6,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QMessageBox
 )
 from PyQt5.QtCore import Qt
-from prompt_handler import send_final_prompt  # Updated import
+from llm_api_aggregator import WWApiAggregator
 
 def get_rewrite_prompts(project_name):
     """
@@ -104,10 +105,10 @@ class RewriteDialog(QDialog):
             return
         
         # Construct final prompt.
-        final_prompt = f"{prompt_text}\n\nOriginal Passage:\n{self.original_text}"
+        final_prompt = f"{prompt_text}\n\nOriginal Passage:\n{self.orig_edit.toPlainText()}"
         self.new_edit.setPlainText("Generating rewrite...")
         
-        # Build the overrides dictionary to force specific settings.
+        # Build the overrides dictionary to force local LLM usage.
         overrides = {
             "provider": prompt_data.get("provider", "Local"),
             "model": prompt_data.get("model", "Local Model"),
@@ -116,8 +117,8 @@ class RewriteDialog(QDialog):
         }
         
         try:
-            # Updated: use send_final_prompt from prompt_handler to properly load API key if missing.
-            rewritten = send_final_prompt(final_prompt, prompt_config=overrides)
+            # Send the prompt to the
+            rewritten = WWApiAggregator.send_prompt_to_llm(final_prompt, overrides=overrides)
         except Exception as e:
             QMessageBox.warning(self, "Rewrite", f"Error sending prompt to LLM: {e}")
             return

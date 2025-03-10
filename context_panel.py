@@ -87,14 +87,16 @@ class ContextPanel(QWidget):
         self.project_tree.expandAll()
 
     def build_compendium_tree(self):
+        data = {}
         """Build a tree from the compendium data."""
         self.compendium_tree.clear()
         # Use the project-specific compendium file path
         project_name_sanitized = sanitize(self.project_name)
         filename = os.path.join(os.getcwd(), "Projects", project_name_sanitized, "compendium.json")
         try:
-            with open(filename, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            if os.path.exists(filename):
+                with open(filename, "r", encoding="utf-8") as f:
+                    data = json.load(f)
         except Exception:
             data = {}
 

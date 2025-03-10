@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QIcon  # Added import for icons
 from prompts import load_project_options, get_workshop_prompts
-from llm_integration import send_prompt_to_llm
+from llm_api_aggregator import WWApiAggregator
 from conversation_history_manager import estimate_conversation_tokens, summarize_conversation, prune_conversation_history
 from embedding_manager import EmbeddingIndex  # New import for FAISS embedding integration
 
@@ -482,34 +482,37 @@ class WorkshopWindow(QDialog):
                 "temperature": self.workshop_prompt_config.get("temperature", 1.0)
             }
 
-        # Summarize or prune conversation if token limit is exceeded.
-        if estimate_conversation_tokens(conversation_payload) > TOKEN_LIMIT:
-            summary = summarize_conversation(conversation_payload)
-            conversation_payload = [conversation_payload[0], {"role": "system", "content": summary}]
-            self.chat_log.append("LLM: [Conversation summarized to reduce token count.]")
+        try:
+            # Summarize or prune conversation if token limit is exceeded.
+            if estimate_conversation_tokens(conversation_payload) > TOKEN_LIMIT:
+                summary = summarize_conversation(conversation_payload)
+                conversation_payload = [conversation_payload[0], {"role": "system", "content": summary}]
+                self.chat_log.append("LLM: [Conversation summarized to reduce token count.]")
 
-        # Retrieve additional context using FAISS based on the user message.
-        retrieved_context = self.embedding_index.query(user_message)
-        if retrieved_context:
-            augmented_message += "\n[Retrieved Context]:\n" + "\n".join(retrieved_context)
+            # Retrieve additional context using FAISS based on the user message.
+            retrieved_context = self.embedding_index.query(user_message)
+            if retrieved_context:
+                augmented_message += "\n[Retrieved Context]:\n" + "\n".join(retrieved_context)
 
-        token_count = estimate_conversation_tokens(conversation_payload)
-        self.model_label.setText(
-            f"Model: {overrides.get('provider', 'Local')}/{overrides.get('model', 'Local Model')} ({token_count} tokens sent)"
-        )
+            token_count = estimate_conversation_tokens(conversation_payload)
+            self.model_label.setText(
+                f"Model: {overrides.get('provider', 'Local')}/{overrides.get('model', 'Local Model')} ({token_count} tokens sent)"
+            )
 
-        response = send_prompt_to_llm("", overrides=overrides, conversation_history=conversation_payload)
+            response = WWApiAggregator.send_prompt_to_llm("", overrides=overrides, conversation_history=conversation_payload)
 
-        self.chat_log.append("LLM: " + response)
-        QApplication.processEvents()
+            self.chat_log.append("LLM: " + response)
+            QApplication.processEvents()
 
-        self.conversation_history = conversation_payload
-        self.conversation_history.append({"role": "assistant", "content": response})
-        self.conversations[self.current_conversation] = self.conversation_history
-        self.save_conversations()
+            self.conversation_history = conversation_payload
+            self.conversation_history.append({"role": "assistant", "content": response})
+            self.conversations[self.current_conversation] = self.conversation_history
+            self.save_conversations()
 
-        # Add the user message to the embedding index for future context retrieval.
-        self.embedding_index.add_text(user_message)
+            # Add the user message to the embedding index for future context retrieval.
+            self.embedding_index.add_text(user_message)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to generate response: {e}")
 
     def load_conversation_from_list(self, item: QListWidgetItem):
         selected_name = item.text()

@@ -42,25 +42,13 @@ check_dependencies()
 from PyQt5.QtWidgets import QApplication
 from workbench import WorkbenchWindow
 from theme_manager import ThemeManager
-
-SETTINGS_FILE = "settings.json"
-
-def load_theme():
-    """Load the saved theme from settings.json, defaulting to 'Standard'."""
-    if os.path.exists(SETTINGS_FILE):
-        try:
-            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-                settings = json.load(f)
-            return settings.get("theme", "Standard")
-        except Exception as e:
-            print("Error loading theme from settings:", e)
-    return "Standard"
+from settings_manager import WWSettingsManager
 
 def main():
     app = QApplication(sys.argv)
     
     # Load and apply the saved theme to the application.
-    theme = load_theme()
+    theme = WWSettingsManager.get_appearance_settings()["theme"]
     try:
         ThemeManager.apply_to_app(theme)
     except Exception as e:

@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from project_window_core import ProjectWindow
-from options import OptionsWindow  # Import the global options window
+from preferences import SettingsDialog  # Import the global options window
 
 # Define the file used for storing project data.
 PROJECTS_FILE = "projects.json"
@@ -116,6 +116,8 @@ class ProjectPostIt(QToolButton):
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Select Book Cover", "", "Image Files (*.png *.jpg *.jpeg *.bmp)"
         )
+        if file_path:
+            file_path = os.path.relpath(file_path)
         if file_path:
             self.project["cover"] = file_path
             pixmap = QPixmap(file_path)
@@ -281,7 +283,7 @@ class WorkbenchWindow(QMainWindow):
         self.setStyleSheet(fixed_styles)
 
     def open_settings(self):
-        options = OptionsWindow(self)
+        options = SettingsDialog(self)
         options.exec_()
 
     def updateCoverStackSize(self, index):

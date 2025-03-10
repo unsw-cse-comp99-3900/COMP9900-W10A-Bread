@@ -1,5 +1,6 @@
 import pyttsx3
 import json, os
+from settings_manager import WWSettingsManager
 
 def get_tts_rate():
     """
@@ -9,15 +10,10 @@ def get_tts_rate():
     normal_rate = 200  # Updated normal rate (default speed)
     fast_rate = 300    # Fast speech remains the same
     rate = normal_rate
-    settings_file = "settings.json"
-    if os.path.exists(settings_file):
-        try:
-            with open(settings_file, "r", encoding="utf-8") as f:
-                settings = json.load(f)
-            if settings.get("tts_fast", False):
-                rate = fast_rate
-        except Exception as e:
-            print("Error loading TTS settings:", e)
+
+    if WWSettingsManager.get_setting("general", "fast_tts"):
+        rate = fast_rate
+
     return rate
 
 def get_engine():

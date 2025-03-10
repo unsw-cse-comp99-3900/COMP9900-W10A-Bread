@@ -6,7 +6,8 @@ from PyQt5.QtWidgets import (
     QLabel, QComboBox, QSpinBox, QDoubleSpinBox, QApplication
 )
 from PyQt5.QtCore import Qt
-from model_fetcher import ModelFetcher
+from llm_api_aggregator import WWApiAggregator
+from settings_manager import WWSettingsManager
 
 def get_workshop_prompts(project_name):
     """
@@ -33,18 +34,6 @@ def get_workshop_prompts(project_name):
         "temperature": 1.0
     }]
 
-def load_llm_configs():
-    """Load available LLM configurations from settings file."""
-    settings_file = "settings.json"
-    if os.path.exists(settings_file):
-        try:
-            with open(settings_file, "r", encoding="utf-8") as f:
-                settings = json.load(f)
-                return settings.get("llm_configs", [])
-        except Exception as e:
-            print("Error loading LLM configurations:", e)
-    return []
-
 def load_project_options(project_name):
     """Load project options to inject dynamic values into default prompts."""
     options = {}
@@ -65,12 +54,8 @@ class PromptsWindow(QDialog):
         self.setWindowTitle("Prompts - " + project_name)
         self.resize(800, 600)  # Made window larger
 
-        # Initialize model fetcher
-        self.model_fetcher = ModelFetcher()
-        self.model_fetcher.models_updated.connect(self.on_models_updated)
-
         # Load LLM configurations
-        self.llm_configs = load_llm_configs()
+        # self.llm_configs = load_llm_configs()
 
         # Define file names
         base_name = f"prompts_{self.project_name.replace(' ', '')}"
@@ -220,32 +205,25 @@ class PromptsWindow(QDialog):
         """Update the provider combo box with available configurations."""
         self.provider_combo.clear()
 
-        # Get active config from settings
-        settings_file = "settings.json"
-        active_config = None
-        if os.path.exists(settings_file):
-            try:
-                with open(settings_file, "r", encoding="utf-8") as f:
-                    settings = json.load(f)
-                    active_config = settings.get("active_llm_config")
-            except Exception as e:
-                print(f"Error loading active config: {e}")
+        self.llm_configs = WWSettingsManager.get_llm_configs()
+        self.active_config = WWSettingsManager.get_active_llm_name()
 
         # Add each configuration
-        for config in self.llm_configs:
-            display_name = f"{config['name']} ({config['provider']})"
+        for provider, config in self.llm_configs.items():
+            display_name = f"{provider} ({config['provider']})"
             self.provider_combo.addItem(display_name, userData=config)
-            if active_config and config['name'] == active_config:
+            if provider == self.active_config:
                 self.provider_combo.setCurrentText(display_name)
+
 
         # Connect after populating to avoid triggering updates
         self.provider_combo.currentTextChanged.connect(self.on_provider_changed)
 
     def on_provider_changed(self, provider_text):
         """Handle provider selection change."""
-        self.refresh_models(show_loading=True)
+        self.refresh_models(True)
 
-    def refresh_models(self, show_loading=True):
+    def refresh_models(self, use_cache=False):
         """Refresh the model list for the current provider."""
         current_index = self.provider_combo.currentIndex()
         if current_index < 0:
@@ -263,7 +241,7 @@ class PromptsWindow(QDialog):
         if not config:
             return
 
-        if show_loading:
+        if not use_cache:
             self.model_combo.clear()
             self.model_combo.addItem("Loading models...")
             self.model_combo.setEnabled(False)
@@ -271,11 +249,12 @@ class PromptsWindow(QDialog):
             QApplication.processEvents()
 
         # Fetch models using the correct config dictionary.
-        self.model_fetcher.fetch_models(
-            config["provider"],
-            config,
-            force_refresh=not show_loading
-        )
+        try:
+            provider_name = config.get("provider")
+            provider = WWApiAggregator.aggregator.get_provider(provider_name)
+            self.on_models_updated(provider.get_available_models(not use_cache), None)
+        except Exception as e:
+            self.on_models_updated([], f"Error fetching models: {e}")
 
     def on_models_updated(self, models, error_msg):
         """Handle updated model list from the fetcher."""
@@ -366,7 +345,7 @@ class PromptsWindow(QDialog):
         }
 
         # Get default provider config
-        default_config = self.llm_configs[0] if self.llm_configs else {
+        default_config = self.llm_configs[self.active_config] if self.llm_configs else {
             "name": "Default",
             "provider": "Local",
             "model": "Local Model"
@@ -457,7 +436,7 @@ class PromptsWindow(QDialog):
             if idx == -1:
                 # Not found, so set a pending_model and refresh
                 self.pending_model = model
-                self.refresh_models(show_loading=True)
+                self.refresh_models(False)
             else:
                 self.model_combo.setCurrentIndex(idx)
 

@@ -14,7 +14,6 @@ from PyQt5.QtCore import Qt, QTimer, QSettings
 from PyQt5.QtGui import QFont, QTextCharFormat, QIcon, QKeySequence, QPixmap, QPainter, QColor, QImage
 from compendium import CompendiumWindow
 from workshop import WorkshopWindow
-from llm_integration import send_prompt_to_llm, build_final_prompt
 from rewrite_feature import RewriteDialog
 from backup_manager import show_backup_dialog
 from summary_feature import create_summary as create_summary_feature
@@ -25,9 +24,11 @@ import tts_manager
 import autosave_manager
 from dialogs import CreateSummaryDialog
 from project_ui import build_main_ui
+from settings_manager import WWSettingsManager
 import project_settings_manager as settings_manager
 from project_structure_manager import add_act, add_chapter, add_scene, rename_item, move_item_up, move_item_down
 from theme_manager import ThemeManager  # <-- Added import for theme management
+from focus_mode import FocusMode
 
 
 class ProjectWindow(QMainWindow):
@@ -81,8 +82,9 @@ class ProjectWindow(QMainWindow):
         self.tense_combo.setToolTip(f"Tense: {self.current_tense}")
 
     def load_autosave_setting(self):
+        self.autosave_enabled = WWSettingsManager.get_setting(
+            "general", "enable_autosave", False)
         settings = settings_manager.load_project_settings(self.project_name)
-        self.autosave_enabled = settings.get("autosave", False)
         self.current_pov = settings.get("global_pov", self.current_pov)
         self.current_pov_character = settings.get(
             "global_pov_character", self.current_pov_character)
@@ -268,6 +270,7 @@ class ProjectWindow(QMainWindow):
     def open_prompts_window(self):
         from prompts import PromptsWindow
         prompts_window = PromptsWindow(self.project_name, self)
+        prompts_window.finished.connect(self.repopulate_prompts)
         prompts_window.exec_()
 
     def show_editor_context_menu(self, pos):
@@ -575,6 +578,10 @@ class ProjectWindow(QMainWindow):
         self.tense_combo.setToolTip(f"Tense: {self.current_tense}")
         self.save_global_settings()
 
+    def repopulate_prompts(self):
+        self.populate_prompt_dropdown()
+        # May also repopulate rewrite and summary prompt dropdowns here.
+
     def populate_prompt_dropdown(self):
         prompts_file = f"prompts_{self.project_name.replace(' ', '')}.json"
         prose_prompts = []
@@ -782,7 +789,6 @@ class ProjectWindow(QMainWindow):
         scene_text = self.editor.toPlainText()
         base_dir = os.path.dirname(os.path.abspath(__file__))
         image_directory = os.path.join(base_dir, "assets", "backgrounds")
-        from focus_mode import FocusMode
         self.focus_window = FocusMode(image_directory, scene_text, parent=None)
         self.focus_window.on_close = self.focus_mode_closed
         self.focus_window.show()

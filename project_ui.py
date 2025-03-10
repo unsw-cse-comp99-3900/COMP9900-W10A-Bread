@@ -7,6 +7,7 @@ from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtCore import Qt
 from context_panel import ContextPanel
 from theme_manager import ThemeManager
+from focus_mode import PlainTextEdit
 
 def build_main_ui(window):
     # Ensure the main window has a current_theme attribute; default to "Standard" if not set.
@@ -219,7 +220,7 @@ def build_main_ui(window):
     editor_layout.addWidget(editor_toolbar)
 
     # Scene Editor
-    window.editor = QTextEdit()
+    window.editor = PlainTextEdit()
     window.editor.setPlaceholderText("Select a node to edit its content...")
     window.editor.setContextMenuPolicy(Qt.CustomContextMenu)
     window.editor.customContextMenuRequested.connect(window.show_editor_context_menu)
@@ -272,7 +273,7 @@ def build_main_ui(window):
     action_layout = QHBoxLayout(action_group)
     left_container = QWidget()
     left_layout = QVBoxLayout(left_container)
-    window.prompt_input = QTextEdit()
+    window.prompt_input = PlainTextEdit()
     window.prompt_input.setPlaceholderText("Enter your action beats here...")
     window.prompt_input.setMinimumHeight(100)
     left_layout.addWidget(window.prompt_input)

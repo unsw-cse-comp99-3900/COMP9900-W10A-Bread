@@ -25,3 +25,4 @@ Projects/
 # Ignore Windows/Mac system files
 .DS_Store
 Thumbs.db
+"*.bak" 

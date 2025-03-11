@@ -17,6 +17,8 @@
         "test": "Test",
         "save": "Save",
         "close": "Close",
+        "discard": "Discard",
+        "cancel": "Cancel",
         "delete": "Delete",
         "choose": "Choose a provider...",
         "name": "Name",
@@ -37,7 +39,8 @@
         "provider_details": "Provider Details",
         "add": "Add",
         "update": "Update",
-        "save_successful": "Settings saved successfully."
+        "save_successful": "Settings saved successfully.",
+        "unsaved_warning": "You have unsaved changes. Do you want to save them before closing?"
     },
     "es": {
         "general_tab": "General",
@@ -57,6 +60,8 @@
         "test": "Probar",
         "save": "Guardar",
         "close": "Cerrar",
+        "discard": "Descartar",
+        "cancel": "Cancelar",
         "delete": "Eliminar",
         "choose": "Elige un proveedor...",
         "name": "Nombre",
@@ -77,7 +82,8 @@
         "provider_details": "Detalles del proveedor",
         "add": "Agregar",
         "update": "Actualizar",
-        "save_successful": "Configuración guardada exitosamente."
+        "save_successful": "Configuración guardada exitosamente.",
+        "unsaved_warning": "Tiene cambios no guardados. ¿Desea guardarlos antes de cerrar?"
     },
     "fr": {
         "general_tab": "Général",
@@ -97,6 +103,8 @@
         "test": "Tester",
         "save": "Enregistrer",
         "close": "Fermer",
+        "discard": "Jeter",
+        "cancel": "Annuler",
         "delete": "Supprimer",
         "choose": "Choisir un fournisseur...",
         "name": "Nom",
@@ -117,7 +125,8 @@
         "provider_details": "Détails du fournisseur",
         "add": "Ajouter",
         "update": "Mettre à jour",
-        "save_successful": "Paramètres enregistrés avec succès."
+        "save_successful": "Paramètres enregistrés avec succès.",
+        "unsaved_warning": "Vous avez des modifications non enregistrées. Voulez-vous les enregistrer avant de fermer ?"
     },
     "de": {
         "general_tab": "Allgemein",
@@ -137,6 +146,8 @@
         "test": "Testen",
         "save": "Speichern",
         "close": "Schließen",
+        "discard": "Verwerfen",
+        "cancel": "Abbrechen",
         "delete": "Löschen",
         "choose": "Wählen Sie einen Anbieter...",
         "name": "Name",
@@ -157,7 +168,8 @@
         "provider_details": "Anbieterdetails",
         "add": "Hinzufügen",
         "update": "Aktualisieren",
-        "save_successful": "Einstellungen erfolgreich gespeichert."
+        "save_successful": "Einstellungen erfolgreich gespeichert.",
+        "unsaved_warning": "Sie haben ungespeicherte Änderungen. Möchten Sie diese vor dem Schließen speichern?"
     },
     "pt": {
         "general_tab": "Geral",
@@ -177,6 +189,8 @@
         "test": "Testar",
         "save": "Salvar",
         "close": "Fechar",
+        "discard": "Descartar",
+        "cancel": "Cancelar",
         "delete": "Excluir",
         "choose": "Escolha um provedor...",
         "name": "Nome",
@@ -197,7 +211,8 @@
         "provider_details": "Detalhes do provedor",
         "add": "Adicionar",
         "update": "Atualizar",
-        "save_successful": "Configurações salvas com sucesso."
+        "save_successful": "Configurações salvas com sucesso.",
+        "unsaved_warning": "Você tem alterações não salvas. Deseja salvá-las antes de fechar?"
     },
     "ja": {
         "general_tab": "一般",
@@ -217,6 +232,8 @@
         "test": "テスト",
         "save": "保存",
         "close": "閉じる",
+        "discard": "破棄",
+        "cancel": "キャンセル",
         "delete": "削除",
         "choose": "プロバイダーを選択...",
         "name": "名前",
@@ -237,7 +254,8 @@
         "provider_details": "プロバイダーの詳細",
         "add": "追加",
         "update": "更新",
-        "save_successful": "設定が正常に保存されました。"
+        "save_successful": "設定が正常に保存されました。",
+        "unsaved_warning": "保存されていない変更があります。閉じる前に保存しますか？"
     },
     "zh": {
         "general_tab": "常规",
@@ -257,6 +275,8 @@
         "test": "测试",
         "save": "保存",
         "close": "关闭",
+        "discard": "丢弃",
+        "cancel": "取消",
         "delete": "删除",
         "choose": "选择一个提供商...",
         "name": "名称",
@@ -277,7 +297,8 @@
         "provider_details": "提供商详细信息",
         "add": "添加",
         "update": "更新",
-        "save_successful": "设置已成功保存。"
+        "save_successful": "设置已成功保存。",
+        "unsaved_warning": "您有未保存的更改。您要在关闭前保存它们吗？"
     },
     "ko": {
         "general_tab": "일반",
@@ -297,6 +318,8 @@
         "test": "테스트",
         "save": "저장",
         "close": "닫기",
+        "discard": "폐기",
+        "cancel": "취소",
         "delete": "삭제",
         "choose": "공급자를 선택하세요...",
         "name": "이름",
@@ -317,6 +340,7 @@
         "provider_details": "공급자 정보",
         "add": "추가",
         "update": "업데이트",
-        "save_successful": "설정이 성공적으로 저장되었습니다."
+        "save_successful": "설정이 성공적으로 저장되었습니다.",
+        "unsaved_warning": "저장되지 않은 변경 사항이 있습니다. 닫기 전에 저장하시겠습니까?"
     }
 }

@@ -36,6 +36,8 @@ UI_LABELS = {
         "test": "Test",
         "save": "Save",
         "close": "Close",
+        "discard": "Discard",
+        "cancel": "Cancel",
         "delete": "Delete",
         "choose": "Choose a provider...",
         "name": "Name",
@@ -56,7 +58,8 @@ UI_LABELS = {
         "provider_details": "Provider Details",
         "add": "Add",
         "update": "Update",
-        "save_successful": "Settings saved successfully."
+        "save_successful": "Settings saved successfully.",
+        "unsaved_warning": "You have unsaved changes. Do you want to save them before closing?"
     },
     # Add other languages as needed
 }
@@ -293,7 +296,6 @@ class SettingsDialog(QDialog):
         self.resize(500, 500)
         self.setWindowIcon(QIcon("icon.png"))  # Replace with your icon file
 
-
         self.general_settings = WWSettingsManager.get_general_settings()
         self.appearance_settings = WWSettingsManager.get_appearance_settings()
         self.llm_configs = WWSettingsManager.get_llm_configs()
@@ -316,6 +318,7 @@ class SettingsDialog(QDialog):
         self.init_ui()
         self.load_values_from_settings()
 
+        self.unsaved_changes = False  # Track unsaved changes
 
     def init_ui(self):
         self.tabs = QTabWidget()
@@ -336,7 +339,7 @@ class SettingsDialog(QDialog):
         self.save_button = QPushButton(self.labels["save"])
         self.save_button.clicked.connect(self.save_settings_to_file)
         self.cancel_button = QPushButton(self.labels["close"])
-        self.cancel_button.clicked.connect(self.close)
+        self.cancel_button.clicked.connect(self.check_unsaved_changes)
         self.button_box.addWidget(self.save_button)
         self.button_box.addWidget(self.cancel_button)
 
@@ -350,15 +353,18 @@ class SettingsDialog(QDialog):
         layout = QFormLayout()
 
         self.fast_tts_checkbox = QCheckBox(self.labels["fast_tts"])
+        self.fast_tts_checkbox.stateChanged.connect(self.mark_unsaved_changes)
         layout.addRow(self.fast_tts_checkbox)
 
         self.enable_autosave_checkbox = QCheckBox(self.labels["enable_autosave"])
+        self.enable_autosave_checkbox.stateChanged.connect(self.mark_unsaved_changes)
         layout.addRow(self.enable_autosave_checkbox)
 
         self.language_combobox = QComboBox()
         self.language_combobox.setMinimumWidth(80)
         self.language_combobox.addItems(LANGUAGES)
         self.language_combobox.currentIndexChanged.connect(self.language_changed)
+        self.language_combobox.currentIndexChanged.connect(self.mark_unsaved_changes)
         layout.addRow(self.labels["language"], self.language_combobox)
 
         self.general_tab.setLayout(layout)
@@ -368,6 +374,8 @@ class SettingsDialog(QDialog):
 
         self.theme_combobox = QComboBox()
         self.theme_combobox.addItems(ThemeManager.list_themes())
+        self.theme_combobox.currentIndexChanged.connect(self.change_theme)
+        self.theme_combobox.currentIndexChanged.connect(self.mark_unsaved_changes)
         layout.addRow(self.labels["theme"], self.theme_combobox)
 
         self.background_color_button = QPushButton(self.labels["background_color"])
@@ -382,6 +390,7 @@ class SettingsDialog(QDialog):
 
         self.text_size_spinbox = QSpinBox()
         self.text_size_spinbox.setRange(8, 24)
+        self.text_size_spinbox.valueChanged.connect(self.mark_unsaved_changes)
         layout.addRow(self.labels["text_size"], self.text_size_spinbox)
 
         self.appearance_tab.setLayout(layout)
@@ -486,6 +495,7 @@ class SettingsDialog(QDialog):
                 
             # Refresh the list
             self.populate_providers_list()
+            self.mark_unsaved_changes()
 
     def edit_selected_provider(self):
         """Open dialog to edit the selected provider"""
@@ -530,6 +540,7 @@ class SettingsDialog(QDialog):
                 
             # Refresh the list
             self.populate_providers_list()
+            self.mark_unsaved_changes()
 
     def set_background_color_label(self, color_code):
         """Sets the background color label's color."""
@@ -573,6 +584,7 @@ class SettingsDialog(QDialog):
             self.populate_providers_list()
             self.edit_provider_button.setEnabled(False)
             self.delete_provider_button.setEnabled(False)
+            self.mark_unsaved_changes()
 
     def choose_background_color(self):
         color = QColorDialog.getColor(QColor(self.appearance_settings["background_color"]), self)
@@ -580,13 +592,14 @@ class SettingsDialog(QDialog):
             color_code = color.name()
             self.appearance_settings["background_color"] = color_code
             self.set_background_color_label(color_code)
+            self.mark_unsaved_changes()
 
     def language_changed(self, index):
         language = LANGUAGES[index]
         self.general_settings["language"] = language
         self.labels = self.ui_labels.get(language, self.ui_labels[language])
         self.update_ui_labels()
-
+        self.mark_unsaved_changes()
 
     def update_ui_labels(self):
         """Updates all UI labels based on the selected language."""
@@ -606,7 +619,6 @@ class SettingsDialog(QDialog):
         # Re-populate provider list to update default provider label
         self.populate_providers_list()
 
-
     def load_values_from_settings(self):
         """Loads the settings values into the UI elements."""
         self.fast_tts_checkbox.setChecked(self.general_settings["fast_tts"])
@@ -624,7 +636,6 @@ class SettingsDialog(QDialog):
         # Populate provider list
         self.populate_providers_list()
 
-
     def save_settings_to_file(self):
         """Saves the current UI settings to the JSON file."""
         self.general_settings["fast_tts"] = self.fast_tts_checkbox.isChecked()
@@ -637,7 +648,40 @@ class SettingsDialog(QDialog):
         WWSettingsManager.update_appearance_settings(self.appearance_settings)
         WWSettingsManager.update_llm_configs(self.llm_configs, self.default_provider)
         QMessageBox.information(self, "Save Result", self.labels["save_successful"])
+        self.unsaved_changes = False  # Reset unsaved changes flag
 
+    def mark_unsaved_changes(self):
+        """Mark that there are unsaved changes."""
+        self.unsaved_changes = True
+
+    def check_unsaved_changes(self):
+        """Check for unsaved changes and show a warning dialog if there are any."""
+        if self.unsaved_changes:
+            msg_box = QMessageBox(self)
+            msg_box.setIcon(QMessageBox.Warning)
+            msg_box.setWindowTitle(self.labels["unsaved_warning"])
+            msg_box.setText(self.labels["unsaved_warning"])
+            save_button = msg_box.addButton(self.labels["save"], QMessageBox.AcceptRole)
+            discard_button = msg_box.addButton(self.labels["discard"], QMessageBox.DestructiveRole)
+            cancel_button = msg_box.addButton(self.labels["cancel"], QMessageBox.RejectRole)
+            msg_box.setDefaultButton(cancel_button)
+            msg_box.exec_()
+
+            if msg_box.clickedButton() == save_button:
+                self.save_settings_to_file()
+                self.close()
+            elif msg_box.clickedButton() == discard_button:
+                self.close()
+            else:
+                # Cancel, do nothing
+                return
+        else:
+            self.close()
+
+    def change_theme(self, index):
+        """Change the theme based on the selected theme in the combobox."""
+        theme_name = self.theme_combobox.itemText(index)
+        ThemeManager.apply_to_app(theme_name)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

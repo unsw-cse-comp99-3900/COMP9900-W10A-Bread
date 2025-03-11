@@ -173,48 +173,12 @@ def build_main_ui(window):
     window.oh_shit_action.triggered.connect(window.on_oh_shit)
     editor_toolbar.addAction(window.oh_shit_action)
 
-    # Separator for scene settings (POV, Character, Tense)
-    editor_toolbar.addSeparator()
-
-    # POV dropdown
-    window.pov_combo = QComboBox()
-    window.pov_combo.setEditable(True)
-    window.pov_combo.lineEdit().setReadOnly(True)
-    window.pov_combo.lineEdit().setPlaceholderText("Perspective")
-    pov_options = ["First Person", "Omniscient", "Third Person Limited", "Custom..."]
-    for option in pov_options:
-        window.pov_combo.addItem(option)
-    window.pov_combo.setCurrentIndex(-1)
-    window.pov_combo.setToolTip("Select Perspective")
-    window.pov_combo.currentIndexChanged.connect(window.handle_pov_change)
-    editor_toolbar.addWidget(window.pov_combo)
-
-    # POV Character dropdown
-    window.pov_character_combo = QComboBox()
-    window.pov_character_combo.setEditable(True)
-    window.pov_character_combo.lineEdit().setReadOnly(True)
-    window.pov_character_combo.lineEdit().setPlaceholderText("Character")
-    window.pov_character_combo.setMinimumWidth(150)
-    pov_character_options = ["Alice", "Bob", "Charlie", "Custom..."]
-    for option in pov_character_options:
-        window.pov_character_combo.addItem(option)
-    window.pov_character_combo.setCurrentIndex(-1)
-    window.pov_character_combo.setToolTip("Select POV Character")
-    window.pov_character_combo.currentIndexChanged.connect(window.handle_pov_character_change)
-    editor_toolbar.addWidget(window.pov_character_combo)
-
-    # Tense dropdown
-    window.tense_combo = QComboBox()
-    window.tense_combo.setEditable(True)
-    window.tense_combo.lineEdit().setReadOnly(True)
-    window.tense_combo.lineEdit().setPlaceholderText("Tense")
-    tense_options = ["Past Tense", "Present Tense", "Custom..."]
-    for option in tense_options:
-        window.tense_combo.addItem(option)
-    window.tense_combo.setCurrentIndex(-1)
-    window.tense_combo.setToolTip("Select Tense")
-    window.tense_combo.currentIndexChanged.connect(window.handle_tense_change)
-    editor_toolbar.addWidget(window.tense_combo)
+    # NEW: Analysis Editor Button
+    window.analysis_editor_action = QAction(window.get_tinted_icon(
+        "assets/icons/feather.svg", tint_color=tint), "", window)
+    window.analysis_editor_action.setToolTip("Open Analysis Editor")
+    window.analysis_editor_action.triggered.connect(window.open_analysis_editor)
+    editor_toolbar.addAction(window.analysis_editor_action)
 
     # Add the Editor Toolbar above the scene editor
     editor_layout.addWidget(editor_toolbar)

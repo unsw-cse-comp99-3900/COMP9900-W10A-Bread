@@ -30,7 +30,6 @@ from project_structure_manager import add_act, add_chapter, add_scene, rename_it
 from theme_manager import ThemeManager  # <-- Added import for theme management
 from focus_mode import FocusMode
 
-
 class ProjectWindow(QMainWindow):
     def __init__(self, project_name):
         super().__init__()
@@ -47,11 +46,9 @@ class ProjectWindow(QMainWindow):
         self.init_ui()
         self.readSettings()  # Restore saved window and splitter settings
 
-
         # Set tree to use 2 columns: Name and Status.
         self.tree.setColumnCount(2)
         self.tree.setHeaderLabels(["Name", "Status"])
-
         # Status bar labels for word count and last save time.
         self.word_count_label = QLabel("Words: 0")
         self.last_save_label = QLabel("Last Saved: Never")
@@ -76,10 +73,13 @@ class ProjectWindow(QMainWindow):
         self.focus_mode_shortcut.activated.connect(self.open_focus_mode)
 
     def updateSettingTooltips(self):
-        self.pov_combo.setToolTip(f"POV: {self.current_pov}")
-        self.pov_character_combo.setToolTip(
-            f"POV Character: {self.current_pov_character}")
-        self.tense_combo.setToolTip(f"Tense: {self.current_tense}")
+        # Only update tooltips if the corresponding widgets exist.
+        if hasattr(self, "pov_combo"):
+            self.pov_combo.setToolTip(f"POV: {self.current_pov}")
+        if hasattr(self, "pov_character_combo"):
+            self.pov_character_combo.setToolTip(f"POV Character: {self.current_pov_character}")
+        if hasattr(self, "tense_combo"):
+            self.tense_combo.setToolTip(f"Tense: {self.current_tense}")
 
     def load_autosave_setting(self):
         self.autosave_enabled = WWSettingsManager.get_setting(
@@ -613,8 +613,7 @@ class ProjectWindow(QMainWindow):
     def prompt_dropdown_changed(self, index):
         if index == 0:
             return
-        selected_prompt = self._prose_prompts[index -
-                                              1] if index - 1 < len(self._prose_prompts) else None
+        selected_prompt = self._prose_prompts[index - 1] if index - 1 < len(self._prose_prompts) else None
         if selected_prompt:
             self.current_prose_prompt = selected_prompt.get("text", "")
             self.current_prose_config = selected_prompt
@@ -795,6 +794,24 @@ class ProjectWindow(QMainWindow):
 
     def focus_mode_closed(self, updated_text):
         self.editor.setPlainText(updated_text)
+
+    # === New: Open Analysis Editor ===
+    def open_analysis_editor(self):
+        """
+        Retrieves the current scene text, then opens the text analysis editor
+        (from text_analysis_gui.py) with that text preloaded.
+        The analysis editor is configured to call back with updated text
+        when the user clicks "Save & Close".
+        """
+        current_text = self.editor.toPlainText()
+        from text_analysis_gui import TextAnalysisApp
+        def analysis_save_callback(updated_text):
+            # Update the scene editor with the modified text and save the scene.
+            self.editor.setPlainText(updated_text)
+            self.manual_save_scene()
+        self.analysis_editor_window = TextAnalysisApp(parent=self, initial_text=current_text,
+                                                        save_callback=analysis_save_callback)
+        self.analysis_editor_window.show()
 
     # === New: Method to update icons based on the current theme ===
     def update_icons(self):

@@ -6,7 +6,7 @@ REM ===========================================
 REM Check if the virtual environment folder exists.
 IF NOT EXIST "venv" (
     echo Creating virtual environment...
-    python -m venv venv
+    py -3.11 -m venv venv
 ) ELSE (
     echo Virtual environment already exists.
 )
@@ -26,6 +26,10 @@ python -m pip install --upgrade setuptools
 REM Install required packages from requirements.txt.
 echo Installing dependencies from requirements.txt...
 pip install -r requirements.txt
+
+REM Install spaCy English model if not already installed.
+echo Installing spaCy English model...
+python -m spacy download en_core_web_sm
 
 echo.
 echo Setup complete!

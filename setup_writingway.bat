@@ -15,9 +15,13 @@ REM Activate the virtual environment.
 echo Activating virtual environment...
 call venv\Scripts\activate
 
-REM Upgrade pip to the latest version.
+REM Upgrade pip.
 echo Upgrading pip...
 python -m pip install --upgrade pip
+
+REM Upgrade setuptools.
+echo Upgrading setuptools...
+python -m pip install --upgrade setuptools
 
 REM Install required packages from requirements.txt.
 echo Installing dependencies from requirements.txt...

@@ -105,10 +105,91 @@ class ProjectPostIt(QToolButton):
                 f"Export '{self.project['name']}' functionality will be implemented later."
             )
         elif action == stats_action:
-            QMessageBox.information(
-                self, "Project Statistics",
-                f"Statistics for '{self.project['name']}' will be available in a future release."
-            )
+            # Import statistics module
+            try:
+                from statistics import show_statistics
+                import os
+                
+                # Project name from the workbench
+                project_name = self.project['name']
+                project_path = None
+                
+                # Print debugging info
+                print(f"Looking for project: {project_name}")
+                print(f"Current directory: {os.getcwd()}")
+                
+                # First attempt: Check the Projects subdirectory (based on known path)
+                projects_dir = os.path.join(os.getcwd(), "Projects")
+                if os.path.exists(projects_dir) and os.path.isdir(projects_dir):
+                    # Try exact name in Projects directory
+                    full_path = os.path.join(projects_dir, project_name)
+                    if os.path.exists(full_path) and os.path.isdir(full_path):
+                        project_path = full_path
+                        print(f"Found project at: {project_path}")
+                    else:
+                        # Try sanitized name in Projects directory
+                        sanitized_name = project_name.replace(" ", "")
+                        full_path = os.path.join(projects_dir, sanitized_name)
+                        if os.path.exists(full_path) and os.path.isdir(full_path):
+                            project_path = full_path
+                            print(f"Found project at: {project_path}")
+                
+                # If still not found, try other methods
+                if not project_path:
+                    # Try direct paths
+                    if os.path.exists(project_name) and os.path.isdir(project_name):
+                        project_path = project_name
+                        print(f"Found project at: {project_path}")
+                    else:
+                        sanitized_name = project_name.replace(" ", "")
+                        if os.path.exists(sanitized_name) and os.path.isdir(sanitized_name):
+                            project_path = sanitized_name
+                            print(f"Found project at: {project_path}")
+                
+                # Ask the user if all automatic methods failed
+                if not project_path:
+                    from PyQt5.QtWidgets import QFileDialog
+                    
+                    # Set the initial directory to the Projects folder if it exists
+                    initial_dir = projects_dir if os.path.exists(projects_dir) else os.getcwd()
+                    
+                    # Let the user select the project directory
+                    msg = f"Could not automatically find the directory for project '{project_name}'.\n"
+                    msg += "Please select the project directory manually."
+                    QMessageBox.information(self, "Select Project Directory", msg)
+                    
+                    project_path = QFileDialog.getExistingDirectory(
+                        self, f"Select Directory for Project '{project_name}'", 
+                        initial_dir
+                    )
+                    
+                    if not project_path:
+                        raise FileNotFoundError(f"User cancelled the project directory selection")
+                
+                # Make sure the directory exists and has some content
+                if not os.path.exists(project_path) or not os.path.isdir(project_path):
+                    raise FileNotFoundError(f"Invalid project directory: {project_path}")
+                
+                # Check if the directory has text files
+                files = [f for f in os.listdir(project_path) if f.endswith('.txt')]
+                if not files:
+                    raise FileNotFoundError(f"No text files found in directory: {project_path}")
+                
+                # Show statistics dialog
+                print(f"Opening statistics for project at: {project_path}")
+                show_statistics(project_path)
+                
+            except Exception as e:
+                import traceback
+                error_details = traceback.format_exc()
+                
+                QMessageBox.warning(
+                    self, "Statistics Error",
+                    f"Error loading project statistics: {str(e)}\n\n"
+                    f"Project: '{self.project['name']}'\n"
+                    f"Current directory: {os.getcwd()}\n\n"
+                    f"Details (for debugging):\n{error_details}"
+                )
         elif action == cover_action:
             self.add_book_cover()
 
@@ -162,14 +243,11 @@ class ProjectCoverWidget(QWidget):
 
 
 class WorkbenchWindow(QMainWindow):
-    """
-    The main workbench window that shows your project covers in a carousel-like view.
-    """
-
     def __init__(self):
         super().__init__()
-        # Removed global stylesheet propagation prevention.
         self.setWindowTitle("Writingway - Workbench")
+        # Enable minimize and maximize buttons:
+        self.setWindowFlags(self.windowFlags() | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint)
         self.resize(640, 720)
         self.init_ui()
         self.apply_fixed_stylesheet()

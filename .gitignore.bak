@@ -11,7 +11,6 @@ venv/
 
 # Ignore personal settings and API keys
 settings.json
-conversations.json
 
 # Ignore backups and temporary files
 *.bak.json

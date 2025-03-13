@@ -64,24 +64,15 @@ This project utilizes the following libraries:
 
 - langchain
 - langchain-core
-
-  langchain-openai
-
-  langchain-anthropic
-
-  langchain-google-genai
-
-  langchain-ollama
-
-  langchain-community
-
-  numpy
-
-  pydantic
-
-  PyQt5&gt;=5.15.0
-
-  PyQtChart&gt;
+- langchain-openai
+- langchain-anthropic
+- langchain-google-genai
+- langchain-ollama
+- langchain-community
+- numpy
+- pydantic
+- PyQt5
+- PyQtChart&gt;
 
   pyttsx3
 

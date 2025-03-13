@@ -230,7 +230,6 @@ class ProviderDialog(QDialog):
         self.model_combobox.addItems(models)
     
     def get_models_for_provider(self, provider_name, refresh = False):
-        """Dummy function to return models based on provider. Replace with LLM call."""
         provider = WWApiAggregator.aggregator.create_provider(provider_name, {
             "api_key": self.api_key_input.text(),
             "endpoint": self.endpoint_url_input.text()

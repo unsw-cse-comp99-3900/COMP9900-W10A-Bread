@@ -18,6 +18,7 @@ conversations.json
 *.zip
 *.log
 *.tmp
+*.bak
 
 # Ignore project-specific files (optional)
 Projects/

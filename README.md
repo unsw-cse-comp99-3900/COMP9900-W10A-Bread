@@ -20,6 +20,8 @@ This section provides a step-by-step guide on how to install and run Writingway.
 
 **4. Install Writingway (Placeholder):**
 
+Run setup_writingway.bat
+
 **5. Run Writingway:**
 
 Double click on the start.bat file to run the program. You can also right click and select Create Shortcut, then move the shortcut to your desktop.
@@ -57,9 +59,39 @@ This project is licensed under the MIT License.
 
 This project utilizes the following libraries:
 
-- PyQT5
-- pyttsx3
-- requests
+faiss-cpu
+
+- langchain
+
+  langchain-core
+
+  langchain-openai
+
+  langchain-anthropic
+
+  langchain-google-genai
+
+  langchain-ollama
+
+  langchain-community
+
+  numpy
+
+  pydantic
+
+  PyQt5&gt;
+
+  PyQtChart&gt;
+
+  pyttsx3
+
+  requests
+
+  spacy
+
+  textstat
+
+  tiktoken
 
 ## Contact
 

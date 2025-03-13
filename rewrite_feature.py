@@ -13,8 +13,7 @@ def get_rewrite_prompts(project_name):
     Load the 'Rewrite' prompts for the given project from its prompts JSON file.
     The file is assumed to be named as: prompts_<projectname_no_spaces>.json
     """
-    base_name = f"prompts_{project_name.replace(' ', '')}"
-    prompts_file = f"{base_name}.json"
+    prompts_file = "prompts.json"
     if os.path.exists(prompts_file):
         try:
             with open(prompts_file, "r", encoding="utf-8") as f:

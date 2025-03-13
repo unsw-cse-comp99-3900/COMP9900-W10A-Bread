@@ -565,7 +565,7 @@ class ProjectWindow(QMainWindow):
         self.populate_prompt_dropdown()
 
     def populate_prompt_dropdown(self):
-        prompts_file = f"prompts_{self.project_name.replace(' ', '')}.json"
+        prompts_file = "prompts.json"
         prose_prompts = []
         if os.path.exists(prompts_file):
             try:

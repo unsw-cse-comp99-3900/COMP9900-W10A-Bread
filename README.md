@@ -1,4 +1,3 @@
-
 ![alt text](https://github.com/aomukai/Writingway/blob/main/assets/logo.png?raw=true "Logo")
 
 > # What is Writingway: An AI-Powered Creative Writing Companion
@@ -7,33 +6,29 @@ Writingway is an innovative AI-powered creative writing tool designed to empower
 
 ## Key Features
 
-* **Interactive Chat-Based Workshop:** Engage in dynamic, real-time collaboration with the AI through a chat interface.  Brainstorm ideas, explore different narrative paths, and receive instant feedback on your writing.  This interactive environment fosters creativity and helps overcome writer's block.
+- **Interactive Chat-Based Workshop:** Engage in dynamic, real-time collaboration with the AI through a chat interface.  Brainstorm ideas, explore different narrative paths, and receive instant feedback on your writing.  This interactive environment fosters creativity and helps overcome writer's block.
 
-* **Customizable Prompts:** Tailor the AI's assistance to your specific needs with customizable prompts.  Whether you're struggling with character development, plot progression, or world-building, Writingway allows you to fine-tune the AI's focus to generate relevant and inspiring suggestions.
+- **Customizable Prompts:** Tailor the AI's assistance to your specific needs with customizable prompts.  Whether you're struggling with character development, plot progression, or world-building, Writingway allows you to fine-tune the AI's focus to generate relevant and inspiring suggestions.
 
-* **Project Structure View:** Maintain a clear overview of your project's organization with a dedicated project structure view.  Visualize your chapters, scenes, and character arcs to ensure narrative coherence and identify areas for improvement.  This feature promotes organized writing and facilitates complex story management.
+- **Project Structure View:** Maintain a clear overview of your project's organization with a dedicated project structure view.  Visualize your chapters, scenes, and character arcs to ensure narrative coherence and identify areas for improvement.  This feature promotes organized writing and facilitates complex story management.
 
-* **Dynamic Contextual Compendium:**  Keep track of intricate world-building details, character backstories, and plot points in a centralized compendium.  Writingway dynamically integrates this information, ensuring consistency and enriching the depth of your narrative.  This feature eliminates the need for cumbersome note-keeping and allows for seamless context management.
+- **Dynamic Contextual Compendium:**  Keep track of intricate world-building details, character backstories, and plot points in a centralized compendium.  Writingway dynamically integrates this information, ensuring consistency and enriching the depth of your narrative.  This feature eliminates the need for cumbersome note-keeping and allows for seamless context management.
 
 ## Getting Started
 
 This section provides a step-by-step guide on how to install and run Writingway.  Even if you're new to Python, these instructions should help you get started.
 
-
 **4. Install Writingway (Placeholder):**
-
-Step by Step instructions are provided at [How do I install Writingway](https://aomukai.com/2025/02/17/how-do-i-install-writingway/)
-
 
 **5. Run Writingway:**
 
-Double click on the start.bat file to run the program. You can also right click and select Create Shortcut, then move the shortcut to your desktop. 
+Double click on the start.bat file to run the program. You can also right click and select Create Shortcut, then move the shortcut to your desktop.
 
 **Troubleshooting:**
 
--   If you encounter any errors during installation, make sure you have a stable internet connection.
--   If `pip` is not recognized, ensure that Python's Scripts directory is added to your system's PATH environment variable. (This is usually done automatically during Python installation if you checked the "Add Python to PATH" option.)
--   If you're on Linux, you might need to use `pip3` instead of `pip` in some cases (e.g., `pip3 install PyQt5 pyttsx3 requests`).
+- If you encounter any errors during installation, make sure you have a stable internet connection.
+- If `pip` is not recognized, ensure that Python's Scripts directory is added to your system's PATH environment variable. (This is usually done automatically during Python installation if you checked the "Add Python to PATH" option.)
+- If you're on Linux, you might need to use `pip3` instead of `pip` in some cases (e.g., `pip3 install PyQt5 pyttsx3 requests`).
 
 If you still have trouble, please consult the project's issue tracker or support channels for assistance.
 
@@ -48,9 +43,7 @@ If you still have trouble, please consult the project's issue tracker or support
 *   **Troubleshooting tips:** Offers some common solutions to potential problems.
 *   **Placeholder for Writingway installation and running:**  Clearly indicates where to put the specific instructions for your project.
 
-
 ```
-
 
 ## Contributing
 
@@ -71,4 +64,3 @@ This project utilizes the following libraries:
 ## Contact
 
 For any questions or support, please post to the issues or discussions page on github project page.
-

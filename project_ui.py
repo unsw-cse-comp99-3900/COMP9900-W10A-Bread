@@ -52,6 +52,10 @@ def build_main_ui(window):
     global_toolbar.addAction(window.focus_mode_action)
 
     # -----------------------------------------------------
+    # Remove the previous top settings layout.
+    # -----------------------------------------------------
+
+    # -----------------------------------------------------
     # New Layout Structure:
     # The main window will be divided horizontally into two parts:
     #   Left: Project Tree
@@ -180,6 +184,41 @@ def build_main_ui(window):
     window.analysis_editor_action.triggered.connect(window.open_analysis_editor)
     editor_toolbar.addAction(window.analysis_editor_action)
 
+    # -----------------------------------------------------
+    # NEW: Add a divider then add the pulldowns next to the feather icon.
+    # Create a container widget with a horizontal layout for the pulldowns.
+    editor_toolbar.addSeparator()
+    pulldown_container = QWidget()
+    pulldown_layout = QHBoxLayout(pulldown_container)
+    pulldown_layout.setContentsMargins(0, 0, 0, 0)  # Remove extra margins
+
+    # Create POV pulldown
+    window.pov_combo = QComboBox()
+    window.pov_combo.addItems(["First Person", "Third Person Limited", "Omniscient", "Custom..."])
+    window.pov_combo.setToolTip(f"POV: {window.current_pov if hasattr(window, 'current_pov') and window.current_pov else 'Not Set'}")
+    window.pov_combo.currentIndexChanged.connect(window.handle_pov_change)
+    pulldown_layout.addWidget(QLabel("POV:"))
+    pulldown_layout.addWidget(window.pov_combo)
+
+    # Create POV Character pulldown
+    window.pov_character_combo = QComboBox()
+    window.pov_character_combo.addItems(["Alice", "Bob", "Charlie", "Custom..."])
+    window.pov_character_combo.setToolTip(f"POV Character: {window.current_pov_character if hasattr(window, 'current_pov_character') and window.current_pov_character else 'Not Set'}")
+    window.pov_character_combo.currentIndexChanged.connect(window.handle_pov_character_change)
+    pulldown_layout.addWidget(QLabel("POV Character:"))
+    pulldown_layout.addWidget(window.pov_character_combo)
+
+    # Create Tense pulldown
+    window.tense_combo = QComboBox()
+    window.tense_combo.addItems(["Past Tense", "Present Tense", "Custom..."])
+    window.tense_combo.setToolTip(f"Tense: {window.current_tense if hasattr(window, 'current_tense') and window.current_tense else 'Not Set'}")
+    window.tense_combo.currentIndexChanged.connect(window.handle_tense_change)
+    pulldown_layout.addWidget(QLabel("Tense:"))
+    pulldown_layout.addWidget(window.tense_combo)
+
+    # Add the pulldown container to the toolbar
+    editor_toolbar.addWidget(pulldown_container)
+
     # Add the Editor Toolbar above the scene editor
     editor_layout.addWidget(editor_toolbar)
 
@@ -288,13 +327,12 @@ def build_main_ui(window):
     right_vertical_splitter.setStretchFactor(0, 3)
     right_vertical_splitter.setStretchFactor(1, 1)
 
-    # Finally, add the left panel (project tree) and the right vertical splitter to the main splitter
+    # Add the left panel (project tree) and the right vertical splitter to the main splitter
     main_splitter.addWidget(window.tree)
     main_splitter.addWidget(right_vertical_splitter)
     main_splitter.setStretchFactor(0, 1)  # Project Tree
     main_splitter.setStretchFactor(1, 3)  # Right Side
 
-    # Save a reference to the main splitter for later restoring its state
+    # Instead of wrapping in a container with top settings, just use the main splitter now.
     window.main_splitter = main_splitter
-
     window.setCentralWidget(main_splitter)

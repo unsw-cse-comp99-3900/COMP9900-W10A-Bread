@@ -72,6 +72,9 @@ class ProjectWindow(QMainWindow):
         self.focus_mode_shortcut = QShortcut(QKeySequence("F11"), self)
         self.focus_mode_shortcut.activated.connect(self.open_focus_mode)
 
+        # NEW: Update the POV Character dropdown from compendium data.
+        self.update_pov_character_dropdown()
+
     def updateSettingTooltips(self):
         # Only update tooltips if the corresponding widgets exist.
         if hasattr(self, "pov_combo"):
@@ -806,6 +809,38 @@ class ProjectWindow(QMainWindow):
         ThemeManager.apply_to_app(new_theme)
         self.update_icons()
 
+    # === NEW: Method to update POV Character dropdown using compendium data ===
+    def update_pov_character_dropdown(self):
+        import json, os, re
+        def sanitize(text):
+            return re.sub(r'\W+', '', text)
+        # Construct the path to the compendium file in your project's folder.
+        project_folder = os.path.join(os.getcwd(), "Projects", sanitize(self.project_name))
+        compendium_path = os.path.join(project_folder, "compendium.json")
+        characters = []
+        if os.path.exists(compendium_path):
+            try:
+                with open(compendium_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                # Look for a category named "Characters" (ignoring case).
+                for cat in data.get("categories", []):
+                    if cat.get("name", "").lower() == "characters":
+                        for entry in cat.get("entries", []):
+                            name = entry.get("name", "").strip()
+                            if name:
+                                characters.append(name)
+                        break  # Found the category; exit loop.
+            except Exception as e:
+                print("Error loading characters from compendium:", e)
+        # Fallback to default names if no characters were found.
+        if not characters:
+            characters = ["Alice", "Bob", "Charlie"]
+        # Ensure "Custom..." is the last option.
+        if "Custom..." not in characters:
+            characters.append("Custom...")
+        # Update the POV character combo box.
+        self.pov_character_combo.clear()
+        self.pov_character_combo.addItems(characters)
 
 if __name__ == "__main__":
     from PyQt5.QtWidgets import QApplication

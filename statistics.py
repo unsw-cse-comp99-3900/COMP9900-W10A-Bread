@@ -28,7 +28,7 @@ from PyQt5.QtCore import Qt, QSize, QRect
 from PyQt5.QtChart import QChart, QChartView, QBarSeries, QBarSet, QBarCategoryAxis, QValueAxis, QLineSeries
 
 # Import text analysis functionality
-from text_analysis import nlp, comprehensive_analysis
+# from text_analysis import nlp, comprehensive_analysis
 
 class ProjectStatistics:
     """
@@ -235,12 +235,15 @@ class ProjectStatistics:
         self.location_mentions = defaultdict(list)
         self.custom_mentions = defaultdict(list)
         self.analysis_results = {}
-        
+
+        # Lazy import to avoid circular import issues:
+        from text_analysis import comprehensive_analysis
+
         # Extract categories from compendium if available
         characters = {}
         locations = {}
         custom_categories = {}
-        
+
         if self.compendium_data:
             try:
                 # Check if compendium_data is a dictionary or a list
@@ -262,7 +265,7 @@ class ProjectStatistics:
                     print(f"Warning: Unexpected compendium data type: {type(self.compendium_data)}")
             except Exception as e:
                 print(f"Error processing compendium data: {e}")
-        
+
         # Process each scene
         for scene_id, content in self.scene_contents.items():
             # Run text analysis
@@ -271,7 +274,7 @@ class ProjectStatistics:
             except Exception as e:
                 print(f"Error analyzing scene {scene_id}: {e}")
                 self.analysis_results[scene_id] = {}
-            
+
             # Find character mentions
             if characters:
                 try:
@@ -284,7 +287,7 @@ class ProjectStatistics:
                             })
                 except Exception as e:
                     print(f"Error processing character mentions: {e}")
-            
+
             # Find location mentions
             if locations:
                 try:
@@ -297,7 +300,7 @@ class ProjectStatistics:
                             })
                 except Exception as e:
                     print(f"Error processing location mentions: {e}")
-            
+
             # Find custom category mentions
             try:
                 for category_name, entries in custom_categories.items():
@@ -312,6 +315,7 @@ class ProjectStatistics:
                                 })
             except Exception as e:
                 print(f"Error processing custom category mentions: {e}")
+
     
     def get_word_count_stats(self):
         """

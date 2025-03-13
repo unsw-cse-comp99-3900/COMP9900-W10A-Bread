@@ -234,7 +234,7 @@ class GeminiProvider(LLMProviderBase):
                 model = overrides.get("model", self.get_current_model() or "gemini-2.0-flash"),
                 temperature = overrides.get("temperature", self.config.get("temperature", DEFAULT_TEMPERATURE)),
                 max_output_tokens = overrides.get("max_tokens", self.config.get("max_tokens", DEFAULT_MAX_TOKENS)),
-                timeout = overrides.get("timeout", self.get_timeout(overrides))
+                timeout = self.get_timeout(overrides)
             )
         return self.llm_instance
     
@@ -311,7 +311,7 @@ class OpenRouterProvider(LLMProviderBase):
                 model_name=overrides.get("model", self.get_current_model()),
                 temperature=overrides.get("temperature", self.config.get("temperature", DEFAULT_TEMPERATURE)),
                 max_tokens=overrides.get("max_tokens", self.config.get("max_tokens", DEFAULT_MAX_TOKENS)),
-                request_timeout=overrides.get("timeout", self.get_timeout(overrides))
+                request_timeout=self.get_timeout(overrides)
             )
         return self.llm_instance
     
@@ -429,10 +429,16 @@ class CustomProvider(LLMProviderBase):
     def default_endpoint(self) -> str:
         return "http://localhost:11434/v1/"
     
+    def get_api_key(self):
+        return super().get_api_key() or "not-needed"
+    
     def get_llm_instance(self, overrides) -> BaseChatModel:
         if not self.llm_instance:
-            self.llm_instance = BaseChatModel(
-                url=self.get_base_url(),
+            self.config["endpoint"] = overrides.get("endpoint", self.get_base_url())
+            self.config["api_key"] = overrides.get("api_key", self.get_api_key())
+            self.config["model"] = overrides.get("model", self.get_current_model())
+            self.llm_instance = ChatOpenAI( # most custom models are OpenAI compatible
+                base_url=self.get_base_url(),
                 api_key=self.get_api_key(),
                 model_name=self.get_current_model() or "custom-model",
                 temperature=self.config.get("temperature", DEFAULT_TEMPERATURE),
@@ -452,9 +458,13 @@ class CustomProvider(LLMProviderBase):
                     models_data = response.json()
                     self.cached_models = [model["id"] for model in models_data.get("data", [])]
                 else:
+                    if do_refresh:
+                        raise Exception(f"Error fetching Custom models: {response.text}")
                     self.cached_models = ["custom-model"]
             except Exception as e:
                 print(f"Error fetching custom models: {e}")
+                if do_refresh:
+                    raise e
                 self.cached_models = ["custom-model"]
         return self.cached_models
 
@@ -481,7 +491,8 @@ class WW_Aggregator:
             if not config:
                 return None
             
-            provider_class = self._get_provider_class(provider_name)
+            provider = config.get("provider")
+            provider_class = self._get_provider_class(provider)
             if not provider_class:
                 return None
             

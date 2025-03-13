@@ -1,6 +1,6 @@
 import sys
 import json
-import os
+import os, urllib
 from PyQt5.QtWidgets import (QApplication, QWidget, QTabWidget, QVBoxLayout,
                              QCheckBox, QComboBox, QLabel, QLineEdit,
                              QPushButton, QFormLayout, QColorDialog,
@@ -216,24 +216,30 @@ class ProviderDialog(QDialog):
     
     def refresh_models(self):
         provider_name = self.provider_combobox.currentText()
-        self.populate_model_combobox(provider_name)
+        self.populate_model_combobox(provider_name, True)
 
-    def populate_model_combobox(self, provider_name):
+    def populate_model_combobox(self, provider_name, refresh = False):
         """Populate model dropdown based on provider type"""
-        models = self.get_models_for_provider(provider_name)
+        try:
+            models = self.get_models_for_provider(provider_name, refresh)
+        except Exception as e:
+            error_message = urllib.parse.unquote(str(e))
+            QMessageBox.warning(self, "Error", f"Error fetching models: {error_message}")
+            models = ["Error"]
         self.model_combobox.clear()
         self.model_combobox.addItems(models)
     
-    def get_models_for_provider(self, provider_name):
-        provider = WWApiAggregator.aggregator.create_provider(
-            provider_name, {"api_key": self.api_key_input.text()}
-        )
+    def get_models_for_provider(self, provider_name, refresh = False):
+        """Dummy function to return models based on provider. Replace with LLM call."""
+        provider = WWApiAggregator.aggregator.create_provider(provider_name, {
+            "api_key": self.api_key_input.text(),
+            "endpoint": self.endpoint_url_input.text()
+        })
         if provider is None:
-            # Return an empty list or an error message to indicate no provider was found.
             return ["Provider not found"]
         if provider.model_requires_api_key and not self.api_key_input.text():
             return [self.labels["api_key_required"]]
-        return provider.get_available_models()
+        return provider.get_available_models(refresh)
     
     def toggle_reveal_api_key(self, checked):
         if checked:
@@ -291,6 +297,27 @@ class ProviderDialog(QDialog):
             "timeout": timeout,
             "is_default": self.default_checkbox.isChecked()
         }
+
+    def update_labels(self, labels):
+        """Update all UI labels based on the selected language."""
+        self.labels = labels
+        self.setWindowTitle(self.labels["edit_provider"] if self.is_edit_mode else self.labels["new_provider"])
+        self.provider_label.setText(self.labels["provider"])
+        self.name_label.setText(self.labels["name"])
+        self.endpoint_url_label.setText(self.labels["endpoint_url"])
+        self.model_label.setText(self.labels["model"])
+        self.refresh_button.setToolTip(self.labels["refresh_models"])
+        self.api_key_label.setText(self.labels["api_key"])
+        self.reveal_button.setText(self.labels["reveal"] if self.api_key_input.echoMode() == QLineEdit.Password else self.labels["hide"])
+        self.timeout_label.setText(self.labels["timeout"])
+        self.default_checkbox.setText(self.labels["default_provider"])
+        self.test_button.setText(self.labels["test"])
+        self.button_box.clear()
+        if self.is_edit_mode:
+            self.button_box.addButton(self.labels["update"], QDialogButtonBox.AcceptRole)
+        else:
+            self.button_box.addButton(self.labels["add"], QDialogButtonBox.AcceptRole)
+        self.button_box.addButton(self.labels["close"], QDialogButtonBox.RejectRole)
 
 
 class SettingsDialog(QDialog):
@@ -369,7 +396,8 @@ class SettingsDialog(QDialog):
         self.language_combobox.addItems(LANGUAGES)
         self.language_combobox.currentIndexChanged.connect(self.language_changed)
         self.language_combobox.currentIndexChanged.connect(self.mark_unsaved_changes)
-        layout.addRow(self.labels["language"], self.language_combobox)
+        self.language_label = QLabel(self.labels["language"])
+        layout.addRow(self.language_label, self.language_combobox)
 
         self.general_tab.setLayout(layout)
 
@@ -380,7 +408,8 @@ class SettingsDialog(QDialog):
         self.theme_combobox.addItems(ThemeManager.list_themes())
         self.theme_combobox.currentIndexChanged.connect(self.change_theme)
         self.theme_combobox.currentIndexChanged.connect(self.mark_unsaved_changes)
-        layout.addRow(self.labels["theme"], self.theme_combobox)
+        self.theme_label = QLabel(self.labels["theme"])
+        layout.addRow(self.theme_label, self.theme_combobox)
 
         self.background_color_button = QPushButton(self.labels["background_color"])
         self.background_color_button.clicked.connect(self.choose_background_color)
@@ -395,7 +424,8 @@ class SettingsDialog(QDialog):
         self.text_size_spinbox = QSpinBox()
         self.text_size_spinbox.setRange(8, 24)
         self.text_size_spinbox.valueChanged.connect(self.mark_unsaved_changes)
-        layout.addRow(self.labels["text_size"], self.text_size_spinbox)
+        self.text_size_label = QLabel(self.labels["text_size"])
+        layout.addRow(self.text_size_label, self.text_size_spinbox)
 
         self.appearance_tab.setLayout(layout)
 
@@ -403,7 +433,7 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout()
         
         # Group box for provider list
-        providers_group = QGroupBox(self.labels["providers_list"])
+        self.providers_group = QGroupBox(self.labels["providers_list"])
         providers_layout = QVBoxLayout()
         
         # List widget for providers
@@ -426,8 +456,8 @@ class SettingsDialog(QDialog):
         buttons_layout.addWidget(self.delete_provider_button)
         providers_layout.addLayout(buttons_layout)
         
-        providers_group.setLayout(providers_layout)
-        layout.addWidget(providers_group)
+        self.providers_group.setLayout(providers_layout)
+        layout.addWidget(self.providers_group)
         
         self.provider_tab.setLayout(layout)
         
@@ -612,13 +642,21 @@ class SettingsDialog(QDialog):
         self.tabs.setTabText(2, self.labels["provider_tab"])
         self.fast_tts_checkbox.setText(self.labels["fast_tts"])
         self.enable_autosave_checkbox.setText(self.labels["enable_autosave"])
+        self.language_label.setText(self.labels["language"])
+        self.theme_label.setText(self.labels["theme"])
         self.background_color_button.setText(self.labels["background_color"])
+        self.text_size_label.setText(self.labels["text_size"])
+        self.providers_group.setTitle(self.labels["providers_list"])
         
         self.save_button.setText(self.labels["save"])
         self.cancel_button.setText(self.labels["close"])
         self.new_provider_button.setText(self.labels["new_provider"])
         self.edit_provider_button.setText(self.labels["edit"])
         self.delete_provider_button.setText(self.labels["delete"])
+        
+        # Update provider dialog labels if it is open
+        if hasattr(self, 'provider_dialog') and self.provider_dialog.isVisible():
+            self.provider_dialog.update_labels(self.labels)
         
         # Re-populate provider list to update default provider label
         self.populate_providers_list()

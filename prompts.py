@@ -206,7 +206,7 @@ class PromptsWindow(QDialog):
         # Add each configuration
         for provider, config in self.llm_configs.items():
             display_name = f"{provider} ({config['provider']})"
-            self.provider_combo.addItem(display_name, userData=config)
+            self.provider_combo.addItem(display_name, userData=provider)
             if provider == self.active_config:
                 self.provider_combo.setCurrentText(display_name)
 
@@ -223,17 +223,7 @@ class PromptsWindow(QDialog):
         if current_index < 0:
             return
 
-        config = self.provider_combo.itemData(current_index)
-        # If config is a string instead of a dictionary, find the matching config.
-        if isinstance(config, str):
-            for conf in self.llm_configs:
-                display_name = f"{conf['name']} ({conf['provider']})"
-                if display_name == config:
-                    config = conf
-                    break
-
-        if not config:
-            return
+        provider_name = self.provider_combo.itemData(current_index)
 
         if not use_cache:
             self.model_combo.clear()
@@ -244,7 +234,6 @@ class PromptsWindow(QDialog):
 
         # Fetch models using the correct config dictionary.
         try:
-            provider_name = config.get("provider")
             provider = WWApiAggregator.aggregator.get_provider(provider_name)
             self.on_models_updated(provider.get_available_models(not use_cache), None)
         except Exception as e:
@@ -418,8 +407,8 @@ class PromptsWindow(QDialog):
 
             # 1) Try to set the provider combo
             for i in range(self.provider_combo.count()):
-                config = self.provider_combo.itemData(i)
-                if isinstance(config, dict) and config.get("provider") == provider:
+                id = self.provider_combo.itemData(i)
+                if id == provider:
                     self.provider_combo.setCurrentIndex(i)
                     break
 
@@ -460,7 +449,7 @@ class PromptsWindow(QDialog):
                 if isinstance(provider_config, dict):
                     data["provider"] = provider_config.get("provider", "Local")
                 else:
-                    data["provider"] = "Local"
+                    data["provider"] = provider_config
 
                 data["model"] = self.model_combo.currentText()
                 data["max_tokens"] = self.max_tokens_spin.value()
@@ -590,7 +579,7 @@ class PromptsWindow(QDialog):
             "name": name,
             "text": "",
             "default": False,
-            "provider": provider_config["provider"] if isinstance(provider_config, dict) else "Local",
+            "provider": provider_config["provider"] if isinstance(provider_config, dict) else provider_config,
             "model": self.model_combo.currentText(),
             "max_tokens": 2000,
             "temperature": 0.7

@@ -225,8 +225,12 @@ class ProviderDialog(QDialog):
         self.model_combobox.addItems(models)
     
     def get_models_for_provider(self, provider_name):
-        """Dummy function to return models based on provider. Replace with LLM call."""
-        provider = WWApiAggregator.aggregator.create_provider(provider_name, {"api_key": self.api_key_input.text()})
+        provider = WWApiAggregator.aggregator.create_provider(
+            provider_name, {"api_key": self.api_key_input.text()}
+        )
+        if provider is None:
+            # Return an empty list or an error message to indicate no provider was found.
+            return ["Provider not found"]
         if provider.model_requires_api_key and not self.api_key_input.text():
             return [self.labels["api_key_required"]]
         return provider.get_available_models()

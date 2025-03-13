@@ -59,11 +59,11 @@ This project is licensed under the MIT License.
 
 This project utilizes the following libraries:
 
-faiss-cpu
+- faiss-cpu
+
 
 - langchain
-
-  langchain-core
+- langchain-core
 
   langchain-openai
 
@@ -79,7 +79,7 @@ faiss-cpu
 
   pydantic
 
-  PyQt5&gt;
+  PyQt5&gt;=5.15.0
 
   PyQtChart&gt;
 

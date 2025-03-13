@@ -124,7 +124,7 @@ class CompendiumPanel(QWidget):
             if DEBUG:
                 print("Compendium file not found at", self.compendium_file)
             # Create default structure if file does not exist.
-            default_data = {"categories": [{"name": "Default Category", "entries": [{"name": "Default Entry", "content": "This is the default entry content."}]}]}
+            default_data = {"categories": [{"name": "Characters", "entries": [{"name": "Readme", "content": "This is a dummy entry. You can delete, rename etc it via right-click, which also lets you add new categories and entries."}]}]}
             try:
                 with open(self.compendium_file, "w", encoding="utf-8") as f:
                     json.dump(default_data, f, indent=2)

@@ -72,18 +72,13 @@ This project utilizes the following libraries:
 - numpy
 - pydantic
 - PyQt5
-- PyQtChart&gt;
-
-  pyttsx3
-
-  requests
-
-  spacy
-
-  textstat
-
-  tiktoken
+- PyQtChart
+- pyttsx3
+- requests
+- spacy
+- textstat
+- tiktoken
 
 ## Contact
 
-For any questions or support, please post to the issues or discussions page on github project page.
+For any questions or support, please post to the issues or discussions page on github project page, or join our Discord server: <https://discord.gg/xkkGaRFXNX>

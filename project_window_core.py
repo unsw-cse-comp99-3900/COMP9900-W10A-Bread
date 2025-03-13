@@ -142,23 +142,17 @@ class ProjectWindow(QMainWindow):
         If tint_color is black, returns the original icon.
         Otherwise, fills a pixmap with tint_color and applies the source icon as a mask.
         """
-        # If tint_color is black, return the original icon unchanged.
         if tint_color == QColor("black"):
             return QIcon(file_path)
 
-        # Load the original pixmap.
         original_pix = QPixmap(file_path)
         if original_pix.isNull():
             return QIcon()
 
-        # Create a new pixmap with the same size as the original.
         tinted_pix = QPixmap(original_pix.size())
-        # Fill it entirely with the tint color.
         tinted_pix.fill(tint_color)
 
-        # Use QPainter to apply the original pixmap's alpha as a mask.
         painter = QPainter(tinted_pix)
-        # Set composition mode so that the alpha of the original is used
         painter.setCompositionMode(QPainter.CompositionMode_DestinationIn)
         painter.drawPixmap(0, 0, original_pix)
         painter.end()
@@ -166,28 +160,22 @@ class ProjectWindow(QMainWindow):
         return QIcon(tinted_pix)
 
     def update_scene_status_icon(self, item):
-        # Use the stored tint; if not set, fall back to a default (grey).
-        tint = self.icon_tint if hasattr(
-            self, 'icon_tint') else QColor(150, 150, 150)
+        tint = self.icon_tint if hasattr(self, 'icon_tint') else QColor(150, 150, 150)
         scene_data = item.data(0, Qt.UserRole)
         status = scene_data.get("status", "To Do")
         if status == "To Do":
-            icon = self.get_tinted_icon(
-                "assets/icons/circle.svg", tint_color=tint)
+            icon = self.get_tinted_icon("assets/icons/circle.svg", tint_color=tint)
         elif status == "In Progress":
-            icon = self.get_tinted_icon(
-                "assets/icons/loader.svg", tint_color=tint)
+            icon = self.get_tinted_icon("assets/icons/loader.svg", tint_color=tint)
         elif status == "Final Draft":
-            icon = self.get_tinted_icon(
-                "assets/icons/check-circle.svg", tint_color=tint)
+            icon = self.get_tinted_icon("assets/icons/check-circle.svg", tint_color=tint)
         else:
             icon = QIcon()  # No icon.
         item.setIcon(1, icon)
         item.setText(1, "")
 
     def update_structure_from_tree(self):
-        self.structure = update_structure_from_tree(
-            self.tree, self.project_name)
+        self.structure = update_structure_from_tree(self.tree, self.project_name)
 
     def get_summary_filename(self, item):
         def sanitize(text):
@@ -198,10 +186,8 @@ class ProjectWindow(QMainWindow):
             hierarchy.insert(0, temp.text(0).strip())
             temp = temp.parent()
         sanitized = [sanitize(x) for x in hierarchy]
-        filename = f"{sanitize(self.project_name)}-Summary-" + \
-            "-".join(sanitized) + ".txt"
-        project_folder = os.path.join(
-            os.getcwd(), "Projects", sanitize(self.project_name))
+        filename = f"{sanitize(self.project_name)}-Summary-" + "-".join(sanitized) + ".txt"
+        project_folder = os.path.join(os.getcwd(), "Projects", sanitize(self.project_name))
         if not os.path.exists(project_folder):
             os.makedirs(project_folder)
         return os.path.join(project_folder, filename)
@@ -220,7 +206,6 @@ class ProjectWindow(QMainWindow):
         main_splitter_state = settings.value(f"{self.project_name}/mainSplitterState")
         if main_splitter_state is not None and hasattr(self, "main_splitter"):
             self.main_splitter.restoreState(main_splitter_state)
-        # Restore tree header state (for column widths and order)
         treeHeaderState = settings.value(f"{self.project_name}/treeHeaderState")
         if treeHeaderState is not None and hasattr(self, "tree"):
             self.tree.header().restoreState(treeHeaderState)
@@ -231,7 +216,6 @@ class ProjectWindow(QMainWindow):
         settings.setValue(f"{self.project_name}/windowState", self.saveState())
         if hasattr(self, "main_splitter"):
             settings.setValue(f"{self.project_name}/mainSplitterState", self.main_splitter.saveState())
-        # Save tree header state (for column widths and order)
         if hasattr(self, "tree"):
             settings.setValue(f"{self.project_name}/treeHeaderState", self.tree.header().saveState())
 
@@ -240,6 +224,7 @@ class ProjectWindow(QMainWindow):
         event.accept()
 
     def update_word_count(self):
+        # Count words based on plain text
         text = self.editor.toPlainText()
         words = text.split()
         count = len(words)
@@ -260,7 +245,6 @@ class ProjectWindow(QMainWindow):
         self.workshop_window.show()
 
     def open_compendium(self):
-        # Toggle the visibility of the embedded compendium panel.
         if hasattr(self, "compendium_panel"):
             visible = self.compendium_panel.isVisible()
             self.compendium_panel.setVisible(not visible)
@@ -284,8 +268,7 @@ class ProjectWindow(QMainWindow):
     def rewrite_selected_text(self):
         cursor = self.editor.textCursor()
         if not cursor.hasSelection():
-            QMessageBox.warning(
-                self, "Rewrite", "No text selected to rewrite.")
+            QMessageBox.warning(self, "Rewrite", "No text selected to rewrite.")
             return
         selected_text = cursor.selectedText()
         dialog = RewriteDialog(self.project_name, selected_text, self)
@@ -306,26 +289,46 @@ class ProjectWindow(QMainWindow):
         while parent:
             level += 1
             parent = parent.parent()
-        content = current.data(0, Qt.UserRole)
-        if isinstance(content, dict) and level >= 2:
+        # Load autosave if available for scenes (level >= 2)
+        if level >= 2:
             autosave_content = self.load_latest_autosave_for_item(current)
             if autosave_content is not None:
-                content = autosave_content
+                # If the content looks like HTML, use setHtml; else plain text.
+                if autosave_content.lstrip().startswith("<"):
+                    self.editor.setHtml(autosave_content)
+                else:
+                    self.editor.setPlainText(autosave_content)
             else:
-                content = content.get("content", "")
-        elif isinstance(content, dict) and level < 2:
-            content = current.data(0, Qt.UserRole).get("summary", "")
-        self.editor.setPlainText(content)
-        if level < 2:
-            self.editor.setPlaceholderText(
-                f"Enter summary for {current.text(0)}...")
-            self.bottom_stack.setCurrentIndex(0)
-        else:
+                # Fall back to stored content in the scene data.
+                content = current.data(0, Qt.UserRole)
+                if isinstance(content, dict):
+                    content = content.get("content", "")
+                else:
+                    content = ""
+                # If the content is HTML formatted, render it as HTML.
+                if content.lstrip().startswith("<"):
+                    self.editor.setHtml(content)
+                else:
+                    self.editor.setPlainText(content)
             self.editor.setPlaceholderText("Enter scene content...")
             self.bottom_stack.setCurrentIndex(1)
+        else:
+            # For non-scene items, load the summary.
+            content = current.data(0, Qt.UserRole)
+            if isinstance(content, dict):
+                content = content.get("summary", "")
+            else:
+                content = ""
+            if content.lstrip().startswith("<"):
+                self.editor.setHtml(content)
+            else:
+                self.editor.setPlainText(content)
+            self.editor.setPlaceholderText(f"Enter summary for {current.text(0)}...")
+            self.bottom_stack.setCurrentIndex(0)
         self.updateSettingTooltips()
 
     def load_latest_autosave_for_item(self, item):
+        # Build hierarchy from tree item and delegate to autosave_manager
         def sanitize(text):
             return re.sub(r'\W+', '', text)
         hierarchy = []
@@ -333,21 +336,7 @@ class ProjectWindow(QMainWindow):
         while current:
             hierarchy.insert(0, current.text(0).strip())
             current = current.parent()
-        sanitized_hierarchy = [sanitize(x) for x in hierarchy]
-        project_folder = os.path.join(
-            os.getcwd(), "Projects", sanitize(self.project_name))
-        pattern = os.path.join(
-            project_folder, f"{sanitize(self.project_name)}-" + "-".join(sanitized_hierarchy) + "_*.txt")
-        autosave_files = glob.glob(pattern)
-        if not autosave_files:
-            return None
-        latest_file = max(autosave_files, key=os.path.getmtime)
-        try:
-            with open(latest_file, "r", encoding="utf-8") as f:
-                return f.read()
-        except Exception as e:
-            print(f"Error loading autosave file {latest_file}: {e}")
-            return None
+        return autosave_manager.load_latest_autosave(self.project_name, hierarchy)
 
     def show_tree_context_menu(self, pos):
         item = self.tree.itemAt(pos)
@@ -371,13 +360,11 @@ class ProjectWindow(QMainWindow):
             add_chapter_action = menu.addAction("Add Chapter")
         elif level == 1:
             add_scene_action = menu.addAction("Add Scene")
-        # For scene nodes (level >= 2), add a submenu for setting the scene status.
         if level >= 2:
             status_menu = menu.addMenu("Set Scene Status")
             for status_option in ["To Do", "In Progress", "Final Draft"]:
                 action_status = status_menu.addAction(status_option)
-                action_status.triggered.connect(
-                    lambda checked, s=status_option: self.set_scene_status(item, s))
+                action_status.triggered.connect(lambda checked, s=status_option: self.set_scene_status(item, s))
         action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
         if action == rename_action:
             rename_item(self, item)
@@ -399,7 +386,6 @@ class ProjectWindow(QMainWindow):
         else:
             scene_data["status"] = new_status
         item.setData(0, Qt.UserRole, scene_data)
-        # Update only the status icon in column 1.
         self.update_scene_status_icon(item)
         self.update_structure_from_tree()
 
@@ -412,8 +398,7 @@ class ProjectWindow(QMainWindow):
     def manual_save_scene(self):
         current_item = self.tree.currentItem()
         if not current_item:
-            QMessageBox.warning(self, "Manual Save",
-                                "No scene selected for saving.")
+            QMessageBox.warning(self, "Manual Save", "No scene selected for saving.")
             return
         level = 0
         temp = current_item
@@ -421,21 +406,19 @@ class ProjectWindow(QMainWindow):
             level += 1
             temp = temp.parent()
         if level < 2:
-            QMessageBox.warning(self, "Manual Save",
-                                "Please select a scene for manual save.")
+            QMessageBox.warning(self, "Manual Save", "Please select a scene for manual save.")
             return
-        content = self.editor.toPlainText()
+        # Use toHtml() to save rich formatting
+        content = self.editor.toHtml()
         if not content.strip():
-            QMessageBox.warning(self, "Manual Save",
-                                "There is no content to save.")
+            QMessageBox.warning(self, "Manual Save", "There is no content to save.")
             return
         hierarchy = []
         item = current_item
         while item:
             hierarchy.insert(0, item.text(0).strip())
             item = item.parent()
-        filepath = autosave_manager.save_scene(
-            self.project_name, hierarchy, content)
+        filepath = autosave_manager.save_scene(self.project_name, hierarchy, content)
         if filepath:
             now = time.strftime("%Y-%m-%d %H:%M:%S")
             self.last_save_label.setText(f"Last Saved: {now}")
@@ -461,7 +444,8 @@ class ProjectWindow(QMainWindow):
             temp = temp.parent()
         if level < 2:
             return
-        content = self.editor.toPlainText()
+        # Use toHtml() to save rich formatting
+        content = self.editor.toHtml()
         if not content.strip():
             return
         hierarchy = []
@@ -469,8 +453,7 @@ class ProjectWindow(QMainWindow):
         while item:
             hierarchy.insert(0, item.text(0).strip())
             item = item.parent()
-        filepath = autosave_manager.save_scene(
-            self.project_name, hierarchy, content)
+        filepath = autosave_manager.save_scene(self.project_name, hierarchy, content)
         if filepath:
             now = time.strftime("%Y-%m-%d %H:%M:%S")
             self.last_save_label.setText(f"Last Saved: {now}")
@@ -494,28 +477,27 @@ class ProjectWindow(QMainWindow):
             level += 1
             temp = temp.parent()
         if level < 2:
-            QMessageBox.warning(self, "Backup Versions",
-                                "Please select a scene to view backups.")
+            QMessageBox.warning(self, "Backup Versions", "Please select a scene to view backups.")
             return
         scene_identifier = current_item.text(0)
-        backup_file_path = show_backup_dialog(
-            self, self.project_name, scene_identifier)
+        backup_file_path = show_backup_dialog(self, self.project_name, scene_identifier)
         if backup_file_path:
             try:
                 with open(backup_file_path, "r", encoding="utf-8") as f:
                     content = f.read()
-                self.editor.setPlainText(content)
+                if backup_file_path.endswith(".html"):
+                    self.editor.setHtml(content)
+                else:
+                    self.editor.setPlainText(content)
                 scene_data = current_item.data(0, Qt.UserRole)
                 if not isinstance(scene_data, dict):
                     scene_data = {"name": current_item.text(0)}
                 scene_data["content"] = content
                 current_item.setData(0, Qt.UserRole, scene_data)
                 self.update_structure_from_tree()
-                QMessageBox.information(
-                    self, "Backup Loaded", f"Backup loaded from:\n{backup_file_path}")
+                QMessageBox.information(self, "Backup Loaded", f"Backup loaded from:\n{backup_file_path}")
             except Exception as e:
-                QMessageBox.warning(
-                    self, "Error", f"Error loading backup file: {e}")
+                QMessageBox.warning(self, "Error", f"Error loading backup file: {e}")
         else:
             QMessageBox.information(self, "Backup", "No backup file selected.")
 
@@ -550,13 +532,11 @@ class ProjectWindow(QMainWindow):
                 self.current_pov_character = custom
                 self.pov_character_combo.setCurrentText(custom)
             else:
-                self.pov_character_combo.setCurrentText(
-                    self.current_pov_character)
+                self.pov_character_combo.setCurrentText(self.current_pov_character)
                 return
         else:
             self.current_pov_character = value
-        self.pov_character_combo.setToolTip(
-            f"POV Character: {self.current_pov_character}")
+        self.pov_character_combo.setToolTip(f"POV Character: {self.current_pov_character}")
         self.save_global_settings()
 
     def handle_tense_change(self, index):
@@ -580,7 +560,6 @@ class ProjectWindow(QMainWindow):
 
     def repopulate_prompts(self):
         self.populate_prompt_dropdown()
-        # May also repopulate rewrite and summary prompt dropdowns here.
 
     def populate_prompt_dropdown(self):
         prompts_file = f"prompts_{self.project_name.replace(' ', '')}.json"
@@ -618,14 +597,12 @@ class ProjectWindow(QMainWindow):
             self.current_prose_prompt = selected_prompt.get("text", "")
             self.current_prose_config = selected_prompt
             if hasattr(self, "model_indicator"):
-                self.model_indicator.setText(
-                    f"[Model: {selected_prompt.get('model', 'Unknown')}]")
+                self.model_indicator.setText(f"[Model: {selected_prompt.get('model', 'Unknown')}]")
 
     def send_prompt(self):
         action_beats = self.prompt_input.toPlainText().strip()
         if not action_beats:
-            QMessageBox.warning(
-                self, "LLM Prompt", "Please enter some action beats before sending.")
+            QMessageBox.warning(self, "LLM Prompt", "Please enter some action beats before sending.")
             return
         if self.current_prose_prompt is not None:
             prose_prompt = self.current_prose_prompt
@@ -662,16 +639,14 @@ class ProjectWindow(QMainWindow):
         self.send_button.setEnabled(False)
         self.preview_text.setPlainText("Generating preview...")
         QApplication.processEvents()
-        generated_text = prompt_handler.send_final_prompt(
-            final_prompt, overrides=overrides)
+        generated_text = prompt_handler.send_final_prompt(final_prompt, overrides=overrides)
         self.preview_text.setPlainText(generated_text)
         self.send_button.setEnabled(True)
 
     def apply_preview(self):
         preview = self.preview_text.toPlainText().strip()
         if not preview:
-            QMessageBox.warning(self, "Apply Preview",
-                                "No preview text to apply.")
+            QMessageBox.warning(self, "Apply Preview", "No preview text to apply.")
             return
         current_text = self.editor.toPlainText()
         self.editor.setPlainText(current_text + "\n" + preview)
@@ -707,8 +682,7 @@ class ProjectWindow(QMainWindow):
         cursor = self.editor.textCursor()
         fmt = QTextCharFormat()
         current_weight = self.editor.fontWeight()
-        fmt.setFontWeight(QFont.Normal if current_weight ==
-                          QFont.Bold else QFont.Bold)
+        fmt.setFontWeight(QFont.Normal if current_weight == QFont.Bold else QFont.Bold)
         cursor.mergeCharFormat(fmt)
         self.editor.mergeCurrentCharFormat(fmt)
 
@@ -759,21 +733,16 @@ class ProjectWindow(QMainWindow):
                 text = self.editor.toPlainText()
                 start_position = cursor.position()
             if not text.strip():
-                QMessageBox.warning(self, "TTS Warning",
-                                    "There is no text to read.")
+                QMessageBox.warning(self, "TTS Warning", "There is no text to read.")
                 return
             self.tts_playing = True
             self.tts_button.setIcon(QIcon("assets/icons/stop-circle.svg"))
-
             def run_speech():
                 try:
                     tts_manager.speak(
                         text,
                         start_position=start_position,
-                        on_complete=lambda: QTimer.singleShot(
-                            0, lambda: self.tts_button.setIcon(
-                                QIcon("assets/icons/play-circle.svg"))
-                        )
+                        on_complete=lambda: QTimer.singleShot(0, lambda: self.tts_button.setIcon(QIcon("assets/icons/play-circle.svg")))
                     )
                 except Exception as e:
                     print("Error during TTS:", e)
@@ -797,72 +766,38 @@ class ProjectWindow(QMainWindow):
 
     # === New: Open Analysis Editor ===
     def open_analysis_editor(self):
-        """
-        Retrieves the current scene text, then opens the text analysis editor
-        (from text_analysis_gui.py) with that text preloaded.
-        The analysis editor is configured to call back with updated text
-        when the user clicks "Save & Close".
-        """
         current_text = self.editor.toPlainText()
         from text_analysis_gui import TextAnalysisApp
         def analysis_save_callback(updated_text):
-            # Update the scene editor with the modified text and save the scene.
             self.editor.setPlainText(updated_text)
             self.manual_save_scene()
-        self.analysis_editor_window = TextAnalysisApp(parent=self, initial_text=current_text,
-                                                        save_callback=analysis_save_callback)
+        self.analysis_editor_window = TextAnalysisApp(parent=self, initial_text=current_text, save_callback=analysis_save_callback)
         self.analysis_editor_window.show()
 
     # === New: Method to update icons based on the current theme ===
     def update_icons(self):
-        # Recalculate the tint color from the current theme.
         tint_str = ThemeManager.ICON_TINTS.get(self.current_theme, "black")
         tint = QColor(tint_str)
         self.icon_tint = tint
-
-        # Update toolbar actions with new tinted icons.
-        self.compendium_action.setIcon(self.get_tinted_icon(
-            "assets/icons/book.svg", tint_color=tint))
-        self.prompt_options_action.setIcon(self.get_tinted_icon(
-            "assets/icons/settings.svg", tint_color=tint))
-        self.workshop_action.setIcon(self.get_tinted_icon(
-            "assets/icons/message-square.svg", tint_color=tint))
-        self.focus_mode_action.setIcon(self.get_tinted_icon(
-            "assets/icons/maximize-2.svg", tint_color=tint))
-
-        # Update editor toolbar icons.
-        self.bold_action.setIcon(self.get_tinted_icon(
-            "assets/icons/bold.svg", tint_color=tint))
-        self.italic_action.setIcon(self.get_tinted_icon(
-            "assets/icons/italic.svg", tint_color=tint))
-        self.underline_action.setIcon(self.get_tinted_icon(
-            "assets/icons/underline.svg", tint_color=tint))
-        self.tts_action.setIcon(self.get_tinted_icon(
-            "assets/icons/play-circle.svg", tint_color=tint))
-        self.align_left_action.setIcon(self.get_tinted_icon(
-            "assets/icons/align-left.svg", tint_color=tint))
-        self.align_center_action.setIcon(self.get_tinted_icon(
-            "assets/icons/align-center.svg", tint_color=tint))
-        self.align_right_action.setIcon(self.get_tinted_icon(
-            "assets/icons/align-right.svg", tint_color=tint))
-        self.manual_save_action.setIcon(self.get_tinted_icon(
-            "assets/icons/save.svg", tint_color=tint))
-        self.oh_shit_action.setIcon(self.get_tinted_icon(
-            "assets/icons/share.svg", tint_color=tint))
-
-        # Update send and context toggle buttons.
-        self.send_button.setIcon(self.get_tinted_icon(
-            "assets/icons/send.svg", tint_color=tint))
+        self.compendium_action.setIcon(self.get_tinted_icon("assets/icons/book.svg", tint_color=tint))
+        self.prompt_options_action.setIcon(self.get_tinted_icon("assets/icons/settings.svg", tint_color=tint))
+        self.workshop_action.setIcon(self.get_tinted_icon("assets/icons/message-square.svg", tint_color=tint))
+        self.focus_mode_action.setIcon(self.get_tinted_icon("assets/icons/maximize-2.svg", tint_color=tint))
+        self.bold_action.setIcon(self.get_tinted_icon("assets/icons/bold.svg", tint_color=tint))
+        self.italic_action.setIcon(self.get_tinted_icon("assets/icons/italic.svg", tint_color=tint))
+        self.underline_action.setIcon(self.get_tinted_icon("assets/icons/underline.svg", tint_color=tint))
+        self.tts_action.setIcon(self.get_tinted_icon("assets/icons/play-circle.svg", tint_color=tint))
+        self.align_left_action.setIcon(self.get_tinted_icon("assets/icons/align-left.svg", tint_color=tint))
+        self.align_center_action.setIcon(self.get_tinted_icon("assets/icons/align-center.svg", tint_color=tint))
+        self.align_right_action.setIcon(self.get_tinted_icon("assets/icons/align-right.svg", tint_color=tint))
+        self.manual_save_action.setIcon(self.get_tinted_icon("assets/icons/save.svg", tint_color=tint))
+        self.oh_shit_action.setIcon(self.get_tinted_icon("assets/icons/share.svg", tint_color=tint))
+        self.send_button.setIcon(self.get_tinted_icon("assets/icons/send.svg", tint_color=tint))
         if self.context_panel.isVisible():
-            self.context_toggle_button.setIcon(self.get_tinted_icon(
-                "assets/icons/book-open.svg", tint_color=tint))
+            self.context_toggle_button.setIcon(self.get_tinted_icon("assets/icons/book-open.svg", tint_color=tint))
         else:
-            self.context_toggle_button.setIcon(self.get_tinted_icon(
-                "assets/icons/book.svg", tint_color=tint))
-        self.apply_button.setIcon(self.get_tinted_icon(
-            "assets/icons/feather.svg", tint_color=tint))
-
-        # Optionally update the tree icons (which use the stored tint).
+            self.context_toggle_button.setIcon(self.get_tinted_icon("assets/icons/book.svg", tint_color=tint))
+        self.apply_button.setIcon(self.get_tinted_icon("assets/icons/feather.svg", tint_color=tint))
         self.assign_tree_icons()
 
     # === New: Method to change theme and update icons dynamically ===

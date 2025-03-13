@@ -4,6 +4,8 @@ import time
 import glob
 import re
 
+NEW_FILE_EXTENSION = ".html"  # Use HTML for new files
+
 def sanitize(text: str) -> str:
     """Return a sanitized string suitable for file names."""
     return re.sub(r'\W+', '', text)
@@ -31,12 +33,15 @@ def get_project_folder(project_name: str) -> str:
 def load_latest_autosave(project_name: str, hierarchy: list) -> str:
     """
     Load the content of the most recent autosave file for a given scene.
+    Supports both legacy .txt files and new HTML files.
     Returns the content if found, or None otherwise.
     """
     scene_identifier = build_scene_identifier(project_name, hierarchy)
     project_folder = get_project_folder(project_name)
-    pattern = os.path.join(project_folder, f"{scene_identifier}_*.txt")
-    autosave_files = glob.glob(pattern)
+    # Search for both .txt (legacy) and .html (new) files
+    pattern_txt = os.path.join(project_folder, f"{scene_identifier}_*.txt")
+    pattern_html = os.path.join(project_folder, f"{scene_identifier}_*{NEW_FILE_EXTENSION}")
+    autosave_files = glob.glob(pattern_txt) + glob.glob(pattern_html)
     if not autosave_files:
         return None
     latest_file = max(autosave_files, key=os.path.getmtime)
@@ -50,9 +55,11 @@ def load_latest_autosave(project_name: str, hierarchy: list) -> str:
 def cleanup_old_autosaves(project_folder: str, scene_identifier: str, max_files: int = 6) -> None:
     """
     Remove the oldest autosave files if the number of autosaves exceeds max_files.
+    Searches for both .txt and .html files.
     """
-    pattern = os.path.join(project_folder, f"{scene_identifier}_*.txt")
-    autosave_files = sorted(glob.glob(pattern))
+    pattern_txt = os.path.join(project_folder, f"{scene_identifier}_*.txt")
+    pattern_html = os.path.join(project_folder, f"{scene_identifier}_*{NEW_FILE_EXTENSION}")
+    autosave_files = sorted(glob.glob(pattern_txt) + glob.glob(pattern_html), key=os.path.getmtime)
     while len(autosave_files) > max_files:
         oldest = autosave_files.pop(0)
         try:
@@ -64,11 +71,12 @@ def cleanup_old_autosaves(project_folder: str, scene_identifier: str, max_files:
 def save_scene(project_name: str, hierarchy: list, content: str) -> str:
     """
     Save the scene content if it has changed since the last autosave.
+    Uses the new HTML format for saving, preserving rich formatting.
     
     Parameters:
         project_name (str): The name of the project.
         hierarchy (list): List of strings representing the scene hierarchy (e.g., [Act, Chapter, Scene]).
-        content (str): The scene content to save.
+        content (str): The scene content to save (HTML formatted).
     
     Returns:
         The filepath of the new autosave file if saved, or None if no changes were detected.
@@ -82,7 +90,7 @@ def save_scene(project_name: str, hierarchy: list, content: str) -> str:
     scene_identifier = build_scene_identifier(project_name, hierarchy)
     project_folder = get_project_folder(project_name)
     timestamp = time.strftime("%Y%m%d%H%M%S")
-    filename = f"{scene_identifier}_{timestamp}.txt"
+    filename = f"{scene_identifier}_{timestamp}{NEW_FILE_EXTENSION}"
     filepath = os.path.join(project_folder, filename)
 
     try:

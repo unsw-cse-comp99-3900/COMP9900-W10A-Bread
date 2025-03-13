@@ -11,6 +11,7 @@ def sanitize(text):
 def show_backup_dialog(parent, project_name, scene_identifier):
     """
     Opens a dialog that lists backup files from the project's backup directory.
+    Supports both legacy .txt files and new HTML files.
     Returns the full path of the selected backup file, or None if canceled.
     """
     base_dir = os.getcwd()
@@ -21,9 +22,9 @@ def show_backup_dialog(parent, project_name, scene_identifier):
     
     backup_files = []
     if os.path.exists(backup_dir):
-        # List only .txt files that contain the sanitized scene identifier in the filename.
+        # List only .txt and .html files that contain the sanitized scene identifier in the filename.
         for filename in os.listdir(backup_dir):
-            if filename.endswith(".txt") and sanitized_scene in filename:
+            if (filename.endswith(".txt") or filename.endswith(".html")) and sanitized_scene in filename:
                 backup_files.append(filename)
     else:
         backup_files = []
@@ -41,7 +42,7 @@ def show_backup_dialog(parent, project_name, scene_identifier):
     for f in sorted(backup_files):
         parts = f.rsplit("_", 1)
         if len(parts) == 2:
-            timestamp_str = parts[1].replace(".txt", "")
+            timestamp_str = parts[1].split('.')[0]  # Remove file extension
             try:
                 dt = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
                 formatted_timestamp = dt.strftime("%Y-%m-%d %H:%M:%S")

@@ -11,13 +11,12 @@ from settings_manager import WWSettingsManager
 
 def get_workshop_prompts(project_name):
     """
-    Loads workshop prompts from a project-specific file.
-    The file is expected to be named 'prompts_<projectname_no_spaces>.json'.
+    Loads workshop prompts from a global prompts file.
+    The file is now named 'prompts.json', regardless of the project.
     Returns a list of prompt objects from the "Workshop" category.
     If the file is missing or fails to load, returns a dummy prompt.
     """
-    base_name = f"prompts_{project_name.replace(' ', '')}"
-    filename = f"{base_name}.json"
+    filename = "prompts.json"
     if os.path.exists(filename):
         try:
             with open(filename, "r", encoding="utf-8") as f:
@@ -54,13 +53,9 @@ class PromptsWindow(QDialog):
         self.setWindowTitle("Prompts - " + project_name)
         self.resize(800, 600)  # Made window larger
 
-        # Load LLM configurations
-        # self.llm_configs = load_llm_configs()
-
-        # Define file names
-        base_name = f"prompts_{self.project_name.replace(' ', '')}"
-        self.prompts_file = f"{base_name}.json"
-        self.backup_file = f"{base_name}.bak.json"
+        # Define file names to use global prompts file
+        self.prompts_file = "prompts.json"
+        self.backup_file = "prompts.bak.json"
 
         # Default categories
         self.default_categories = ["Workshop", "Summary", "Prose", "Rewrite"]
@@ -214,7 +209,6 @@ class PromptsWindow(QDialog):
             self.provider_combo.addItem(display_name, userData=config)
             if provider == self.active_config:
                 self.provider_combo.setCurrentText(display_name)
-
 
         # Connect after populating to avoid triggering updates
         self.provider_combo.currentTextChanged.connect(self.on_provider_changed)

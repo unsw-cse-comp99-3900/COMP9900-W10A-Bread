@@ -698,6 +698,11 @@ class ProjectWindow(QMainWindow):
         current_text = self.editor.toPlainText()
         # Append the prompt block (if any) and then the LLM output
         self.editor.setPlainText(current_text + "\n" + prompt_block + preview)
+        
+        # Scroll to the end of the editor after appending the text.
+        from PyQt5.QtGui import QTextCursor
+        self.editor.moveCursor(QTextCursor.End)
+        
         self.preview_text.clear()
         self.prompt_input.clear()
 

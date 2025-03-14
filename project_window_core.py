@@ -283,32 +283,64 @@ class ProjectWindow(QMainWindow):
         pass
 
     def tree_item_changed(self, current, previous):
+        # Before switching, if there is a previous item, check for unsaved changes.
+        if previous is not None:
+            # Determine the level of the previous item (e.g. scene level is >= 2)
+            level = 0
+            temp = previous
+            while temp.parent():
+                level += 1
+                temp = temp.parent()
+
+            # For scenes, compare the current editor content to what was last loaded.
+            unsaved_in_editor = False
+            if level >= 2:
+                # Assume self.last_loaded_content holds the text as last loaded/saved.
+                original_content = self.last_loaded_content if hasattr(self, "last_loaded_content") else ""
+                if self.editor.toPlainText().strip() != original_content.strip():
+                    unsaved_in_editor = True
+
+            # Check if the "action beats" or "LLM output preview" fields have any content.
+            unsaved_in_prompt = bool(self.prompt_input.toPlainText().strip())
+            unsaved_in_preview = bool(self.preview_text.toPlainText().strip())
+
+            # If any unsaved content exists, warn the user.
+            if unsaved_in_editor or unsaved_in_prompt or unsaved_in_preview:
+                reply = QMessageBox.question(
+                    self,
+                    "Unsaved Changes",
+                    "You have unsaved content in this scene and/or pending prompt output. Do you really want to leave?",
+                    QMessageBox.Yes | QMessageBox.No
+                )
+                if reply == QMessageBox.No:
+                    # Revert the selection back to the previous item.
+                    self.tree.blockSignals(True)
+                    self.tree.setCurrentItem(previous)
+                    self.tree.blockSignals(False)
+                    return
+
+        # Proceed with loading the new item.
         if current is None:
             self.editor.clear()
             self.bottom_stack.setCurrentIndex(0)
             return
+
+        # (Existing logic to load autosaved content or scene data for the new item.)
         level = 0
-        parent = current.parent()
-        while parent:
+        temp = current
+        while temp.parent():
             level += 1
-            parent = parent.parent()
-        # Load autosave if available for scenes (level >= 2)
+            temp = temp.parent()
         if level >= 2:
             autosave_content = self.load_latest_autosave_for_item(current)
             if autosave_content is not None:
-                # If the content looks like HTML, use setHtml; else plain text.
                 if autosave_content.lstrip().startswith("<"):
                     self.editor.setHtml(autosave_content)
                 else:
                     self.editor.setPlainText(autosave_content)
             else:
-                # Fall back to stored content in the scene data.
-                content = current.data(0, Qt.UserRole)
-                if isinstance(content, dict):
-                    content = content.get("content", "")
-                else:
-                    content = ""
-                # If the content is HTML formatted, render it as HTML.
+                scene_data = current.data(0, Qt.UserRole)
+                content = scene_data.get("content", "") if isinstance(scene_data, dict) else ""
                 if content.lstrip().startswith("<"):
                     self.editor.setHtml(content)
                 else:
@@ -316,18 +348,19 @@ class ProjectWindow(QMainWindow):
             self.editor.setPlaceholderText("Enter scene content...")
             self.bottom_stack.setCurrentIndex(1)
         else:
-            # For non-scene items, load the summary.
-            content = current.data(0, Qt.UserRole)
-            if isinstance(content, dict):
-                content = content.get("summary", "")
-            else:
-                content = ""
+            # For non-scene items (e.g. summaries).
+            item_data = current.data(0, Qt.UserRole)
+            content = item_data.get("summary", "") if isinstance(item_data, dict) else ""
             if content.lstrip().startswith("<"):
                 self.editor.setHtml(content)
             else:
                 self.editor.setPlainText(content)
             self.editor.setPlaceholderText(f"Enter summary for {current.text(0)}...")
             self.bottom_stack.setCurrentIndex(0)
+
+        # Update the "last loaded" content to match what was just loaded.
+        self.last_loaded_content = self.editor.toPlainText()
+
         self.updateSettingTooltips()
 
     def load_latest_autosave_for_item(self, item):
@@ -565,7 +598,7 @@ class ProjectWindow(QMainWindow):
         self.populate_prompt_dropdown()
 
     def populate_prompt_dropdown(self):
-        prompts_file = "prompts.json"
+        prompts_file = f"prompts_{self.project_name.replace(' ', '')}.json"
         prose_prompts = []
         if os.path.exists(prompts_file):
             try:

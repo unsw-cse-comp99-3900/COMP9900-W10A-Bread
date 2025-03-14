@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from PyQt5.QtWidgets import (
     QSplitter, QTreeWidget, QTextEdit, QToolBar, QAction, QWidget, QVBoxLayout,
-    QHBoxLayout, QPushButton, QComboBox, QStackedWidget, QFontComboBox, QLabel
+    QHBoxLayout, QPushButton, QComboBox, QStackedWidget, QFontComboBox, QLabel, QCheckBox
 )
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtCore import Qt
@@ -267,7 +267,15 @@ def build_main_ui(window):
     window.apply_button.setToolTip("Appends the LLM's output to your current scene")
     window.apply_button.clicked.connect(window.apply_preview)
     preview_button_layout.addWidget(window.apply_button)
+
+    # New: Checkbox to include Action Beats (prompt) with the LLM output
+    window.include_prompt_checkbox = QCheckBox("Include Action Beats")
+    window.include_prompt_checkbox.setToolTip("Include the text from the Action Beats field in the scene text")
+    window.include_prompt_checkbox.setChecked(True)
+    preview_button_layout.addWidget(window.include_prompt_checkbox)
+
     preview_button_layout.addStretch()
+
     preview_layout.addLayout(preview_button_layout)
     llm_layout.addWidget(preview_group)
 

@@ -684,8 +684,20 @@ class ProjectWindow(QMainWindow):
         if not preview:
             QMessageBox.warning(self, "Apply Preview", "No preview text to apply.")
             return
+        # Only include the action beats if the checkbox is checked.
+        if hasattr(self, "include_prompt_checkbox") and self.include_prompt_checkbox.isChecked():
+            prompt = self.prompt_input.toPlainText().strip()
+            if prompt:
+                # Create a visual block for the prompt (customize as desired)
+                prompt_block = "\n" + ("_" * 10) + "\n" + prompt + "\n" + ("_" * 10) + "\n"
+            else:
+                prompt_block = ""
+        else:
+            prompt_block = ""
+
         current_text = self.editor.toPlainText()
-        self.editor.setPlainText(current_text + "\n" + preview)
+        # Append the prompt block (if any) and then the LLM output
+        self.editor.setPlainText(current_text + "\n" + prompt_block + preview)
         self.preview_text.clear()
         self.prompt_input.clear()
 

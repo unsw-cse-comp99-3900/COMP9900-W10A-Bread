@@ -58,6 +58,7 @@ UI_LABELS = {
         "provider_details": "Provider Details",
         "add": "Add",
         "update": "Update",
+        "sample": "Sample Text",
         "save_successful": "Settings saved successfully.",
         "unsaved_warning": "You have unsaved changes. Do you want to save them before closing?"
     },
@@ -423,9 +424,19 @@ class SettingsDialog(QDialog):
 
         self.text_size_spinbox = QSpinBox()
         self.text_size_spinbox.setRange(8, 24)
+        self.text_size_spinbox.valueChanged.connect(self.update_font_size)
         self.text_size_spinbox.valueChanged.connect(self.mark_unsaved_changes)
         self.text_size_label = QLabel(self.labels["text_size"])
         layout.addRow(self.text_size_label, self.text_size_spinbox)
+
+        # Create a group box for the sample text
+        self.sample_group_box = QGroupBox()
+        sample_layout = QHBoxLayout()
+        sample_layout.setAlignment(Qt.AlignCenter)
+        self.sample_text_label = QLabel(self.labels["sample"])
+        sample_layout.addWidget(self.sample_text_label)
+        self.sample_group_box.setLayout(sample_layout)
+        layout.addRow(self.sample_group_box)
 
         self.appearance_tab.setLayout(layout)
 
@@ -647,6 +658,7 @@ class SettingsDialog(QDialog):
         self.background_color_button.setText(self.labels["background_color"])
         self.text_size_label.setText(self.labels["text_size"])
         self.providers_group.setTitle(self.labels["providers_list"])
+        self.sample_text_label.setText(self.labels["sample"])
         
         self.save_button.setText(self.labels["save"])
         self.cancel_button.setText(self.labels["close"])
@@ -724,6 +736,13 @@ class SettingsDialog(QDialog):
         """Change the theme based on the selected theme in the combobox."""
         theme_name = self.theme_combobox.itemText(index)
         ThemeManager.apply_to_app(theme_name)
+
+    def update_font_size(self, value):
+        """Update the font size for all text UI objects except the TextEdit contents."""
+        font = self.font()
+        font.setPointSize(value)
+        QApplication.instance().setFont(font)
+        self.sample_text_label.setFont(font)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -518,7 +518,6 @@ WWSettingsManager = SettingsManager()
 
 # Example usage
 if __name__ == "__main__":
-    # Create settings manager
     settings = SettingsManager("settings.json")
     
     # Get values

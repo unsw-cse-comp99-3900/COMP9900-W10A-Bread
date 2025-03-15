@@ -520,11 +520,15 @@ class WW_Aggregator:
         }
         return provider_map.get(provider_name)
 
+import threading
+import queue
+
 class LLMAPIAggregator:
     """Main class for the LLM API Aggregator."""
     
     def __init__(self):
         self.aggregator = WW_Aggregator()
+        self.interrupt_flag = threading.Event()
     
     def get_llm_providers(self) -> List[str]:
         """Dynamically returns a list of supported LLM provider names."""
@@ -581,6 +585,67 @@ class LLMAPIAggregator:
         else:
             # Simple prompt-based invocation
             return llm.invoke(final_prompt).content
+
+    def stream_prompt_to_llm(
+        self, 
+        final_prompt: str, 
+        overrides: Optional[Dict[str, Any]] = None,
+        conversation_history: Optional[List[Dict[str, str]]] = None
+    ):
+        """Stream a prompt to the active LLM and yield the generated text."""
+        overrides = overrides or {}
+        settings = WWSettingsManager.get_llm_configs()
+        
+        # Determine which provider to use
+        provider_name = overrides.get("provider") or WWSettingsManager.get_active_llm_name()
+        if provider_name == "Local": # need to rename this to Default everywhere
+            provider_name = WWSettingsManager.get_active_llm_name()
+            overrides = {}
+        if not provider_name:
+            raise ValueError("No active LLM provider specified")
+        
+        # Get the provider instance
+        provider = self.aggregator.get_provider(provider_name)
+        if not provider:
+            raise ValueError(f"Provider '{provider_name}' not found or not configured")
+        
+        # Get the LLM instance
+        llm = provider.get_llm_instance(overrides)
+        
+        # Create messages format if conversation history is provided
+        if conversation_history:
+            from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+            
+            messages = []
+            for message in conversation_history:
+                role = message.get("role", "").lower()
+                content = message.get("content", "")
+                
+                if role == "system":
+                    messages.append(SystemMessage(content=content))
+                elif role == "user" or role == "human":
+                    messages.append(HumanMessage(content=content))
+                elif role == "assistant" or role == "ai":
+                    messages.append(AIMessage(content=content))
+            
+            # Add the current prompt
+            messages.append(HumanMessage(content=final_prompt))
+            
+            # Generate response
+            for chunk in llm.stream(messages):
+                if self.interrupt_flag.is_set():
+                    break
+                yield chunk.content
+        else:
+            # Simple prompt-based invocation
+            for chunk in llm.stream(final_prompt):
+                if self.interrupt_flag.is_set():
+                    break
+                yield chunk.content
+
+    def interrupt(self):
+        """Interrupt the streaming process."""
+        self.interrupt_flag.set()
 
 WWApiAggregator = LLMAPIAggregator()
 

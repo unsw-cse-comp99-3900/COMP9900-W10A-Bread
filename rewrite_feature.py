@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from llm_api_aggregator import WWApiAggregator
+from llm_worker import LLMWorker
 
 def get_rewrite_prompts(project_name):
     """
@@ -91,6 +92,12 @@ class RewriteDialog(QDialog):
         self.cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(self.cancel_button)
         layout.addLayout(button_layout)
+
+    def update_text(self, text):
+        self.new_edit.insertPlainText(text)
+
+    def on_finished(self):
+        pass
     
     def generate_rewrite(self):
         # Get the selected prompt's text.
@@ -105,7 +112,6 @@ class RewriteDialog(QDialog):
         
         # Construct final prompt.
         final_prompt = f"{prompt_text}\n\nOriginal Passage:\n{self.orig_edit.toPlainText()}"
-        self.new_edit.setPlainText("Generating rewrite...")
         
         # Build the overrides dictionary to force local LLM usage.
         overrides = {
@@ -116,18 +122,14 @@ class RewriteDialog(QDialog):
         }
         
         try:
-            # Send the prompt to the
-            rewritten = WWApiAggregator.send_prompt_to_llm(final_prompt, overrides=overrides)
+            self.worker = LLMWorker(final_prompt, overrides)
+            self.worker.data_received.connect(self.update_text)
+            self.worker.finished.connect(self.on_finished)
+            self.worker.start()
         except Exception as e:
             QMessageBox.warning(self, "Rewrite", f"Error sending prompt to LLM: {e}")
             return
 
-        if not rewritten:
-            QMessageBox.warning(self, "Rewrite", "LLM returned no output.")
-            return
-        
-        self.rewritten_text = rewritten
-        self.new_edit.setPlainText(rewritten)
     
     def retry_rewrite(self):
         # Re-generate using the same selected prompt.

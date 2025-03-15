@@ -29,6 +29,8 @@ import project_settings_manager as settings_manager
 from project_structure_manager import add_act, add_chapter, add_scene, rename_item, move_item_up, move_item_down
 from theme_manager import ThemeManager  # <-- Added import for theme management
 from focus_mode import FocusMode
+from llm_worker import LLMWorker
+
 
 class ProjectWindow(QMainWindow):
     def __init__(self, project_name):
@@ -598,7 +600,7 @@ class ProjectWindow(QMainWindow):
         self.populate_prompt_dropdown()
 
     def populate_prompt_dropdown(self):
-        prompts_file = f"prompts_{self.project_name.replace(' ', '')}.json"
+        prompts_file = "prompts.json"
         prose_prompts = []
         if os.path.exists(prompts_file):
             try:
@@ -673,10 +675,17 @@ class ProjectWindow(QMainWindow):
             current_scene_text, extra_context
         )
         self.send_button.setEnabled(False)
-        self.preview_text.setPlainText("Generating preview...")
         QApplication.processEvents()
-        generated_text = prompt_handler.send_final_prompt(final_prompt, overrides=overrides)
-        self.preview_text.setPlainText(generated_text)
+
+        self.worker = LLMWorker(final_prompt, overrides)
+        self.worker.data_received.connect(self.update_text)
+        self.worker.finished.connect(self.on_finished)
+        self.worker.start()
+
+    def update_text(self, text):
+        self.preview_text.insertPlainText(text)
+
+    def on_finished(self):
         self.send_button.setEnabled(True)
 
     def apply_preview(self):

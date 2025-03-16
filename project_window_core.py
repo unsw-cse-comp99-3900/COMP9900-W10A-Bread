@@ -20,7 +20,7 @@ from summary_feature import create_summary as create_summary_feature
 from prompts import load_project_options
 from tree_manager import load_structure, save_structure, populate_tree, update_structure_from_tree, delete_node
 from context_panel import ContextPanel
-import tts_manager
+from tts_manager import WW_TTSManager
 import autosave_manager
 from dialogs import CreateSummaryDialog
 from project_ui import build_main_ui
@@ -791,7 +791,7 @@ class ProjectWindow(QMainWindow):
 
     def toggle_tts(self):
         if self.tts_playing:
-            tts_manager.stop()
+            WW_TTSManager.stop()
             self.tts_playing = False
             self.tts_action.setIcon(QIcon("assets/icons/play-circle.svg"))
         else:
@@ -807,19 +807,21 @@ class ProjectWindow(QMainWindow):
                 return
             self.tts_playing = True
             self.tts_action.setIcon(QIcon("assets/icons/stop-circle.svg"))
-            def run_speech():
-                try:
-                    tts_manager.speak(
-                        text,
-                        start_position=start_position,
-                        on_complete=lambda: QTimer.singleShot(0, lambda: self.tts_action.setIcon(QIcon("assets/icons/play-circle.svg")))
-                    )
-                except Exception as e:
-                    print("Error during TTS:", e)
-            threading.Thread(target=run_speech).start()
+            try:
+                WW_TTSManager.speak(
+                    text,
+                    start_position=start_position,
+                        on_complete=self.tts_completed
+                )
+            except Exception as e:
+                print("Error during TTS:", e)
 
     def perform_tts(self):
         self.toggle_tts()
+
+    def tts_completed(self):
+        self.tts_playing = False
+        self.tts_action.setIcon(QIcon("assets/icons/play-circle.svg"))
 
     def open_focus_mode(self):
         scene_text = self.editor.toPlainText()

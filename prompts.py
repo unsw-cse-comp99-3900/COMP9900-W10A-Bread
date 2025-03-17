@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
     QLabel, QComboBox, QSpinBox, QDoubleSpinBox, QApplication
 )
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 from llm_api_aggregator import WWApiAggregator
 from settings_manager import WWSettingsManager
 
@@ -383,7 +384,10 @@ class PromptsWindow(QDialog):
                     f"Text: {prompt.get('text', '')}"
                 )
                 if prompt.get("default", False):
-                    tooltip += "\n(Default prompt - read-only)"
+                    # Set the warning icon on the left of the prompt name
+                    icon_path = os.path.join("assets", "icons", "alert-triangle.svg")
+                    child.setIcon(0, QIcon(icon_path))
+                    tooltip += "\nDefault prompt (read-only): LLM settings cannot be modified."
                 child.setToolTip(0, tooltip)
                 child.setData(0, Qt.UserRole, {
                     "type": "prompt",
@@ -408,23 +412,17 @@ class PromptsWindow(QDialog):
         if data and data.get("type") == "prompt":
             self.editor.setPlainText(data.get("text", ""))
 
-            # Find and select the correct provider configuration
+            # Set provider and model values as before
             provider = data.get("provider", "Local")
             model = data.get("model", "Local Model")
-
-            # 1) Try to set the provider combo
             for i in range(self.provider_combo.count()):
-                id = self.provider_combo.itemData(i)
-                if id == provider:
+                if self.provider_combo.itemData(i) == provider:
                     self.provider_combo.setCurrentIndex(i)
                     break
 
-            # 2) We want to set the model in the combo box, but it might not be loaded yet
             self.selected_model = model
-            # Try to find it in the current combo
             idx = self.model_combo.findText(model)
             if idx == -1:
-                # Not found, so set a pending_model and refresh
                 self.pending_model = model
                 self.refresh_models(False)
             else:
@@ -435,11 +433,28 @@ class PromptsWindow(QDialog):
             self.parameters_panel.show()
             self.editor.setReadOnly(data.get("default", False))
             
-            # Show the replicate button only if this is a default prompt.
+            # Disable LLM settings if default prompt is selected
             if data.get("default", False):
                 self.replicate_button.show()
+                self.provider_combo.setEnabled(False)
+                self.model_combo.setEnabled(False)
+                self.max_tokens_spin.setEnabled(False)
+                self.temp_spin.setEnabled(False)
+                tooltip_msg = "Default prompts are read-only. LLM settings cannot be modified."
+                self.provider_combo.setToolTip(tooltip_msg)
+                self.model_combo.setToolTip(tooltip_msg)
+                self.max_tokens_spin.setToolTip(tooltip_msg)
+                self.temp_spin.setToolTip(tooltip_msg)
             else:
                 self.replicate_button.hide()
+                self.provider_combo.setEnabled(True)
+                self.model_combo.setEnabled(True)
+                self.max_tokens_spin.setEnabled(True)
+                self.temp_spin.setEnabled(True)
+                self.provider_combo.setToolTip("")
+                self.model_combo.setToolTip("")
+                self.max_tokens_spin.setToolTip("")
+                self.temp_spin.setToolTip("")
         else:
             self.editor.clear()
             self.parameters_panel.hide()
@@ -448,7 +463,6 @@ class PromptsWindow(QDialog):
 
     def save_prompts(self):
         """Save all prompts to file."""
-        # Get the currently selected item directly from the tree widget.
         current_item = self.tree.currentItem()
         prompt_name = None
         if current_item:
@@ -526,7 +540,6 @@ class PromptsWindow(QDialog):
         for i in range(root.childCount()):
             found_item = find_prompt_item(root.child(i))
             if found_item:
-                # Trick: temporarily clear the selection, then re-select
                 self.tree.setCurrentItem(None)
                 self.tree.setCurrentItem(found_item)
                 return
@@ -547,7 +560,6 @@ class PromptsWindow(QDialog):
                 self.add_new_prompt(item)
         elif data.get("type") == "prompt":
             if data.get("default", False):
-                # Instead of "Convert to Custom", offer "Replicate"
                 replicate_action = menu.addAction("Replicate")
                 info_action = menu.addAction("Default prompt (read-only)")
                 action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
@@ -583,7 +595,6 @@ class PromptsWindow(QDialog):
 
         name = name.strip()
 
-        # Get current provider config
         provider_index = self.provider_combo.currentIndex()
         provider_config = self.provider_combo.itemData(provider_index)
 
@@ -690,7 +701,6 @@ class PromptsWindow(QDialog):
         data = current_item.data(0, Qt.UserRole)
         if not data or not data.get("default", False):
             return
-        # Ask for a new prompt name, pre-filling with the old name + " Copy"
         new_name, ok = QInputDialog.getText(
             self, "Replicate Prompt",
             "Enter name for the new prompt:",
@@ -699,11 +709,9 @@ class PromptsWindow(QDialog):
         if not ok or not new_name.strip():
             return
         new_name = new_name.strip()
-        # Create a copy of the prompt data with default flag set to False
         new_prompt = data.copy()
         new_prompt["name"] = new_name
         new_prompt["default"] = False
-        # Add the new prompt to the same category
         parent_item = current_item.parent()
         if parent_item:
             category = parent_item.text(0)
@@ -711,7 +719,6 @@ class PromptsWindow(QDialog):
             new_child = QTreeWidgetItem(parent_item, [new_name])
             new_child.setData(0, Qt.UserRole, new_prompt)
             parent_item.setExpanded(True)
-            # Optionally, select the new prompt so the user can edit it immediately
             self.tree.setCurrentItem(new_child)
             self.on_item_clicked(new_child, 0)
             QMessageBox.information(self, "Replicated", "Prompt replicated. You can now edit the new prompt.")

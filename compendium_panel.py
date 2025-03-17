@@ -12,7 +12,7 @@ class CompendiumPanel(QWidget):
         super().__init__(parent)
         self.setMinimumWidth(300)
         
-        # Determine the project name from the parent window and set the new compendium file path.
+        # Determine the project name from the parent window and set the compendium file path.
         project_name = getattr(self.parent(), "project_name", "default")
         self.new_compendium_file = os.path.join(os.getcwd(), "Projects", sanitize(project_name), "compendium.json")
         if DEBUG:
@@ -56,8 +56,10 @@ class CompendiumPanel(QWidget):
         self.tree.currentItemChanged.connect(self.on_item_changed)
         
         # Right side: Editor for the selected entry.
+        # The editor is now set to read-only so that this panel serves only as a reference.
         self.editor = QTextEdit()
-        self.editor.setPlaceholderText("Select a compendium entry to view/edit.")
+        self.editor.setPlaceholderText("Select a compendium entry to view.")
+        self.editor.setReadOnly(True)
         
         # Set up the layout.
         layout = QVBoxLayout(self)
@@ -72,7 +74,7 @@ class CompendiumPanel(QWidget):
         self.populate_compendium()
 
     def populate_compendium(self):
-        """Load compendium data from the compendium file, convert it if necessary, and populate the tree."""
+        """Load compendium data from the file and populate the tree view."""
         self.tree.clear()
         if os.path.exists(self.compendium_file):
             try:
@@ -81,7 +83,7 @@ class CompendiumPanel(QWidget):
                 if DEBUG:
                     print("Compendium data loaded:", data)
                 
-                # Detect if data is in the old format (categories as dict) and convert if needed.
+                # Convert from old format if necessary.
                 if isinstance(data.get("categories"), dict):
                     if DEBUG:
                         print("Old format detected. Converting data...")
@@ -101,20 +103,18 @@ class CompendiumPanel(QWidget):
                             "entries": entries_list
                         })
                     data["categories"] = new_categories
-                    # Save the converted data back to file.
                     with open(self.compendium_file, "w", encoding="utf-8") as f:
                         json.dump(data, f, indent=2)
                     if DEBUG:
                         print("Conversion complete. Data saved in new format.")
                 
-                # Now data["categories"] should be a list.
+                # Populate the tree.
                 for cat in data.get("categories", []):
                     cat_item = QTreeWidgetItem(self.tree, [cat.get("name", "Unnamed Category")])
                     cat_item.setData(0, Qt.UserRole, "category")
                     for entry in cat.get("entries", []):
                         entry_item = QTreeWidgetItem(cat_item, [entry.get("name", "Unnamed Entry")])
                         entry_item.setData(0, Qt.UserRole, "entry")
-                        # Store the entry content using a custom role.
                         entry_item.setData(1, Qt.UserRole, entry.get("content", ""))
                     cat_item.setExpanded(True)
             except Exception as e:
@@ -123,8 +123,8 @@ class CompendiumPanel(QWidget):
         else:
             if DEBUG:
                 print("Compendium file not found at", self.compendium_file)
-            # Create default structure if file does not exist.
-            default_data = {"categories": [{"name": "Characters", "entries": [{"name": "Readme", "content": "This is a dummy entry. You can delete, rename etc it via right-click, which also lets you add new categories and entries."}]}]}
+            # Create default structure.
+            default_data = {"categories": [{"name": "Characters", "entries": [{"name": "Readme", "content": "This is a dummy entry. You can view it for reference."}]}]}
             try:
                 with open(self.compendium_file, "w", encoding="utf-8") as f:
                     json.dump(default_data, f, indent=2)
@@ -133,10 +133,10 @@ class CompendiumPanel(QWidget):
             except Exception as e:
                 if DEBUG:
                     print("Error creating default compendium file:", e)
-            self.populate_compendium()  # Reload now that the file exists.
+            self.populate_compendium()
 
     def on_item_changed(self, current, previous):
-        """When a tree item is selected, update the editor with its content if it's an entry."""
+        """Display entry content in the read-only editor when a tree item is selected."""
         if current is None:
             self.editor.clear()
             return
@@ -147,165 +147,24 @@ class CompendiumPanel(QWidget):
             self.editor.clear()
 
     def show_tree_context_menu(self, pos: QPoint):
-        item = self.tree.itemAt(pos)
+        """Display a simplified context menu with only the option to open the enhanced compendium."""
         menu = QMenu(self)
-        # If no item is clicked, show context menu for adding a new category.
-        if item is None:
-            action_new_category = menu.addAction("New Category")
-            action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
-            if action == action_new_category:
-                self.new_category()
-            return
+        action_open = menu.addAction("Open Enhanced Compendium")
+        action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
+        if action == action_open:
+            self.open_in_enhanced_compendium()
 
-        item_type = item.data(0, Qt.UserRole)
-        if item_type == "category":
-            # Right-click menu for categories.
-            action_new = menu.addAction("New Entry")
-            action_delete = menu.addAction("Delete Category")
-            action_rename = menu.addAction("Rename Category")
-            action_move_up = menu.addAction("Move Up")
-            action_move_down = menu.addAction("Move Down")
-            action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
-            if action == action_new:
-                self.new_entry(item)
-            elif action == action_delete:
-                self.delete_category(item)
-            elif action == action_rename:
-                self.rename_item(item, "category")
-            elif action == action_move_up:
-                self.move_item(item, direction="up")
-            elif action == action_move_down:
-                self.move_item(item, direction="down")
-        elif item_type == "entry":
-            # Right-click menu for entries.
-            action_save = menu.addAction("Save Entry")
-            action_delete = menu.addAction("Delete Entry")
-            action_rename = menu.addAction("Rename Entry")
-            action_move_to = menu.addAction("Move To...")
-            action_move_up = menu.addAction("Move Up")
-            action_move_down = menu.addAction("Move Down")
-            action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
-            if action == action_save:
-                self.save_entry(item)
-            elif action == action_delete:
-                self.delete_entry(item)
-            elif action == action_rename:
-                self.rename_item(item, "entry")
-            elif action == action_move_to:
-                self.move_entry(item)
-            elif action == action_move_up:
-                self.move_item(item, direction="up")
-            elif action == action_move_down:
-                self.move_item(item, direction="down")
-
-    def new_category(self):
-        """Create a new top-level category in the compendium tree."""
-        new_item = QTreeWidgetItem(self.tree, ["New Category"])
-        new_item.setData(0, Qt.UserRole, "category")
-        new_item.setExpanded(True)
-        self.save_compendium_to_file()
-
-    def new_entry(self, category_item):
-        new_item = QTreeWidgetItem(category_item, ["New Entry"])
-        new_item.setData(0, Qt.UserRole, "entry")
-        new_item.setData(1, Qt.UserRole, "")
-        category_item.setExpanded(True)
-        self.save_compendium_to_file()
-
-    def delete_category(self, category_item):
-        root = self.tree.invisibleRootItem()
-        root.removeChild(category_item)
-        self.save_compendium_to_file()
-
-    # --- Common Rename ---
-    def rename_item(self, item, item_type):
-        current_text = item.text(0)
-        new_text, ok = QInputDialog.getText(self, f"Rename {item_type.capitalize()}", "New name:", text=current_text)
-        if ok and new_text:
-            item.setText(0, new_text)
-            self.save_compendium_to_file()
-
-    def move_item(self, item, direction="up"):
-        parent = item.parent() or self.tree.invisibleRootItem()
-        index = parent.indexOfChild(item)
-        if direction == "up" and index > 0:
-            parent.takeChild(index)
-            parent.insertChild(index - 1, item)
-        elif direction == "down" and index < parent.childCount() - 1:
-            parent.takeChild(index)
-            parent.insertChild(index + 1, item)
-        self.save_compendium_to_file()
-
-    # --- Entry Actions ---
-    def save_entry(self, entry_item):
-        content = self.editor.toPlainText()
-        entry_item.setData(1, Qt.UserRole, content)
-        if DEBUG:
-            print("Saved entry:", entry_item.text(0))
-        self.save_compendium_to_file()
-
-    def delete_entry(self, entry_item):
-        parent = entry_item.parent()
-        if parent:
-            parent.removeChild(entry_item)
-            self.save_compendium_to_file()
-
-    def move_entry(self, entry_item):
-        from PyQt5.QtGui import QCursor
-        # Create a menu listing all categories.
-        menu = QMenu(self)
-        root = self.tree.invisibleRootItem()
-        categories = []
-        for i in range(root.childCount()):
-            cat_item = root.child(i)
-            if cat_item.data(0, Qt.UserRole) == "category":
-                categories.append(cat_item)
-        if not categories:
-            return
-        # Add each category as an action.
-        for cat in categories:
-            action = menu.addAction(cat.text(0))
-            action.setData(cat)  # store the category item in the action.
-        # Execute the menu at the current mouse position.
-        selected_action = menu.exec_(QCursor.pos())
-        if selected_action is not None:
-            target_category = selected_action.data()
-            if target_category is not None:
-                # Remove the entry from its current category.
-                current_parent = entry_item.parent()
-                if current_parent is not None:
-                    current_parent.removeChild(entry_item)
-                # Add the entry to the selected category.
-                target_category.addChild(entry_item)
-                target_category.setExpanded(True)
-                self.save_compendium_to_file()
-
-    def get_compendium_data(self):
-        """Traverse the tree to reconstruct the compendium data."""
-        data = {"categories": []}
-        root = self.tree.invisibleRootItem()
-        for i in range(root.childCount()):
-            cat_item = root.child(i)
-            if cat_item.data(0, Qt.UserRole) == "category":
-                cat_data = {"name": cat_item.text(0), "entries": []}
-                for j in range(cat_item.childCount()):
-                    entry_item = cat_item.child(j)
-                    if entry_item.data(0, Qt.UserRole) == "entry":
-                        cat_data["entries"].append({
-                            "name": entry_item.text(0),
-                            "content": entry_item.data(1, Qt.UserRole)
-                        })
-                data["categories"].append(cat_data)
-        return data
-
-    def save_compendium_to_file(self):
-        """Save the current compendium data back to the compendium file."""
-        data = self.get_compendium_data()
-        try:
-            with open(self.compendium_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
-            if DEBUG:
-                print("Compendium data saved to", self.compendium_file)
-        except Exception as e:
-            if DEBUG:
-                print("Error saving compendium data:", e)
+    def open_in_enhanced_compendium(self):
+        """Launch the enhanced compendium window.
+        If an entry is selected, the enhanced window will jump to that entry."""
+        from enhanced_compendium import EnhancedCompendiumWindow
+        project_name = getattr(self.parent(), "project_name", "default")
+        self.enhanced_window = EnhancedCompendiumWindow(project_name, self.parent())
+        self.enhanced_window.show()
+        # If an entry is selected, try to select it in the enhanced window.
+        current_item = self.tree.currentItem()
+        if current_item and current_item.data(0, Qt.UserRole) == "entry":
+            entry_name = current_item.text(0)
+            if entry_name.startswith("* "):
+                entry_name = entry_name[2:]
+            self.enhanced_window.find_and_select_entry(entry_name)

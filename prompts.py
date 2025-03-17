@@ -96,6 +96,13 @@ class PromptsWindow(QDialog):
         # Editor
         self.editor = QTextEdit()
         right_layout.addWidget(self.editor)
+        
+        # NEW: Replicate button for default prompts
+        self.replicate_button = QPushButton("Replicate")
+        self.replicate_button.setToolTip("Create a copy of this default prompt to edit")
+        self.replicate_button.clicked.connect(self.replicate_prompt)
+        self.replicate_button.hide()  # Hide by default; only show for default prompts
+        right_layout.addWidget(self.replicate_button)
 
         # Parameters panel
         self.parameters_panel = QWidget()
@@ -427,10 +434,17 @@ class PromptsWindow(QDialog):
             self.temp_spin.setValue(data.get("temperature", 0.7))
             self.parameters_panel.show()
             self.editor.setReadOnly(data.get("default", False))
+            
+            # Show the replicate button only if this is a default prompt.
+            if data.get("default", False):
+                self.replicate_button.show()
+            else:
+                self.replicate_button.hide()
         else:
             self.editor.clear()
             self.parameters_panel.hide()
             self.editor.setReadOnly(False)
+            self.replicate_button.hide()
 
     def save_prompts(self):
         """Save all prompts to file."""
@@ -533,14 +547,12 @@ class PromptsWindow(QDialog):
                 self.add_new_prompt(item)
         elif data.get("type") == "prompt":
             if data.get("default", False):
-                convert_action = menu.addAction("Convert to Custom")
+                # Instead of "Convert to Custom", offer "Replicate"
+                replicate_action = menu.addAction("Replicate")
                 info_action = menu.addAction("Default prompt (read-only)")
                 action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
-                if action == convert_action:
-                    data["default"] = False
-                    self.editor.setReadOnly(False)
-                    QMessageBox.information(
-                        self, "Converted", "Prompt is now editable. Remember to save changes.")
+                if action == replicate_action:
+                    self.replicate_prompt()
                 return
 
             rename_action = menu.addAction("Rename")
@@ -669,6 +681,40 @@ class PromptsWindow(QDialog):
                     prompts.pop(i)
                     break
             parent.removeChild(prompt_item)
+
+    def replicate_prompt(self):
+        """Replicate a default prompt into a custom one."""
+        current_item = self.current_prompt_item
+        if not current_item:
+            return
+        data = current_item.data(0, Qt.UserRole)
+        if not data or not data.get("default", False):
+            return
+        # Ask for a new prompt name, pre-filling with the old name + " Copy"
+        new_name, ok = QInputDialog.getText(
+            self, "Replicate Prompt",
+            "Enter name for the new prompt:",
+            text=data.get("name") + " Copy"
+        )
+        if not ok or not new_name.strip():
+            return
+        new_name = new_name.strip()
+        # Create a copy of the prompt data with default flag set to False
+        new_prompt = data.copy()
+        new_prompt["name"] = new_name
+        new_prompt["default"] = False
+        # Add the new prompt to the same category
+        parent_item = current_item.parent()
+        if parent_item:
+            category = parent_item.text(0)
+            self.prompts_data.setdefault(category, []).append(new_prompt)
+            new_child = QTreeWidgetItem(parent_item, [new_name])
+            new_child.setData(0, Qt.UserRole, new_prompt)
+            parent_item.setExpanded(True)
+            # Optionally, select the new prompt so the user can edit it immediately
+            self.tree.setCurrentItem(new_child)
+            self.on_item_clicked(new_child, 0)
+            QMessageBox.information(self, "Replicated", "Prompt replicated. You can now edit the new prompt.")
 
 # For testing standalone
 if __name__ == "__main__":

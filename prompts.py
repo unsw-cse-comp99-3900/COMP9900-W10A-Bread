@@ -99,7 +99,7 @@ class PromptsWindow(QDialog):
         
         # NEW: Replicate button for default prompts
         self.replicate_button = QPushButton("Replicate")
-        self.replicate_button.setToolTip("Create a copy of this default prompt to edit")
+        self.replicate_button.setToolTip("This is a read-only default prompt. Create a copy to edit it.")
         self.replicate_button.clicked.connect(self.replicate_prompt)
         self.replicate_button.hide()  # Hide by default; only show for default prompts
         right_layout.addWidget(self.replicate_button)

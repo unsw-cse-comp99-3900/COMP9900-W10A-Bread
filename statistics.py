@@ -95,27 +95,26 @@ class ProjectStatistics:
                         self.compendium_data = converted_data
             except Exception as e:
                 print(f"Error loading compendium: {e}")
-                self.compendium_data = {}  # Initialize as empty dict to prevent errors
+                self.compendium_data = {}
         else:
             print(f"Compendium file not found at {compendium_path}")
-            self.compendium_data = {}  # Initialize as empty dict to prevent errors
+            self.compendium_data = {}
         
-        # Load all scene files (any .txt file that might be a scene)
-        scene_files = [f for f in os.listdir(self.project_path) if f.endswith('.txt')]
+        # Updated: Look for HTML files instead of TXT files
+        scene_files = [f for f in os.listdir(self.project_path) if f.endswith('.html')]
         print(f"Found {len(scene_files)} potential scene files")
         
         for scene_file in scene_files:
             try:
                 file_path = os.path.join(self.project_path, scene_file)
                 
-                # Try to extract metadata from filename
+                # Try to extract metadata from the filename
                 try:
                     metadata = self._parse_scene_filename(scene_file)
                 except Exception as e:
                     print(f"Could not parse filename for {scene_file}, using defaults: {str(e)}")
-                    # Use default metadata if we can't parse the filename
                     metadata = {
-                        'id': scene_file.replace('.txt', ''),
+                        'id': scene_file.replace('.html', ''),
                         'project': self.project_name,
                         'act': 'Unknown',
                         'chapter': 'Unknown',
@@ -124,10 +123,13 @@ class ProjectStatistics:
                         'filename': scene_file
                     }
                 
-                # Read content
+                # Read file content and extract text from HTML using BeautifulSoup
                 with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                    print(f"Successfully read {len(content)} characters from {scene_file}")
+                    html_content = f.read()
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(html_content, 'html.parser')
+                content = soup.get_text()
+                print(f"Successfully extracted {len(content)} characters from {scene_file}")
                 
                 # Store content and metadata
                 self.scene_contents[metadata['id']] = content
@@ -141,13 +143,11 @@ class ProjectStatistics:
                     try:
                         timestamp = datetime.datetime.strptime(metadata['timestamp'], '%Y%m%d%H%M%S')
                     except ValueError:
-                        # Try to parse as float (Unix timestamp)
                         try:
                             timestamp = datetime.datetime.fromtimestamp(float(metadata['timestamp']))
                         except ValueError:
                             timestamp = datetime.datetime.now()
                 else:
-                    # Assume it's already a timestamp (float)
                     timestamp = datetime.datetime.fromtimestamp(metadata['timestamp'])
                 
                 self.word_count_history.append({
@@ -168,7 +168,6 @@ class ProjectStatistics:
         # Sort word count history by timestamp
         self.word_count_history.sort(key=lambda x: datetime.datetime.strptime(f"{x['date']} {x['time']}", '%Y-%m-%d %H:%M:%S'))
         
-        # Generate aggregated statistics
         if self.scene_contents:
             try:
                 self._process_scene_data()
@@ -179,12 +178,12 @@ class ProjectStatistics:
         else:
             print("No scene data was loaded!")
             return False
-    
+   
     def _parse_scene_filename(self, filename):
         """
         Parse a scene filename to extract metadata.
         
-        Format: ProjectName-Act#-Chapter#-Scene#_YYYYMMDDHHMMSS.txt
+        Format: ProjectName-Act#-Chapter#-Scene#_YYYYMMDDHHMMSS.html
         
         Args:
             filename (str): The scene filename to parse
@@ -192,8 +191,8 @@ class ProjectStatistics:
         Returns:
             dict: Metadata extracted from the filename
         """
-        # Remove .txt extension
-        base_name = filename.replace('.txt', '')
+        # Remove the .html extension
+        base_name = filename.replace('.html', '')
         
         # Split into parts
         parts = base_name.split('_')

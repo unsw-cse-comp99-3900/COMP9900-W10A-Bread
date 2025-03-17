@@ -31,6 +31,9 @@ REM Install spaCy English model if not already installed.
 echo Installing spaCy English model...
 python -m spacy download en_core_web_sm
 
+REM Add BeautifulSoup4 so that statistics.py can extract text from HTML files
+python -m pip install beautifulsoup4
+
 echo.
 echo Setup complete!
 pause

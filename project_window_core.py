@@ -292,19 +292,29 @@ class ProjectWindow(QMainWindow):
         current = self.tree.currentItem()
         
         # Before switching, if there is a previous item, check for unsaved changes.
-        if self.previous_item and self.unsaved_changes:
-            reply = QMessageBox.question(
-                self,
-                "Unsaved Changes",
-                "You have unsaved content in this scene and/or pending prompt output. Do you really want to leave?",
-                QMessageBox.Yes | QMessageBox.No
-            )
-            if reply == QMessageBox.No:
-                self.tree.blockSignals(True)
-                self.tree.setCurrentItem(self.previous_item)
-                self.tree.blockSignals(False)
-                return
+        if self.previous_item:
+            warning_message = None
 
+            if self.preview_text.toPlainText().strip():
+                warning_message = "You have content in the preview text that hasn't been appled."
+
+            if self.unsaved_changes:
+                warning_message = "You have unsaved content on this screen."
+
+            if warning_message:
+                reply = QMessageBox.question(
+                    self,
+                    "Unsaved Changes",
+                    f"{warning_message} Do you really want to leave?",
+                    QMessageBox.Yes | QMessageBox.No
+                )
+
+                if reply == QMessageBox.No:
+                    self.tree.blockSignals(True)
+                    self.tree.setCurrentItem(self.previous_item)
+                    self.tree.blockSignals(False)
+                    return
+                
         self.load_current_item_content()
         self.previous_item = current
         self.unsaved_changes = False  # Clear unsaved changes flag

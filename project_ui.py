@@ -258,6 +258,7 @@ def build_main_ui(window):
     # Preview Group (Middle)
     preview_group = QWidget()
     preview_layout = QVBoxLayout(preview_group)
+    preview_layout.setContentsMargins(0, 0, 0, 0)  # Set left margin to zero
     window.preview_text = QTextEdit()
     window.preview_text.setReadOnly(True)
     window.preview_text.setPlaceholderText("LLM output preview will appear here...")
@@ -283,8 +284,10 @@ def build_main_ui(window):
     # Action Beats Group (Bottom)
     action_group = QWidget()
     action_layout = QHBoxLayout(action_group)
+    action_layout.setContentsMargins(0, 0, 0, 0)
     left_container = QWidget()
     left_layout = QVBoxLayout(left_container)
+    left_layout.setContentsMargins(0, 0, 0, 0)
     window.prompt_input = PlainTextEdit()
     window.prompt_input.setPlaceholderText("Enter your action beats here...")
     window.prompt_input.setMinimumHeight(100)

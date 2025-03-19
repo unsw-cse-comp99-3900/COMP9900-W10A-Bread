@@ -226,10 +226,6 @@ class ProjectWindow(QMainWindow):
         if hasattr(self, "tree"):
             settings.setValue(f"{self.project_name}/treeHeaderState", self.tree.header().saveState())
 
-    def closeEvent(self, event):
-        self.writeSettings()  # Save settings before closing
-        event.accept()
-
     def update_word_count(self):
         # Count words based on plain text
         text = self.editor.toPlainText()
@@ -285,7 +281,33 @@ class ProjectWindow(QMainWindow):
 
     def open_project_options(self):
         pass
-        
+
+    def check_unsaved_changes(self):
+        warning_message = None
+
+        if self.preview_text.toPlainText().strip():
+            warning_message = "You have content in the preview text that hasn't been applied."
+
+        if self.unsaved_changes:
+            warning_message = "You have unsaved content on this screen."
+
+        if warning_message:
+            reply = QMessageBox.question(
+                self,
+                "Unsaved Changes",
+                f"{warning_message} Do you really want to leave?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            return reply == QMessageBox.Yes
+        return True
+
+    def closeEvent(self, event):
+        if not self.check_unsaved_changes():
+            event.ignore()
+            return
+        self.writeSettings()  # Save settings before closing
+        event.accept()
+
     @pyqtSlot()
     def tree_item_selection_changed(self):
 
@@ -293,27 +315,11 @@ class ProjectWindow(QMainWindow):
         
         # Before switching, if there is a previous item, check for unsaved changes.
         if self.previous_item:
-            warning_message = None
-
-            if self.preview_text.toPlainText().strip():
-                warning_message = "You have content in the preview text that hasn't been appled."
-
-            if self.unsaved_changes:
-                warning_message = "You have unsaved content on this screen."
-
-            if warning_message:
-                reply = QMessageBox.question(
-                    self,
-                    "Unsaved Changes",
-                    f"{warning_message} Do you really want to leave?",
-                    QMessageBox.Yes | QMessageBox.No
-                )
-
-                if reply == QMessageBox.No:
-                    self.tree.blockSignals(True)
-                    self.tree.setCurrentItem(self.previous_item)
-                    self.tree.blockSignals(False)
-                    return
+            if not self.check_unsaved_changes():
+                self.tree.blockSignals(True)
+                self.tree.setCurrentItem(self.previous_item)
+                self.tree.blockSignals(False)
+                return
                 
         self.load_current_item_content()
         self.previous_item = current

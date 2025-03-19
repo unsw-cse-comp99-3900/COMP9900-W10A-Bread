@@ -79,6 +79,39 @@ class ProjectWindow(QMainWindow):
         # NEW: Update the POV Character dropdown from compendium data.
         self.update_pov_character_dropdown()
 
+    def sanitize(self, text):
+        return re.sub(r'\W+', '', text)
+
+    def load_prompt_input(self):
+        project_folder = os.path.join(os.getcwd(), "Projects", self.sanitize(self.project_name))
+        prompt_input_file = os.path.join(project_folder, "action-beat.txt")
+        if os.path.exists(prompt_input_file):
+            try:
+                with open(prompt_input_file, "r", encoding="utf-8") as f:
+                    content = f.read()
+                self.prompt_input.setPlainText(content)
+            except Exception as e:
+                print(f"Error loading prompt input: {e}")
+
+    def save_prompt_input(self):
+        project_folder = os.path.join(os.getcwd(), "Projects", self.sanitize(self.project_name))
+        if not os.path.exists(project_folder):
+            os.makedirs(project_folder)
+        prompt_input_file = os.path.join(project_folder, "action-beat.txt")
+        try:
+            with open(prompt_input_file, "w", encoding="utf-8") as f:
+                f.write(self.prompt_input.toPlainText())
+        except Exception as e:
+            print(f"Error saving prompt input: {e}")
+
+    def on_prompt_input_text_changed(self):
+        if self.autosave_enabled:
+            if not hasattr(self, 'prompt_input_timer'):
+                self.prompt_input_timer = QTimer(self)
+                self.prompt_input_timer.setSingleShot(True)
+                self.prompt_input_timer.timeout.connect(self.save_prompt_input)
+            self.prompt_input_timer.start(5000)  # 5 seconds
+
     def updateSettingTooltips(self):
         # Only update tooltips if the corresponding widgets exist.
         if hasattr(self, "pov_combo"):
@@ -201,6 +234,8 @@ class ProjectWindow(QMainWindow):
 
     def init_ui(self):
         build_main_ui(self)
+        self.load_prompt_input()
+        self.prompt_input.textChanged.connect(self.on_prompt_input_text_changed)
         
     def readSettings(self):
         settings = QSettings("MyCompany", "WritingwayProject")

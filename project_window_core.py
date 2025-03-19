@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QMainWindow, QInputDialog, QMenu, QMessageBox, QApplication, QDialog,
     QFontDialog, QShortcut, QLabel
 )
-from PyQt5.QtCore import Qt, QTimer, QSettings, pyqtSlot, QItemSelectionModel
+from PyQt5.QtCore import Qt, QTimer, QSettings, pyqtSlot
 from PyQt5.QtGui import QFont, QTextCharFormat, QIcon, QKeySequence, QPixmap, QPainter, QColor, QTextCursor
 from compendium import CompendiumWindow
 from workshop import WorkshopWindow
@@ -900,6 +900,7 @@ class ProjectWindow(QMainWindow):
         self.pov_character_combo.addItems(characters)
 
     def on_editor_text_changed(self):
+        self.update_word_count()
         self.unsaved_changes = True
 
 if __name__ == "__main__":

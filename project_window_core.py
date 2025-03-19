@@ -10,8 +10,8 @@ from PyQt5.QtWidgets import (
     QMainWindow, QInputDialog, QMenu, QMessageBox, QApplication, QDialog,
     QFontDialog, QShortcut, QLabel
 )
-from PyQt5.QtCore import Qt, QTimer, QSettings
-from PyQt5.QtGui import QFont, QTextCharFormat, QIcon, QKeySequence, QPixmap, QPainter, QColor, QImage
+from PyQt5.QtCore import Qt, QTimer, QSettings, pyqtSlot, QItemSelectionModel
+from PyQt5.QtGui import QFont, QTextCharFormat, QIcon, QKeySequence, QPixmap, QPainter, QColor, QTextCursor
 from compendium import CompendiumWindow
 from workshop import WorkshopWindow
 from rewrite_feature import RewriteDialog
@@ -43,8 +43,10 @@ class ProjectWindow(QMainWindow):
         self.current_tense = "Present Tense"
         self.current_prose_prompt = None
         self.current_prose_config = None
+        self.previous_item = None
         self.tts_playing = False
         self.structure = load_structure(self.project_name)
+        self.unsaved_changes = False  # Flag to track unsaved changes
         self.init_ui()
         self.readSettings()  # Restore saved window and splitter settings
 
@@ -56,7 +58,7 @@ class ProjectWindow(QMainWindow):
         self.last_save_label = QLabel("Last Saved: Never")
         self.statusBar().addPermanentWidget(self.word_count_label)
         self.statusBar().addPermanentWidget(self.last_save_label)
-        self.editor.textChanged.connect(self.update_word_count)
+        self.editor.textChanged.connect(self.on_editor_text_changed)
 
         self.load_autosave_setting()
         if self.autosave_enabled:
@@ -283,56 +285,47 @@ class ProjectWindow(QMainWindow):
 
     def open_project_options(self):
         pass
+        
+    @pyqtSlot()
+    def tree_item_selection_changed(self):
+
+        current = self.tree.currentItem()
+        
+        # Before switching, if there is a previous item, check for unsaved changes.
+        if self.previous_item and self.unsaved_changes:
+            reply = QMessageBox.question(
+                self,
+                "Unsaved Changes",
+                "You have unsaved content in this scene and/or pending prompt output. Do you really want to leave?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                self.tree.blockSignals(True)
+                self.tree.setCurrentItem(self.previous_item)
+                self.tree.blockSignals(False)
+                return
+
+        self.load_current_item_content()
+        self.previous_item = current
+        self.unsaved_changes = False  # Clear unsaved changes flag
 
     def tree_item_changed(self, current, previous):
-        # Before switching, if there is a previous item, check for unsaved changes.
-        if previous is not None:
-            # Determine the level of the previous item (e.g. scene level is >= 2)
-            level = 0
-            temp = previous
-            while temp.parent():
-                level += 1
-                temp = temp.parent()
-
-            # For scenes, compare the current editor content to what was last loaded.
-            unsaved_in_editor = False
-            if level >= 2:
-                # Assume self.last_loaded_content holds the text as last loaded/saved.
-                original_content = self.last_loaded_content if hasattr(self, "last_loaded_content") else ""
-                if self.editor.toPlainText().strip() != original_content.strip():
-                    unsaved_in_editor = True
-
-            # Check if the "action beats" or "LLM output preview" fields have any content.
-            unsaved_in_prompt = bool(self.prompt_input.toPlainText().strip())
-            unsaved_in_preview = bool(self.preview_text.toPlainText().strip())
-
-            # If any unsaved content exists, warn the user.
-            if unsaved_in_editor or unsaved_in_prompt or unsaved_in_preview:
-                reply = QMessageBox.question(
-                    self,
-                    "Unsaved Changes",
-                    "You have unsaved content in this scene and/or pending prompt output. Do you really want to leave?",
-                    QMessageBox.Yes | QMessageBox.No
-                )
-                if reply == QMessageBox.No:
-                    # Revert the selection back to the previous item.
-                    self.tree.blockSignals(True)
-                    self.tree.setCurrentItem(previous)
-                    self.tree.blockSignals(False)
-                    return
-
+        # This is called before the tree_selection_changed()
         # Proceed with loading the new item.
         if current is None:
             self.editor.clear()
             self.bottom_stack.setCurrentIndex(0)
             return
 
-        # (Existing logic to load autosaved content or scene data for the new item.)
+    def load_current_item_content(self):
         level = 0
+        current = self.tree.currentItem()
+
         temp = current
         while temp.parent():
             level += 1
             temp = temp.parent()
+
         if level >= 2:
             autosave_content = self.load_latest_autosave_for_item(current)
             if autosave_content is not None:
@@ -359,9 +352,6 @@ class ProjectWindow(QMainWindow):
                 self.editor.setPlainText(content)
             self.editor.setPlaceholderText(f"Enter summary for {current.text(0)}...")
             self.bottom_stack.setCurrentIndex(0)
-
-        # Update the "last loaded" content to match what was just loaded.
-        self.last_loaded_content = self.editor.toPlainText()
 
         self.updateSettingTooltips()
 
@@ -468,6 +458,7 @@ class ProjectWindow(QMainWindow):
             scene_data["status"] = scene_data.get("status", "To Do")
             current_item.setData(0, Qt.UserRole, scene_data)
             self.update_structure_from_tree()
+            self.unsaved_changes = False  # Clear unsaved changes flag
         else:
             self.statusBar().showMessage("No changes detected. Manual save skipped.", 3000)
 
@@ -503,6 +494,7 @@ class ProjectWindow(QMainWindow):
             scene_data["status"] = scene_data.get("status", "To Do")
             current_item.setData(0, Qt.UserRole, scene_data)
             self.update_structure_from_tree()
+            self.unsaved_changes = False  # Clear unsaved changes flag
 
     def on_oh_shit(self):
         current_item = self.tree.currentItem()
@@ -674,6 +666,7 @@ class ProjectWindow(QMainWindow):
             action_beats, prose_prompt, pov, pov_character, tense,
             current_scene_text, extra_context
         )
+        self.preview_text.clear()
         self.send_button.setEnabled(False)
         QApplication.processEvents()
 
@@ -681,7 +674,6 @@ class ProjectWindow(QMainWindow):
         self.worker.data_received.connect(self.update_text)
         self.worker.finished.connect(self.on_finished)
         self.worker.start()
-        self.stop_button.setEnabled(True)
 
     def update_text(self, text):
         self.preview_text.insertPlainText(text)
@@ -692,7 +684,6 @@ class ProjectWindow(QMainWindow):
     def stop_llm(self):
         if hasattr(self, 'worker') and self.worker.isRunning():
             self.worker.terminate()
-            self.stop_button.setEnabled(False)
         self.send_button.setEnabled(True)
 
 
@@ -712,16 +703,15 @@ class ProjectWindow(QMainWindow):
         else:
             prompt_block = ""
 
-        current_text = self.editor.toPlainText()
-        # Append the prompt block (if any) and then the LLM output
-        self.editor.setPlainText(current_text + "\n" + prompt_block + preview)
-        
-        # Scroll to the end of the editor after appending the text.
-        from PyQt5.QtGui import QTextCursor
+        # Use QTextCursor to append the text while preserving formatting
+        cursor = self.editor.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        cursor.insertText(prompt_block + preview)
         self.editor.moveCursor(QTextCursor.End)
         
         self.preview_text.clear()
         self.prompt_input.clear()
+        self.unsaved_changes = True  # Mark as unsaved changes
 
     def retry_prompt(self):
         self.preview_text.clear()
@@ -908,6 +898,9 @@ class ProjectWindow(QMainWindow):
         # Update the POV character combo box.
         self.pov_character_combo.clear()
         self.pov_character_combo.addItems(characters)
+
+    def on_editor_text_changed(self):
+        self.unsaved_changes = True
 
 if __name__ == "__main__":
     from PyQt5.QtWidgets import QApplication

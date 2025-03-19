@@ -60,7 +60,10 @@ UI_LABELS = {
         "update": "Update",
         "sample": "Sample Text",
         "save_successful": "Settings saved successfully.",
-        "unsaved_warning": "You have unsaved changes. Do you want to save them before closing?"
+        "unsaved_warning": "You have unsaved changes. Do you want to save them before closing?",
+        "endpoint_help_tooltip": "https://example.com/v1",
+        "endpoint_help_title": "Endpoint URL Help",
+        "endpoint_help_message": "Override URL for provider\n\nOnly use if you have a proxy server or a Custom provider.\nLeave empty for default URL.\n\nEx: 'https://localhost:1234/v1'"
     },
     # Add other languages as needed
 }
@@ -112,13 +115,21 @@ class ProviderDialog(QDialog):
         self.endpoint_url_input = QLineEdit()
         self.endpoint_url_input.setToolTip(self.labels["leave_empty"])
         self.endpoint_url_input.setMinimumWidth(300)
-        form_layout.addRow(self.endpoint_url_label, self.endpoint_url_input)
+        self.endpoint_help_button = QPushButton()
+        self.endpoint_help_button.setIcon(QIcon("assets/icons/help-circle.svg"))
+        self.endpoint_help_button.setToolTip(self.labels["endpoint_help_tooltip"])
+        self.endpoint_help_button.clicked.connect(lambda: QMessageBox.information(self, self.labels["endpoint_help_title"], self.labels["endpoint_help_message"]))
+        endpoint_layout = QHBoxLayout()
+        endpoint_layout.addWidget(self.endpoint_url_input)
+        endpoint_layout.addWidget(self.endpoint_help_button)
+        form_layout.addRow(self.endpoint_url_label, endpoint_layout)
         
         # Model
         self.model_label = QLabel(self.labels["model"])
-        self.refresh_button = QPushButton("↻")  # Refresh symbol
+        self.refresh_button = QPushButton()  # Refresh symbol
+        self.refresh_button.setIcon(QIcon("assets/icons/rotate-cw.svg"))
         self.refresh_button.setToolTip(self.labels["refresh_models"])
-        self.refresh_button.setMaximumWidth(30)
+ #       self.refresh_button.setMaximumWidth(30)
         self.refresh_button.clicked.connect(self.refresh_models)
         self.model_combobox = QComboBox()
         self.model_combobox.setMinimumWidth(250)
@@ -305,6 +316,9 @@ class ProviderDialog(QDialog):
         self.provider_label.setText(self.labels["provider"])
         self.name_label.setText(self.labels["name"])
         self.endpoint_url_label.setText(self.labels["endpoint_url"])
+        self.endpoint_help_button.setToolTip(self.labels["endpoint_help_tooltip"])
+        self.endpoint_help_button.clicked.disconnect()
+        self.endpoint_help_button.clicked.connect(lambda: QMessageBox.information(self, self.labels["endpoint_help_title"], self.labels["endpoint_help_message"]))
         self.model_label.setText(self.labels["model"])
         self.refresh_button.setToolTip(self.labels["refresh_models"])
         self.api_key_label.setText(self.labels["api_key"])
@@ -671,6 +685,8 @@ class SettingsDialog(QDialog):
         
         # Re-populate provider list to update default provider label
         self.populate_providers_list()
+
+        
 
     def load_values_from_settings(self):
         """Loads the settings values into the UI elements."""

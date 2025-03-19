@@ -760,7 +760,7 @@ class EnhancedCompendiumWindow(QMainWindow):
         data = {"categories": []}
         root = self.tree.invisibleRootItem()
         for i in range(root.childCount()):
-            cat_item = root.topLevelItem(i)
+            cat_item = root.child(i)
             cat_data = {"name": cat_item.text(0), "entries": []}
             for j in range(cat_item.childCount()):
                 entry_item = cat_item.child(j)

@@ -72,6 +72,7 @@ def build_main_ui(window):
     window.tree.customContextMenuRequested.connect(window.show_tree_context_menu)
     window.populate_tree()
     window.tree.currentItemChanged.connect(window.tree_item_changed)
+    window.tree.itemSelectionChanged.connect(window.tree_item_selection_changed)
     main_splitter.addWidget(window.tree)
 
     # --- Right Panel: Vertical Splitter ---
@@ -303,7 +304,6 @@ def build_main_ui(window):
     window.stop_button.setIcon(window.get_tinted_icon("assets/icons/x-octagon.svg", tint_color=tint))
     window.stop_button.setToolTip("Stop the LLM processing")
     window.stop_button.clicked.connect(window.stop_llm)
-    window.stop_button.setEnabled(False)
     left_buttons_layout.addWidget(window.stop_button)
     window.context_toggle_button = QPushButton()
     window.context_toggle_button.setIcon(window.get_tinted_icon("assets/icons/book.svg", tint_color=tint))

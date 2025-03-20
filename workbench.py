@@ -12,6 +12,24 @@ from preferences import SettingsDialog  # Import the global options window
 # Define the file used for storing project data.
 PROJECTS_FILE = "projects.json"
 
+# Load version display
+
+VERSION_FILE = "version.json"
+
+def load_version():
+    """Load version data from the version JSON file."""
+    if os.path.exists(VERSION_FILE):
+        try:
+            with open(VERSION_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            QMessageBox.warning(None, "Load Version",
+                                f"Error loading version: {e}")
+    return {}
+
+# Load settings at module level.
+VERSION = load_version()
+
 
 def load_projects():
     """Load project data from a JSON file. If the file does not exist, return default projects."""
@@ -316,6 +334,17 @@ class WorkbenchWindow(QMainWindow):
 
         self.coverStack.currentChanged.connect(self.updateCoverStackSize)
         self.load_covers()
+
+        # Add stretch to push the version label to the bottom
+        layout.addStretch()
+
+        # Add version display at the bottom right corner
+        version_layout = QHBoxLayout()
+        version_layout.addStretch()
+        version_label = QLabel(f"Version: {VERSION.get('version', 'No Version Set')}")
+        version_label.setAlignment(Qt.AlignRight)
+        version_layout.addWidget(version_label)
+        layout.addLayout(version_layout)
 
     def apply_fixed_stylesheet(self):
         fixed_styles = """

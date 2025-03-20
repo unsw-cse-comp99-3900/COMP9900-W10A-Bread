@@ -41,7 +41,10 @@
         "update": "Update",
         "sample": "Sample Text",
         "save_successful": "Settings saved successfully.",
-        "unsaved_warning": "You have unsaved changes. Do you want to save them before closing?"
+        "unsaved_warning": "You have unsaved changes. Do you want to save them before closing?",
+        "endpoint_help_tooltip": "https://example.com/v1",
+        "endpoint_help_title": "Endpoint URL Help",
+        "endpoint_help_message": "Override URL for LLM provider.\n\nOnly use if you have a proxy server or a Custom provider.\nLeave empty for default URL.\n\nEx: 'https://localhost:1234/v1'"
     },
     "es": {
         "general_tab": "General",
@@ -85,7 +88,10 @@
         "update": "Actualizar",
         "sample": "Texto de Muestra",
         "save_successful": "Configuración guardada exitosamente.",
-        "unsaved_warning": "Tiene cambios no guardados. ¿Desea guardarlos antes de cerrar?"
+        "unsaved_warning": "Tiene cambios no guardados. ¿Desea guardarlos antes de cerrar?",
+        "endpoint_help_tooltip": "https://ejemplo.com/v1",
+        "endpoint_help_title": "Ayuda de la URL del punto final",
+        "endpoint_help_message": "Anular la URL para el proveedor de LLM.\n\nÚselo solo si tiene un servidor proxy o un proveedor personalizado.\nDéjelo vacío para la URL predeterminada.\n\nEj: 'https://localhost:1234/v1'"
     },
     "fr": {
         "general_tab": "Général",
@@ -129,7 +135,10 @@
         "update": "Mettre à jour",
         "sample": "Texte d'exemple",
         "save_successful": "Paramètres enregistrés avec succès.",
-        "unsaved_warning": "Vous avez des modifications non enregistrées. Voulez-vous les enregistrer avant de fermer ?"
+        "unsaved_warning": "Vous avez des modifications non enregistrées. Voulez-vous les enregistrer avant de fermer ?",
+        "endpoint_help_tooltip": "https://exemple.com/v1",
+        "endpoint_help_title": "Aide sur l'URL du point de terminaison",
+        "endpoint_help_message": "URL de remplacement pour le fournisseur LLM.\n\nÀ utiliser uniquement si vous avez un serveur proxy ou un fournisseur personnalisé.\nLaisser vide pour l'URL par défaut.\n\nEx : 'https://localhost:1234/v1'"
     },
     "de": {
         "general_tab": "Allgemein",
@@ -173,7 +182,10 @@
         "update": "Aktualisieren",
         "sample": "Beispieltext",
         "save_successful": "Einstellungen erfolgreich gespeichert.",
-        "unsaved_warning": "Sie haben ungespeicherte Änderungen. Möchten Sie diese vor dem Schließen speichern?"
+        "unsaved_warning": "Sie haben ungespeicherte Änderungen. Möchten Sie diese vor dem Schließen speichern?",
+        "endpoint_help_tooltip": "https://beispiel.com/v1",
+        "endpoint_help_title": "Hilfe zur Endpunkt-URL",
+        "endpoint_help_message": "URL für LLM-Anbieter überschreiben.\n\nNur verwenden, wenn Sie einen Proxyserver oder einen benutzerdefinierten Anbieter haben.\nFür Standard-URL leer lassen.\n\nBsp.: 'https://localhost:1234/v1'"
     },
     "pt": {
         "general_tab": "Geral",
@@ -217,7 +229,10 @@
         "update": "Atualizar",
         "sample": "Texto de Exemplo",
         "save_successful": "Configurações salvas com sucesso.",
-        "unsaved_warning": "Você tem alterações não salvas. Deseja salvá-las antes de fechar?"
+        "unsaved_warning": "Você tem alterações não salvas. Deseja salvá-las antes de fechar?",
+        "endpoint_help_tooltip": "https://exemplo.com/v1",
+        "endpoint_help_title": "Ajuda da URL do Endpoint",
+        "endpoint_help_message": "Substituir URL para provedor LLM.\n\nUse somente se você tiver um servidor proxy ou um provedor personalizado.\nDeixe vazio para URL padrão.\n\nEx: 'https://localhost:1234/v1'"
     },
     "pl": {
         "general_tab": "Ogólne",
@@ -261,7 +276,10 @@
         "update": "Aktualizuj",
         "sample": "Przykładowy tekst",
         "save_successful": "Ustawienia zostały pomyślnie zapisane.",
-        "unsaved_warning": "Masz niezapisane zmiany. Czy chcesz je zapisać przed zamknięciem?"
+        "unsaved_warning": "Masz niezapisane zmiany. Czy chcesz je zapisać przed zamknięciem?",
+        "endpoint_help_tooltip": "https://przyklad.com/v1",
+        "endpoint_help_title": "Pomoc dotycząca adresu URL punktu końcowego",
+        "endpoint_help_message": "Zastąp adres URL dla dostawcy LLM.\n\nUżywaj tylko, jeśli masz serwer proxy lub niestandardowego dostawcę.\nPozostaw puste dla domyślnego adresu URL.\n\nPrzykład: 'https://localhost:1234/v1'"
     },
     "ja": {
         "general_tab": "一般",
@@ -305,7 +323,10 @@
         "update": "更新",
         "sample": "サンプルテキスト",
         "save_successful": "設定が正常に保存されました。",
-        "unsaved_warning": "保存されていない変更があります。閉じる前に保存しますか？"
+        "unsaved_warning": "保存されていない変更があります。閉じる前に保存しますか？",
+        "endpoint_help_tooltip": "https://example.com/v1",
+        "endpoint_help_title": "エンドポイントURLヘルプ",
+        "endpoint_help_message": "LLMプロバイダーのURLをオーバーライドします。\n\nプロキシサーバーまたはカスタムプロバイダーがある場合にのみ使用してください。\nデフォルトのURLの場合は空のままにしてください。\n\n例: 'https://localhost:1234/v1'"
     },
     "zh": {
         "general_tab": "常规",
@@ -349,7 +370,10 @@
         "update": "更新",
         "sample": "示例文本",
         "save_successful": "设置已成功保存。",
-        "unsaved_warning": "您有未保存的更改。您要在关闭前保存它们吗？"
+        "unsaved_warning": "您有未保存的更改。您要在关闭前保存它们吗？",
+        "endpoint_help_tooltip": "https://example.com/v1",
+        "endpoint_help_title": "端点 URL 帮助",
+        "endpoint_help_message": "覆盖 LLM 提供商的 URL。\n\n仅当您有代理服务器或自定义提供商时才使用。\n留空使用默认 URL。\n\n示例: 'https://localhost:1234/v1'"
     },
     "ko": {
         "general_tab": "일반",
@@ -393,6 +417,9 @@
         "update": "업데이트",
         "sample": "샘플 텍스트",
         "save_successful": "설정이 성공적으로 저장되었습니다.",
-        "unsaved_warning": "저장되지 않은 변경 사항이 있습니다. 닫기 전에 저장하시겠습니까?"
+        "unsaved_warning": "저장되지 않은 변경 사항이 있습니다. 닫기 전에 저장하시겠습니까?",
+        "endpoint_help_tooltip": "https://example.com/v1",
+        "endpoint_help_title": "엔드포인트 URL 도움말",
+        "endpoint_help_message": "LLM 공급자에 대한 URL을 재정의합니다.\n\n프록시 서버 또는 사용자 지정 공급자가 있는 경우에만 사용하십시오.\n기본 URL을 사용하려면 비워두세요.\n\n예: 'https://localhost:1234/v1'"
     }
 }

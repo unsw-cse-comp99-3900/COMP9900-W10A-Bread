@@ -12,6 +12,7 @@ def get_structure_file_path(project_name, backward_compat=False):
     if backward_compat and not os.path.exists(path):
         oldpath = os.path.join(os.getcwd(), f"{sanitized}_structure.json")
         if os.path.exists(oldpath):
+            os.makedirs(os.path.dirname(path), exist_ok=True)
             os.rename(oldpath, path)
     return path
 

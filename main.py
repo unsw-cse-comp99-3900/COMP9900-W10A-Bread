@@ -41,8 +41,8 @@ check_dependencies()
 # Now import the modules needed for the application.
 from PyQt5.QtWidgets import QApplication
 from workbench import WorkbenchWindow
-from theme_manager import ThemeManager
-from settings_manager import WWSettingsManager
+from settings.theme_manager import ThemeManager
+from settings.settings_manager import WWSettingsManager
 
 def main():
     app = QApplication(sys.argv)

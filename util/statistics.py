@@ -236,7 +236,7 @@ class ProjectStatistics:
         self.analysis_results = {}
 
         # Lazy import to avoid circular import issues:
-        from text_analysis import comprehensive_analysis
+        from .text_analysis import comprehensive_analysis
 
         # Extract categories from compendium if available
         characters = {}

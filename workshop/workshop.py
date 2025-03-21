@@ -9,10 +9,10 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QIcon  # Added import for icons
-from prompts import load_project_options, get_workshop_prompts
-from llm_api_aggregator import WWApiAggregator
-from conversation_history_manager import estimate_conversation_tokens, summarize_conversation, prune_conversation_history
-from embedding_manager import EmbeddingIndex  # New import for FAISS embedding integration
+import muse.prompts
+from settings.llm_api_aggregator import WWApiAggregator
+from .conversation_history_manager import estimate_conversation_tokens, summarize_conversation
+from .embedding_manager import EmbeddingIndex
 
 TOKEN_LIMIT = 2000
 
@@ -330,7 +330,7 @@ class WorkshopWindow(QDialog):
 
         # Workshop Prompt pulldown menu instead of a button.
         self.prompt_selector = QComboBox()
-        prompts = get_workshop_prompts(self.project_name)
+        prompts = muse.prompts.get_workshop_prompts(self.project_name)
         if prompts:
             for p in prompts:
                 name = p.get("name", "Unnamed")

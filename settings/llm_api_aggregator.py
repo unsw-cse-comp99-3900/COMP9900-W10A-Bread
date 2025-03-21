@@ -16,9 +16,8 @@ from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 from langchain_community.llms.together import Together
-# from langchain_community.llms. import ChatCustomLCClient
 
-from settings_manager import WWSettingsManager
+from .settings_manager import WWSettingsManager
 
 # Configuration constants
 DEFAULT_MAX_TOKENS = 1024

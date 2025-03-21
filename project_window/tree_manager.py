@@ -5,17 +5,22 @@ import re
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 from PyQt5.QtCore import Qt
 
-def get_structure_file_path(project_name):
+def get_structure_file_path(project_name, backward_compat=False):
     """Return the path to the project-specific structure file."""
     sanitized = re.sub(r'\s+', '', project_name)
-    return os.path.join(os.getcwd(), f"{sanitized}_structure.json")
+    path = os.path.join(os.getcwd(), "Projects", f"{sanitized}", f"{sanitized}_structure.json")
+    if backward_compat and not os.path.exists(path):
+        oldpath = os.path.join(os.getcwd(), f"{sanitized}_structure.json")
+        if os.path.exists(oldpath):
+            os.rename(oldpath, path)
+    return path
 
 def load_structure(project_name):
     """
     Load the project structure from the file.
     If the file is missing or in an unexpected format, return a default structure.
     """
-    file_path = get_structure_file_path(project_name)
+    file_path = get_structure_file_path(project_name, True)
     if os.path.exists(file_path):
         try:
             with open(file_path, "r", encoding="utf-8") as f:
@@ -46,6 +51,8 @@ def save_structure(project_name, structure):
     """Save the given project structure to the file."""
     file_path = get_structure_file_path(project_name)
     try:
+        if not os.path.exists(os.path.dirname(file_path)):
+            os.makedirs(os.path.dirname(file_path))
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(structure, f, indent=4)
     except Exception as e:

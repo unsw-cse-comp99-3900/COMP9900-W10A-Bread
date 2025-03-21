@@ -6,8 +6,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
-from project_window_core import ProjectWindow
-from preferences import SettingsDialog  # Import the global options window
+from project_window.project_window import ProjectWindow
+from settings.preferences import SettingsDialog
 
 # Define the file used for storing project data.
 PROJECTS_FILE = "projects.json"
@@ -33,9 +33,14 @@ VERSION = load_version()
 
 def load_projects():
     """Load project data from a JSON file. If the file does not exist, return default projects."""
-    if os.path.exists(PROJECTS_FILE):
+    filepath = os.path.join(os.getcwd(), "Projects", PROJECTS_FILE)
+    if not os.path.exists(filepath):
+        oldpath = os.path.join(os.getcwd(), PROJECTS_FILE) # backward compatibility
+        if (os.path.exists(oldpath)):
+            os.rename(oldpath, filepath)
+    if os.path.exists(filepath):
         try:
-            with open(PROJECTS_FILE, "r", encoding="utf-8") as f:
+            with open(filepath, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             QMessageBox.warning(None, "Load Projects",
@@ -50,8 +55,9 @@ def load_projects():
 
 def save_projects(projects):
     """Save the project data to a JSON file."""
+    filepath = os.path.join(os.getcwd(), "Projects", PROJECTS_FILE)
     try:
-        with open(PROJECTS_FILE, "w", encoding="utf-8") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             json.dump(projects, f, indent=4)
     except Exception as e:
         QMessageBox.warning(None, "Save Projects",
@@ -125,8 +131,7 @@ class ProjectPostIt(QToolButton):
         elif action == stats_action:
             # Import statistics module
             try:
-                from statistics import show_statistics
-                import os
+                from util.statistics import show_statistics
                 
                 # Project name from the workbench
                 project_name = self.project['name']

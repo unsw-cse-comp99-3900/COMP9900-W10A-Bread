@@ -2,7 +2,7 @@ import os
 import json
 from PyQt5.QtWidgets import QMessageBox, QInputDialog, QApplication
 from PyQt5.QtCore import Qt
-from llm_api_aggregator import WWApiAggregator
+from settings import llm_api_aggregator
 
 def get_summary_prompts(project_name):
     """

@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QSplitter, QTreeWidget, QTreeW
 from PyQt5.QtCore import Qt
 
 # Assume get_compendium_text is imported from a shared module or defined elsewhere.
-from workshop import get_compendium_text  # Use the function from workshop.py
+from workshop.workshop import get_compendium_text  # Use the function from workshop.py
 
 # Reuse the sanitize function from compendium_panel.py
 def sanitize(text):

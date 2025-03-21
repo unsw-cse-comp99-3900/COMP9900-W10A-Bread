@@ -9,9 +9,6 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QSplitter, QTreeWidget, QText
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 
-# Import the existing compendium panel for compatibility and its sanitize function
-from compendium_panel import CompendiumPanel, sanitize
-
 DEBUG = False
 
 ###########################
@@ -154,7 +151,7 @@ class EnhancedCompendiumWindow(QMainWindow):
     
     def setup_compendium_file(self):
         """Set up the compendium file path for the selected project."""
-        project_dir = os.path.join(os.getcwd(), "Projects", sanitize(self.project_name))
+        project_dir = os.path.join(os.getcwd(), "Projects", self.sanitize(self.project_name))
         self.compendium_file = os.path.join(project_dir, "compendium.json")
         if not os.path.exists(project_dir):
             os.makedirs(project_dir)
@@ -537,7 +534,10 @@ class EnhancedCompendiumWindow(QMainWindow):
         """Double-click a relationship to open the corresponding entry."""
         entry_name = item.text(0)
         self.find_and_select_entry(entry_name)
-    
+
+    def sanitize(self, text):
+        return re.sub(r'\W+', '', text)    
+
     def add_image(self):
         """Add an image to the current entry."""
         if not hasattr(self, 'current_entry'):
@@ -551,7 +551,7 @@ class EnhancedCompendiumWindow(QMainWindow):
             os.makedirs(images_dir)
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         _, ext = os.path.splitext(file_path)
-        sanitized_entry_name = sanitize(self.current_entry)
+        sanitized_entry_name = self.sanitize(self.current_entry)
         new_filename = f"{sanitized_entry_name}_{timestamp}{ext}"
         new_path = os.path.join(images_dir, new_filename)
         try:

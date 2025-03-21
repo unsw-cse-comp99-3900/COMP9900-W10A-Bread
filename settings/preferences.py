@@ -11,9 +11,9 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QTabWidget, QVBoxLayout,
 from PyQt5.QtGui import QIcon, QPalette, QColor, QIntValidator, QFont
 from PyQt5.QtCore import Qt
 
-from theme_manager import ThemeManager
-from llm_api_aggregator import WWApiAggregator
-from settings_manager import WWSettingsManager
+from .theme_manager import ThemeManager
+from .llm_api_aggregator import WWApiAggregator
+from .settings_manager import WWSettingsManager
 
 # Placeholder for language-dependent labels.  Replace with actual loading
 # from a file.
@@ -348,8 +348,9 @@ class SettingsDialog(QDialog):
 
         self.ui_labels = UI_LABELS
         try:
-            if os.path.exists("lang_settings.json"):
-                with open("lang_settings.json", "r", encoding="utf-8") as f:
+            filepath = os.path.join(os.getcwd(), "assets", "lang_settings.json")
+            if os.path.exists(filepath):
+                with open(filepath, "r", encoding="utf-8") as f:
                     self.ui_labels = json.load(f)
         except UnicodeDecodeError as e:
             self.logger.error(f"Warn: Error reading unicode in language settings file: {e}")

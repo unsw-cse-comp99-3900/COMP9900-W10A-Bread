@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QTextCursor, QTextCharFormat, QBrush, QColor
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 
-from text_analysis import (
+from .text_analysis import (
     analyze_text, detect_passive, detect_weak_formulations, detect_nonstandard_speech_verbs,
     detect_filter_words, detect_telling_not_showing, analyze_verb_strength,
     detect_overused_words, check_pronoun_clarity, analyze_dialogue_balance,

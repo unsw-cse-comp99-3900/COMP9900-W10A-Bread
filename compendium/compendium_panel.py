@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QSplitter, QTreeWidget, QTextEdit, QVBoxLayout, QMenu, QTreeWidgetItem, QInputDialog
 from PyQt5.QtCore import Qt, QPoint
 import json, os, re
+from .enhanced_compendium import EnhancedCompendiumWindow
 
 DEBUG = False  # Set to True to enable debug prints
 
@@ -157,7 +158,6 @@ class CompendiumPanel(QWidget):
     def open_in_enhanced_compendium(self):
         """Launch the enhanced compendium window.
         If an entry is selected, the enhanced window will jump to that entry."""
-        from enhanced_compendium import EnhancedCompendiumWindow
         project_name = getattr(self.parent(), "project_name", "default")
         self.enhanced_window = EnhancedCompendiumWindow(project_name, self.parent())
         self.enhanced_window.show()

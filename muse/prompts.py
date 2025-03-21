@@ -7,8 +7,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
-from llm_api_aggregator import WWApiAggregator
-from settings_manager import WWSettingsManager
+from settings.llm_api_aggregator import WWApiAggregator
+from settings.settings_manager import WWSettingsManager
 
 def get_workshop_prompts(project_name):
     """
@@ -17,10 +17,15 @@ def get_workshop_prompts(project_name):
     Returns a list of prompt objects from the "Workshop" category.
     If the file is missing or fails to load, returns a dummy prompt.
     """
-    filename = "prompts.json"
-    if os.path.exists(filename):
+    
+    filepath = os.path.join(os.getcwd(), "Projects", "prompts.json")
+    if not os.path.exists(filepath):
+        oldpath = os.path.join(os.getcwd(), "prompts.json") # backward compatibility
+        if os.path.exists(oldpath):
+            os.rename(oldpath, filepath)
+    if os.path.exists(filepath):
         try:
-            with open(filename, "r", encoding="utf-8") as f:
+            with open(filepath, "r", encoding="utf-8") as f:
                 data = json.load(f)
             return data.get("Workshop", [])
         except Exception as e:
@@ -38,9 +43,15 @@ def load_project_options(project_name):
     """Load project options to inject dynamic values into default prompts."""
     options = {}
     PROJECT_SETTINGS_FILE = "project_settings.json"
-    if os.path.exists(PROJECT_SETTINGS_FILE):
+    filepath = os.path.join(os.getcwd(), "Projects", PROJECT_SETTINGS_FILE)
+    if not os.path.exists(filepath):
+        oldpath = os.path.join(os.getcwd(), PROJECT_SETTINGS_FILE) # backward compatibility
+        if (os.path.exists(oldpath)):
+            os.rename(oldpath, filepath)
+
+    if os.path.exists(filepath):
         try:
-            with open(PROJECT_SETTINGS_FILE, "r", encoding="utf-8") as f:
+            with open(filepath, "r", encoding="utf-8") as f:
                 all_settings = json.load(f)
             options = all_settings.get(project_name, {})
         except Exception as e:
@@ -55,8 +66,8 @@ class PromptsWindow(QDialog):
         self.resize(800, 600)  # Made window larger
 
         # Define file names to use global prompts file
-        self.prompts_file = "prompts.json"
-        self.backup_file = "prompts.bak.json"
+        self.prompts_file = os.path.join(os.getcwd(), "Projects", "prompts.json")
+        self.backup_file = os.path.join(os.getcwd(), "Projects", "prompts.bak.json")
 
         # Default categories
         self.default_categories = ["Workshop", "Summary", "Prose", "Rewrite"]
@@ -293,6 +304,10 @@ class PromptsWindow(QDialog):
     def load_prompts(self):
         """Load prompts and ensure defaults exist."""
         loaded = False
+        if not os.path.exists(self.prompts_file):
+            oldpath = os.path.join(os.getcwd(), "prompts.json") # backward compatibility
+            if os.path.exists(oldpath):
+                os.rename(oldpath, self.prompts_file)
         if os.path.exists(self.prompts_file):
             try:
                 with open(self.prompts_file, "r", encoding="utf-8") as f:

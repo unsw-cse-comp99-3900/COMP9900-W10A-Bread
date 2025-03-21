@@ -1,17 +1,41 @@
 #!/usr/bin/env python3
 import os
 import sys
+import re
 from PyQt5.QtCore import Qt, QPropertyAnimation
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QLabel, QGridLayout, QVBoxLayout,
-    QGraphicsOpacityEffect, QApplication, QTextEdit
+    QGraphicsOpacityEffect, QApplication, QTextEdit, QShortcut
 )
-from PyQt5.QtGui import QPixmap, QKeyEvent
+from PyQt5.QtGui import QPixmap, QKeyEvent, QKeySequence
 
 # Subclass QTextEdit to force plain text paste
 
 
 class PlainTextEdit(QTextEdit):
+    def __init__(self):
+        super().__init__()
+        self.zoom_factor = 10  # Default zoom level
+       
+    def adjust_zoom(self, delta):
+        # Update zoom factor (ensure it stays within reasonable bounds)
+        self.zoom_factor = max(5, min(self.zoom_factor + delta, 30))  # 50% to 300%
+        
+        # Apply the zoom factor to the viewport
+        stylesheet = self.styleSheet();
+        loc = stylesheet.find("font-size")
+        if loc == -1:
+            stylesheet += f" font-size: {self.zoom_factor * 10}%;"
+        else:
+            stylesheet = re.sub(r"font-size: \d+%;", f"font-size: {self.zoom_factor * 10}%;", stylesheet)
+        self.setStyleSheet(stylesheet)
+        self.viewport().set
+        self.viewport().update()  # Refresh the display
+
+    def toHtmlPreservingOriginal(self):
+        # Export the HTML without the zoom factor affecting font sizes
+        return self.document().toHtml()
+    
     def insertFromMimeData(self, source):
         self.insertPlainText(source.text())
 
@@ -70,7 +94,7 @@ class FocusMode(QMainWindow):
         page_layout.setContentsMargins(50, 50, 50, 50)
 
         # Use the custom PlainTextEdit so that pasted text is unformatted
-        self.editor = PlainTextEdit(self.page_widget)
+        self.editor = PlainTextEdit()
         self.editor.setPlainText(scene_text)
         self.editor.setStyleSheet(
             "background-color: transparent;"
@@ -136,8 +160,7 @@ class FocusMode(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    image_directory = os.path.join(base_dir, "assets", "backgrounds")
+    image_directory = os.path.join(os.getcwd(), "assets", "backgrounds")
     focus_mode = FocusMode(
         image_directory, scene_text="Your scene text here...")
     focus_mode.show()

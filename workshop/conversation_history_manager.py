@@ -1,6 +1,7 @@
 import math
-from llm_api_aggregator import WWApiAggregator
 import tiktoken
+
+from settings.llm_api_aggregator import WWApiAggregator
 
 # Define the model name and get its encoding. Adjust the model name as needed.
 MODEL_NAME = "gpt-3.5-turbo"

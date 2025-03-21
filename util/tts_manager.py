@@ -4,7 +4,7 @@ import threading
 import logging
 import platform
 import subprocess
-from settings_manager import WWSettingsManager
+from settings.settings_manager import WWSettingsManager
 
 # Configure logging
 # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')

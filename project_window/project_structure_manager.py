@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from PyQt5.QtWidgets import QInputDialog, QMessageBox, QTreeWidgetItem
 from PyQt5.QtCore import Qt
-from tree_manager import save_structure, populate_tree, update_structure_from_tree
+from . import tree_manager
 
 
 def add_act(window):
@@ -12,9 +12,9 @@ def add_act(window):
             "summary": f"This is the summary for {text.strip()}.",
             "chapters": []
         }
-        window.structure.setdefault("acts", []).append(new_act)
-        populate_tree(window.tree, window.structure)
-        save_structure(window.project_name, window.structure)
+        window.model.structure.setdefault("acts", []).append(new_act)
+        tree_manager.populate_tree(window.project_tree.tree, window.model.structure)
+        tree_manager.save_structure(window.model.project_name, window.model.structure)
 
 
 def add_chapter(window, act_item):
@@ -31,16 +31,16 @@ def add_chapter(window, act_item):
         act_name = act_item.text(0)
 
         # Find the corresponding act in the in-memory structure and append the new chapter.
-        for act in window.structure.get("acts", []):
+        for act in window.model.structure.get("acts", []):
             if act.get("name") == act_name:
                 act.setdefault("chapters", []).append(new_chapter)
                 break
 
         # Refresh the tree using the updated structure.
         from tree_manager import populate_tree, save_structure
-        populate_tree(window.tree, window.structure)
-        save_structure(window.project_name, window.structure)
-        window.unsaved_changes = False # Reset unsaved changes flag for new chapter
+        populate_tree(window.project_tree.tree, window.model.structure)
+        save_structure(window.model.project_name, window.model.structure)
+        window.model.unsaved_changes = False # Reset unsaved changes flag after adding a chapter
 
 
 def add_scene(window, chapter_item):
@@ -57,7 +57,7 @@ def add_scene(window, chapter_item):
         act_name = act_item.text(0)
 
         # Find the corresponding act and chapter in the in-memory structure.
-        for act in window.structure.get("acts", []):
+        for act in window.model.structure.get("acts", []):
             if act.get("name") == act_name:
                 for chapter in act.get("chapters", []):
                     if chapter.get("name") == chapter_name:
@@ -66,11 +66,9 @@ def add_scene(window, chapter_item):
                 break
 
         # Refresh the tree using the updated structure.
-        from tree_manager import populate_tree, save_structure
-        populate_tree(window.tree, window.structure)
-        save_structure(window.project_name, window.structure)
-        window.unsaved_changes = False # Reset unsaved changes flag for new scene
-
+        tree_manager.populate_tree(window.project_tree.tree, window.model.structure)
+        tree_manager.save_structure(window.model.project_name, window.model.structure)
+        window.model.unsaved_changes = False # Reset unsaved changes flag after adding a scene
 
 
 def rename_item(window, item):
@@ -87,24 +85,24 @@ def rename_item(window, item):
             data = {"name": new_name}
         item.setData(0, Qt.UserRole, data)
         # Update the structure from the tree to sync changes
-        update_structure_from_tree(window.tree, window.project_name)
+        tree_manager.update_structure_from_tree(window.project_tree.tree, window.model.project_name)
 
 
 def move_item_up(window, item):
-    parent = item.parent() or window.tree.invisibleRootItem()
+    parent = item.parent() or window.project_tree.tree.invisibleRootItem()
     index = parent.indexOfChild(item)
     if index > 0:
         parent.takeChild(index)
         parent.insertChild(index - 1, item)
-        window.tree.setCurrentItem(item)
-        update_structure_from_tree(window.tree, window.project_name)
+        window.project_tree.tree.setCurrentItem(item)
+        tree_manager.update_structure_from_tree(window.project_tree.tree, window.model.project_name)
 
 
 def move_item_down(window, item):
-    parent = item.parent() or window.tree.invisibleRootItem()
+    parent = item.parent() or window.project_tree.tree.invisibleRootItem()
     index = parent.indexOfChild(item)
     if index < parent.childCount() - 1:
         parent.takeChild(index)
         parent.insertChild(index + 1, item)
-        window.tree.setCurrentItem(item)
-        update_structure_from_tree(window.tree, window.project_name)
+        window.project_tree.tree.setCurrentItem(item)
+        tree_manager.update_structure_from_tree(window.project_tree.tree, window.model.project_name)

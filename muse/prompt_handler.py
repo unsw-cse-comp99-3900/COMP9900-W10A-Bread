@@ -1,7 +1,7 @@
 # prompt_handler.py
 import json
 import os
-from llm_api_aggregator import WWApiAggregator
+from settings.llm_api_aggregator import WWApiAggregator
 
 def build_final_prompt(action_beats, prose_prompt, pov, pov_character, tense):
     final_prompt = prose_prompt.format(pov=pov, pov_character=pov_character, tense=tense)

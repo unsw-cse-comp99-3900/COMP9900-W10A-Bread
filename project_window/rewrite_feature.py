@@ -6,8 +6,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QMessageBox
 )
 from PyQt5.QtCore import Qt
-from llm_api_aggregator import WWApiAggregator
-from llm_worker import LLMWorker
+from settings.llm_worker import LLMWorker
 
 def get_rewrite_prompts(project_name):
     """

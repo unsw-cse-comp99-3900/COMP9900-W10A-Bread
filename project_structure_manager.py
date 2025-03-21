@@ -40,6 +40,7 @@ def add_chapter(window, act_item):
         from tree_manager import populate_tree, save_structure
         populate_tree(window.tree, window.structure)
         save_structure(window.project_name, window.structure)
+        window.unsaved_changes = False # Reset unsaved changes flag for new chapter
 
 
 def add_scene(window, chapter_item):
@@ -68,6 +69,8 @@ def add_scene(window, chapter_item):
         from tree_manager import populate_tree, save_structure
         populate_tree(window.tree, window.structure)
         save_structure(window.project_name, window.structure)
+        window.unsaved_changes = False # Reset unsaved changes flag for new scene
+
 
 
 def rename_item(window, item):

@@ -14,8 +14,8 @@ class CompendiumPanel(QWidget):
         self.setMinimumWidth(300)
         
         # Determine the project name from the parent window and set the compendium file path.
-        project_name = getattr(self.parent(), "project_name", "default")
-        self.new_compendium_file = os.path.join(os.getcwd(), "Projects", sanitize(project_name), "compendium.json")
+        self.project_name = getattr(self.parent().model, "project_name", "default")
+        self.new_compendium_file = os.path.join(os.getcwd(), "Projects", sanitize(self.project_name), "compendium.json")
         if DEBUG:
             print("New compendium file path:", self.new_compendium_file)
         
@@ -158,8 +158,7 @@ class CompendiumPanel(QWidget):
     def open_in_enhanced_compendium(self):
         """Launch the enhanced compendium window.
         If an entry is selected, the enhanced window will jump to that entry."""
-        project_name = getattr(self.parent(), "project_name", "default")
-        self.enhanced_window = EnhancedCompendiumWindow(project_name, self.parent())
+        self.enhanced_window = EnhancedCompendiumWindow(self.project_name, self.parent())
         self.enhanced_window.show()
         # If an entry is selected, try to select it in the enhanced window.
         current_item = self.tree.currentItem()

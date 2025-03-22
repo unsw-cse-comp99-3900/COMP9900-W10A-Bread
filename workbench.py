@@ -140,30 +140,15 @@ class ProjectPostIt(QToolButton):
                 
                 # Project name from the workbench
                 project_name = self.project['name']
-                project_path = None
+                project_path = get_project_path(project_name)
                 
                 # Print debugging info
                 print(f"Looking for project: {project_name}")
                 print(f"Current directory: {os.getcwd()}")
                 
-                # First attempt: Check the Projects subdirectory (based on known path)
-                projects_dir = os.path.join(os.getcwd(), "Projects")
-                if os.path.exists(projects_dir) and os.path.isdir(projects_dir):
-                    # Try exact name in Projects directory
-                    full_path = os.path.join(projects_dir, project_name)
-                    if os.path.exists(full_path) and os.path.isdir(full_path):
-                        project_path = full_path
-                        print(f"Found project at: {project_path}")
-                    else:
-                        # Try sanitized name in Projects directory
-                        sanitized_name = project_name.replace(" ", "")
-                        full_path = os.path.join(projects_dir, sanitized_name)
-                        if os.path.exists(full_path) and os.path.isdir(full_path):
-                            project_path = full_path
-                            print(f"Found project at: {project_path}")
-                
-                # If still not found, try other methods
-                if not project_path:
+                if project_path and os.path.exists(project_path):
+                    print(f"Found project at: {project_path}")
+                else:
                     # Try direct paths
                     if os.path.exists(project_name) and os.path.isdir(project_name):
                         project_path = project_name
@@ -179,7 +164,9 @@ class ProjectPostIt(QToolButton):
                     from PyQt5.QtWidgets import QFileDialog
                     
                     # Set the initial directory to the Projects folder if it exists
-                    initial_dir = projects_dir if os.path.exists(projects_dir) else os.getcwd()
+                    initial_dir = get_project_path() 
+                    if not os.path.exists(initial_dir):
+                        initial_dir = os.getcwd()
                     
                     # Let the user select the project directory
                     msg = f"Could not automatically find the directory for project '{project_name}'.\n"
@@ -197,12 +184,7 @@ class ProjectPostIt(QToolButton):
                 # Make sure the directory exists and has some content
                 if not os.path.exists(project_path) or not os.path.isdir(project_path):
                     raise FileNotFoundError(f"Invalid project directory: {project_path}")
-                
-                # Check if the directory has text files
-                files = [f for f in os.listdir(project_path) if f.endswith('.txt')]
-                if not files:
-                    raise FileNotFoundError(f"No text files found in directory: {project_path}")
-                
+                             
                 # Show statistics dialog
                 print(f"Opening statistics for project at: {project_path}")
                 show_statistics(project_path)

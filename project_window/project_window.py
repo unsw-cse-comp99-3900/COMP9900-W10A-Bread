@@ -40,6 +40,10 @@ class ProjectWindow(QMainWindow):
         self.read_settings()
         self.load_initial_state()
 
+        # Restore the toolbar if the user invoked toggleViewAction and saved the settings
+        # If we prevent the user from hiding the toolbar, this will be redundant (but harmless)
+        self.global_toolbar.toolbar.show()
+
     def init_ui(self):
         self.setWindowTitle(f"Project: {self.model.project_name}")
         self.resize(900, 600)
@@ -404,9 +408,12 @@ class ProjectWindow(QMainWindow):
 
     def update_text(self, text):
         self.bottom_stack.preview_text.insertPlainText(text)
+        self.bottom_stack.preview_text.setReadOnly(False)
 
     def on_finished(self):
         self.bottom_stack.send_button.setEnabled(True)
+        if not self.bottom_stack.preview_text.toPlainText().strip():
+            QMessageBox.warning(self, "LLM Response", "The LLM did not return any text. Possible token limit reached or an error occurred.")
 
     def stop_llm(self):
         if hasattr(self, 'worker') and self.worker.isRunning():

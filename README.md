@@ -78,6 +78,7 @@ This project utilizes the following libraries:
 - spacy
 - textstat
 - tiktoken
+- BeautifulSoup4
 
 ## Contact
 

@@ -1,5 +1,6 @@
 import os
 import json
+import shutil
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QStackedWidget, QHBoxLayout, QVBoxLayout,
     QToolButton, QPushButton, QLabel, QMessageBox, QMenu, QFileDialog, QInputDialog
@@ -30,6 +31,10 @@ def load_version():
 # Load settings at module level.
 VERSION = load_version()
 
+def get_project_path(project_name = ""):
+    """Return the path to the project directory."""
+    sanitized = project_name.replace(" ", "")
+    return os.path.join(os.getcwd(), "Projects", sanitized)
 
 def load_projects():
     """Load project data from a JSON file. If the file does not exist, return default projects."""
@@ -214,14 +219,22 @@ class ProjectPostIt(QToolButton):
                     f"Details (for debugging):\n{error_details}"
                 )
         elif action == cover_action:
-            self.add_book_cover()
+            try:
+                self.add_book_cover()
+                save_projects(PROJECTS)
+            except Exception as e:
+                QMessageBox.warning(self, "Error Adding Cover",
+                                    f"Error adding book cover: {e}")
 
     def add_book_cover(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Select Book Cover", "", "Image Files (*.png *.jpg *.jpeg *.bmp)"
         )
-        if file_path:
-            file_path = os.path.relpath(file_path)
+        destination_path = get_project_path(self.project["name"])
+        if not destination_path:
+            os.makedirs(destination_path, exist_ok=True)
+        if file_path and os.path.dirname(file_path) != destination_path:
+            file_path = os.path.relpath(shutil.copy2(file_path, destination_path))
         if file_path:
             self.project["cover"] = file_path
             pixmap = QPixmap(file_path)
@@ -235,7 +248,7 @@ class ProjectPostIt(QToolButton):
             icon = QIcon(pixmap)
             self.setIcon(icon)
             self.setIconSize(default_size)
-            save_projects(PROJECTS)
+
 
 
 class ProjectCoverWidget(QWidget):

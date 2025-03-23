@@ -11,20 +11,23 @@ A PyQt5-based GUI that uses the core analysis module to:
 """
 
 import sys
+import importlib
+import traceback
+import logging
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QTextEdit, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QComboBox, QLineEdit, QFrame, QCheckBox,
-    QGroupBox, QGridLayout, QTabWidget, QSplitter, QScrollArea
+    QGroupBox, QGridLayout, QTabWidget, QSplitter, QScrollArea,
+    QToolTip
 )
 from PyQt5.QtGui import QTextCursor, QTextCharFormat, QBrush, QColor
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 
-from .text_analysis import (
-    analyze_text, detect_passive, detect_weak_formulations, detect_nonstandard_speech_verbs,
-    detect_filter_words, detect_telling_not_showing, analyze_verb_strength,
-    detect_overused_words, check_pronoun_clarity, analyze_dialogue_balance,
-    detect_repeated_sentence_starts, comprehensive_analysis
-)
+# Dictionary of languages and corresponding module names.
+LANGUAGES = {
+    "English": "text_analysis",
+    "Polish": "text_analysis_pl"
+}
 
 GENRE_TARGET_GRADES = {
     "Romance": 9,
@@ -50,7 +53,7 @@ GENRE_TARGET_GRADES = {
 }
 CUSTOM_OPTION = "Custom"
 
-# Define colors for each issue type
+# Define colors for each issue type.
 COLORS = {
     "complex": QColor("#FFC0C0"),      # Red - Complex sentences
     "weak": QColor("#CCFFCC"),         # Green - Weak formulations/passive voice
@@ -67,103 +70,188 @@ class ComprehensiveAnalysisWorker(QThread):
     finished = pyqtSignal(dict)
     error = pyqtSignal(Exception)
 
-    def __init__(self, full_text, target_grade):
+    def __init__(self, full_text, target_grade, analysis_instance):
         super().__init__()
         self.full_text = full_text
         self.target_grade = target_grade
-        self.enabled_analyses = {}
+        self.analysis_instance = analysis_instance
 
     def run(self):
         try:
-            results = comprehensive_analysis(self.full_text, self.target_grade)
+            results = self.analysis_instance.comprehensive_analysis(self.full_text, self.target_grade)
             self.finished.emit(results)
         except Exception as e:
             self.error.emit(e)
 
-from PyQt5.QtCore import Qt
-
 class TextAnalysisApp(QWidget):
     def __init__(self, parent=None, initial_text="", save_callback=None):
         super().__init__(parent)
-        # Force this widget to be a top-level window even if a parent is passed.
         self.setWindowFlags(self.windowFlags() | Qt.Window)
         self.setWindowTitle("Writingway Text Analysis Editor")
         self.resize(1000, 800)
-        self.save_callback = save_callback  # Store the callback for when Save is clicked
+        self.save_callback = save_callback
+        self.analysis_instance = None
+        self.current_language = "English"
+        
+        # Initialize user interface.
         self.init_ui()
-        # Preload the text editor with the provided initial text
+        
+        # Set initial text and change language.
         self.text_edit.setPlainText(initial_text)
+        self.change_language("English")
+        
         self.analysis_results = None
+        self.current_module = None
+        self.polish_model = None
+
+        try:
+            import util.text_analysis as text_analysis
+            if text_analysis.initialize():
+                self.current_module = text_analysis
+        except ImportError as e:
+            print("Error loading English module:", e)
+            self.current_module = None
 
     def init_ui(self):
-        # Main layout for the entire application
+        """Initializes the user interface."""
+        # Main layout for the entire application.
         main_layout = QVBoxLayout(self)
-        
-        # Create tabs widget 
+    
+        # Create tab widget.
         self.tabs = QTabWidget()
-        
+    
         # === Main Analysis Tab ===
         analysis_tab = QWidget()
         analysis_layout = QVBoxLayout(analysis_tab)
-        
-        # Create the main splitter for the analysis tab
+    
+        # Create the main splitter for the analysis tab.
         self.main_splitter = QSplitter(Qt.Vertical)
-        
-        # Top section - Legend and instructions
+    
+        # Top section - Legend and instructions.
         top_widget = QWidget()
         top_layout = QVBoxLayout(top_widget)
         top_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Legend in a collapsible section
-        legend_group = self.create_legend()
-        top_layout.addWidget(legend_group)
-        
+    
+        # Create the legend with default tooltips.
+        default_tooltips = {
+            "complex": """
+                <b>Complex sentences</b><br>
+                Highlights sentences that are very long or have many clauses, making them hard to follow.<br>
+                Consider breaking them into shorter, clearer sentences.
+            """,
+            "weak": """
+                <b>Weak formulations/passive voice</b><br>
+                Marks parts of the text where the language is not assertive.<br>
+                Includes:<br>
+                - Weak formulations (phrases that sound vague or indecisive)<br>
+                - Passive voice (sentences where the subject isn't performing the action)<br>
+                Example: 'The ball was thrown' vs 'John threw the ball'<br>
+                Both can make writing feel less direct and lively.
+            """,
+            "nonstandard": """
+                <b>Non-standard speech verbs</b><br>
+                Identifies unusual or uncommon verbs used for speaking<br>
+                (instead of common words like 'said').<br>
+                These can confuse readers if they're too creative or unfamiliar.
+            """,
+            "filter": """
+                <b>Filter words</b><br>
+                Flags words that act as filters – words that soften or obscure the message<br>
+                (like 'just,' 'really,' or 'quite').<br>
+                Removing them can make your statements stronger and clearer.
+            """,
+            "telling": """
+                <b>Telling not showing</b><br>
+                Highlights parts where the text tells what a character feels or does<br>
+                instead of showing it through description or action.<br>
+                This can make the narrative less engaging.
+            """,
+            "weak_verb": """
+                <b>Weak verbs</b><br>
+                Marks verbs that don't convey a strong sense of action or emotion.<br>
+                Replacing them with vivid, precise verbs can make writing more dynamic.
+            """,
+            "overused": """
+                <b>Overused words</b><br>
+                Identifies words that appear too often, making the text repetitive or dull.<br>
+                Consider using synonyms or rephrasing to keep language fresh.
+            """,
+            "pronoun": """
+                <b>Unclear pronoun references</b><br>
+                Flags pronouns ('he,' 'she,' 'it,' 'they') with unclear noun references.<br>
+                Clear pronoun use is important to avoid confusion.
+            """,
+            "repetitive": """
+                <b>Repetitive sentence starts</b><br>
+                Highlights when several sentences begin the same way.<br>
+                Varying sentence beginnings helps keep the reader's interest.
+            """
+        }
+        self.legend_container = self.create_legend_with_tooltips(default_tooltips)
+        top_layout.addWidget(self.legend_container)
+    
         instruction = QLabel("Enter your text below. Problematic text will be highlighted according to the legend.")
         top_layout.addWidget(instruction)
-        
-        # Middle section - Text editor
+    
+        # Middle section - Text editor.
         self.text_edit = QTextEdit()
         self.text_edit.setAcceptRichText(True)
-        self.text_edit.setMinimumHeight(300)  # Ensure editor is always visible
-        
-        # Bottom section - Controls
+        self.text_edit.setMinimumHeight(300)  # Ensure editor is always visible.
+    
+        # Bottom section - Controls.
         bottom_widget = QWidget()
         bottom_layout = QVBoxLayout(bottom_widget)
         bottom_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Analysis controls group
+    
+        # Analysis controls group.
         controls_group = QGroupBox("Analysis Controls")
-        controls_layout = QHBoxLayout()
-        
-        # Genre selection
+        controls_layout = QHBoxLayout(controls_group)
+    
+        # Genre selection.
         genre_layout = QVBoxLayout()
-        genre_label = QLabel("Select Genre:")
+        genre_label = QLabel("Select:")
         genre_layout.addWidget(genre_label)
-
+    
+        # Language selection combo box.
+        self.language_combo = QComboBox()
+        self.language_combo.addItems(LANGUAGES.keys())
+        self.language_combo.currentTextChanged.connect(self.change_language)
+        genre_layout.addWidget(self.language_combo)
+    
+        # Genre selection combo box.
         self.genre_combo = QComboBox()
         genre_options = list(GENRE_TARGET_GRADES.keys()) + [CUSTOM_OPTION]
         self.genre_combo.addItems(genre_options)
         self.genre_combo.currentTextChanged.connect(self.genre_changed)
         genre_layout.addWidget(self.genre_combo)
-
+    
+        # Custom target grade layout.
+        custom_grade_layout = QHBoxLayout()
         self.custom_label = QLabel("Target Grade:")
         self.custom_entry = QLineEdit()
         self.custom_entry.setFixedWidth(50)
-        custom_grade_layout = QHBoxLayout()
+    
         custom_grade_layout.addWidget(self.custom_label)
         custom_grade_layout.addWidget(self.custom_entry)
+        genre_layout.addLayout(custom_grade_layout)
+    
+        # Hide custom controls initially.
         self.custom_label.hide()
         self.custom_entry.hide()
-        genre_layout.addLayout(custom_grade_layout)
-        
-        controls_layout.addLayout(genre_layout)
-
-        # Analysis options
+    
+        # Analysis options.
         options_layout = QVBoxLayout()
         options_label = QLabel("Analysis Types:")
         options_layout.addWidget(options_label)
+    
+        # Add layouts to the controls layout.
+        controls_layout.addLayout(genre_layout)
+        controls_layout.addLayout(options_layout)
+    
+        # Add controls group to bottom layout.
+        bottom_layout.addWidget(controls_group)
 
-        # Create scrollable area for checkboxes
+        # Create scrollable area for checkboxes.
         self.analysis_options = {}
         analysis_options_scroll = QScrollArea()
         analysis_options_scroll.setWidgetResizable(True)
@@ -172,39 +260,39 @@ class TextAnalysisApp(QWidget):
         self.create_analysis_checkboxes(analysis_options_layout)
         analysis_options_scroll.setWidget(analysis_options_widget)
         options_layout.addWidget(analysis_options_scroll)
-        
+    
         controls_layout.addLayout(options_layout)
         controls_group.setLayout(controls_layout)
         bottom_layout.addWidget(controls_group)
 
-        # Analysis button
+        # Analysis button.
         self.analyze_button = QPushButton("Run Analysis")
         self.analyze_button.clicked.connect(self.run_analysis)
         bottom_layout.addWidget(self.analyze_button)
 
-        # Results summary label
+        # Results summary label.
         self.results_label = QLabel("")
         self.results_label.setFrameStyle(QFrame.Panel | QFrame.Sunken)
         self.results_label.setLineWidth(1)
         self.results_label.setWordWrap(True)
         bottom_layout.addWidget(self.results_label)
-        
-        # Add the main splitter widgets
+    
+        # Add the main splitter widgets.
         self.main_splitter.addWidget(top_widget)
         self.main_splitter.addWidget(self.text_edit)
         self.main_splitter.addWidget(bottom_widget)
-        
-        # Set initial splitter sizes to give text editor most space
+    
+        # Set initial splitter sizes to give text editor most space.
         self.main_splitter.setSizes([150, 400, 150])
-        
-        # Add the main splitter to the analysis tab
+    
+        # Add the main splitter to the analysis tab.
         analysis_layout.addWidget(self.main_splitter)
-        
+    
         # === Settings Tab ===
         settings_tab = QWidget()
         settings_layout = QVBoxLayout(settings_tab)
-        
-        # Create scrollable area for settings
+    
+        # Create scrollable area for settings.
         settings_scroll = QScrollArea()
         settings_scroll.setWidgetResizable(True)
         settings_content = QWidget()
@@ -212,71 +300,161 @@ class TextAnalysisApp(QWidget):
         self.setup_settings_tab(settings_content_layout)
         settings_scroll.setWidget(settings_content)
         settings_layout.addWidget(settings_scroll)
-        
-        # Add both tabs to the tab widget
+    
+        # Add both tabs to the tab widget.
         self.tabs.addTab(analysis_tab, "Text Analysis")
         self.tabs.addTab(settings_tab, "Settings")
-        
-        # Add the tab widget to the main layout
+    
+        # Add the tab widget to the main layout.
         main_layout.addWidget(self.tabs)
 
-        # NEW: Save & Close button to return updated text
+        # NEW: Save & Close button to return updated text.
         save_close_button = QPushButton("Save & Close")
         save_close_button.clicked.connect(self.save_and_close)
         main_layout.addWidget(save_close_button)
+        
+    def change_language(self, language):
+        """
+        Switches the text analysis module based on the selected language.
+        After successful model loading, it updates the tooltip translations.
+        """
+        self.current_language = language
+        module_name = LANGUAGES.get(language, "text_analysis")
+        try:
+            if module_name == "text_analysis_pl":
+                import util.text_analysis_pl as pl_module
+                self.current_module = pl_module
+                self.analysis_instance = pl_module.PolishTextAnalysis()
+                self.analysis_instance.model_loaded.connect(self.on_model_loaded)
+                if not self.analysis_instance.initialize():
+                    self.results_label.setText(f"The model for {language} is downloading, please wait...")
+                else:
+                    self.results_label.setText(f"Language switched to {language}")
+                # Update tooltips from the language module.
+                if hasattr(self.analysis_instance, "get_tooltips"):
+                    translated_tooltips = self.analysis_instance.get_tooltips()
+                    self.set_tooltips(translated_tooltips)
+            else:
+                import util.text_analysis as text_analysis
+                self.current_module = text_analysis
+                self.analysis_instance = text_analysis.EnglishTextAnalysis()
+                if self.analysis_instance.initialize():
+                    self.current_language = language
+                    self.language_combo.setCurrentText(language)
+                    self.results_label.setText(f"Language switched to {language}")
+                    if hasattr(self.analysis_instance, "get_tooltips"):
+                        translated_tooltips = self.analysis_instance.get_tooltips()
+                        self.set_tooltips(translated_tooltips)
+                else:
+                    self.results_label.setText(f"Error initializing the {language} model, reverting to English")
+                    self.revert_to_english()
+        except ImportError as e:
+            self.results_label.setText(f"{language} is not available yet.")
+            print(f"ImportError: {e}")
+            self.revert_to_english()
+        except Exception as e:
+            self.results_label.setText("Unexpected error. Switching to English.")
+            print(f"Unexpected Error: {e}")
+            traceback.print_exc()
+            self.revert_to_english()
 
-    def create_legend(self):
+    def revert_to_english(self):
+        """Reverts to the default English language module."""
+        try:
+            import util.text_analysis as text_analysis
+            self.current_module = text_analysis
+            self.current_language = "English"
+            if hasattr(self, 'language_combo'):
+                self.language_combo.setCurrentText("English")
+            print("Reverting to English...")
+            logging.info("Reverting to English...")
+            if hasattr(self.current_module, 'initialize'):
+                self.current_module.initialize()
+            self.results_label.setText("Language switched to English")
+        except Exception as e:
+            print(f"Error reverting to English: {e}")
+            logging.error(f"Error reverting to English: {e}", exc_info=True)
+            self.results_label.setText("Error switching to English.")
+                
+    def on_model_loaded(self):
+        """Updates the UI when the model is loaded."""
+        self.results_label.setText(f"Language switched to {self.current_language}")
+        # Safely check if download_timer exists and is active.
+        if hasattr(self, 'download_timer') and self.download_timer:
+            self.download_timer.stop()
+
+    def check_module_ready(self, language):
+        """Checks if the module is ready. (Not used with the signal/slot approach)"""
+        pass  # Remove or modify as needed
+        
+    def create_legend_with_tooltips(self, tooltips):
+        """
+        Creates and returns the legend widget using provided tooltip translations.
+        :param tooltips: Dictionary with keys corresponding to issue types and tooltip strings.
+        """
         legend_group = QGroupBox("Highlighting Legend")
         legend_layout = QGridLayout()
 
-        # Create color swatches and labels for each issue type
+        # Define the legend items with keys matching those in the tooltip dictionary.
         legend_items = [
-            ("Complex sentences", COLORS["complex"]),
-            ("Weak formulations/passive voice", COLORS["weak"]),
-            ("Non-standard speech verbs", COLORS["nonstandard"]),
-            ("Filter words (narrative distance)", COLORS["filter"]),
-            ("Telling not showing", COLORS["telling"]),
-            ("Weak verbs", COLORS["weak_verb"]),
-            ("Overused words", COLORS["overused"]),
-            ("Unclear pronoun references", COLORS["pronoun"]),
-            ("Repetitive sentence starts", COLORS["repetitive"]),
+            ("Complex sentences", COLORS["complex"], tooltips.get("complex", "")),
+            ("Weak formulations/passive voice", COLORS["weak"], tooltips.get("weak", "")),
+            ("Non-standard speech verbs", COLORS["nonstandard"], tooltips.get("nonstandard", "")),
+            ("Filter words", COLORS["filter"], tooltips.get("filter", "")),
+            ("Telling not showing", COLORS["telling"], tooltips.get("telling", "")),
+            ("Weak verbs", COLORS["weak_verb"], tooltips.get("weak_verb", "")),
+            ("Overused words", COLORS["overused"], tooltips.get("overused", "")),
+            ("Unclear pronoun references", COLORS["pronoun"], tooltips.get("pronoun", "")),
+            ("Repetitive sentence starts", COLORS["repetitive"], tooltips.get("repetitive", ""))
         ]
 
-        for i, (label_text, color) in enumerate(legend_items):
-            row, col = divmod(i, 3)  # 3 columns of legend items
-            
-            # Create color swatch
+        for i, (label_text, color, tip) in enumerate(legend_items):
+            row, col = divmod(i, 3)
+    
             swatch = QFrame()
             swatch.setFixedSize(20, 20)
             swatch.setStyleSheet(f"background-color: {color.name()}; border: 1px solid black;")
-            
-            # Create label
+    
             label = QLabel(label_text)
-            
-            # Add to grid
-            legend_layout.addWidget(swatch, row, col*2)
-            legend_layout.addWidget(label, row, col*2+1)
+            label.setToolTip(tip.strip().replace('\n', ' '))
+    
+            legend_layout.addWidget(swatch, row, col * 2)
+            legend_layout.addWidget(label, row, col * 2 + 1)
 
         legend_group.setLayout(legend_layout)
         return legend_group
+        
+    def set_tooltips(self, tooltips):
+        """
+        Updates the legend's tooltips based on the provided translations.
+        :param tooltips: Dictionary with keys corresponding to issue types and tooltip strings.
+        """
+        # Re-create the legend with the new tooltips.
+        new_legend = self.create_legend_with_tooltips(tooltips)
+        # Replace the old legend widget with the new one.
+        parent_layout = self.legend_container.parentWidget().layout()
+        index = parent_layout.indexOf(self.legend_container)
+        # Remove the old widget.
+        parent_layout.takeAt(index)
+        self.legend_container.deleteLater()
+        # Set the new legend and add it to the same position.
+        self.legend_container = new_legend
+        parent_layout.insertWidget(index, self.legend_container)
 
     def create_analysis_checkboxes(self, layout):
-        # Core sentence analysis
+        """Creates and adds analysis type checkboxes to the given layout."""
         self.analysis_options["complexity"] = QCheckBox("Sentence complexity")
         self.analysis_options["complexity"].setChecked(True)
         layout.addWidget(self.analysis_options["complexity"])
 
-        # Weak formulations and passive
         self.analysis_options["weak_formulations"] = QCheckBox("Weak formulations/passive voice")
         self.analysis_options["weak_formulations"].setChecked(True)
         layout.addWidget(self.analysis_options["weak_formulations"])
 
-        # Speech verbs
         self.analysis_options["speech_verbs"] = QCheckBox("Non-standard speech verbs")
         self.analysis_options["speech_verbs"].setChecked(True)
         layout.addWidget(self.analysis_options["speech_verbs"])
 
-        # New analysis types
         self.analysis_options["filter_words"] = QCheckBox("Filter words")
         self.analysis_options["filter_words"].setChecked(True)
         layout.addWidget(self.analysis_options["filter_words"])
@@ -302,23 +480,21 @@ class TextAnalysisApp(QWidget):
         layout.addWidget(self.analysis_options["repetitive"])
 
     def setup_settings_tab(self, layout):
-        # Thresholds group
+        """Sets up the settings tab with analysis thresholds and interface customization."""
+        # Thresholds group.
         thresholds_group = QGroupBox("Analysis Thresholds")
         thresholds_layout = QGridLayout()
         
-        # Overused words threshold
         thresholds_layout.addWidget(QLabel("Overused words threshold:"), 0, 0)
         self.overused_threshold = QLineEdit("3")
         self.overused_threshold.setFixedWidth(50)
         thresholds_layout.addWidget(self.overused_threshold, 0, 1)
         
-        # Overused words window size
         thresholds_layout.addWidget(QLabel("Overused words window (chars):"), 1, 0)
         self.overused_window = QLineEdit("1000")
         self.overused_window.setFixedWidth(50)
         thresholds_layout.addWidget(self.overused_window, 1, 1)
         
-        # Repetitive sentence starts threshold
         thresholds_layout.addWidget(QLabel("Repetitive starts threshold:"), 2, 0)
         self.repetitive_threshold = QLineEdit("3")
         self.repetitive_threshold.setFixedWidth(50)
@@ -327,16 +503,14 @@ class TextAnalysisApp(QWidget):
         thresholds_group.setLayout(thresholds_layout)
         layout.addWidget(thresholds_group)
         
-        # Appearance settings
+        # Appearance settings.
         appearance_group = QGroupBox("Interface Customization")
         appearance_layout = QVBoxLayout()
         
-        # Add a button to maximize the text editor
         self.maximize_editor_btn = QPushButton("Maximize Text Editor")
         self.maximize_editor_btn.clicked.connect(self.toggle_maximize_editor)
         appearance_layout.addWidget(self.maximize_editor_btn)
         
-        # Add a button to restore default layout
         self.restore_layout_btn = QPushButton("Restore Default Layout")
         self.restore_layout_btn.clicked.connect(self.restore_default_layout)
         appearance_layout.addWidget(self.restore_layout_btn)
@@ -344,7 +518,7 @@ class TextAnalysisApp(QWidget):
         appearance_group.setLayout(appearance_layout)
         layout.addWidget(appearance_group)
         
-        # User guide
+        # User guide.
         guide_group = QGroupBox("Tips")
         guide_layout = QVBoxLayout(guide_group)
         
@@ -362,23 +536,20 @@ class TextAnalysisApp(QWidget):
         guide_group.setLayout(guide_layout)
         layout.addWidget(guide_group)
         
-        # Add spacer to push everything to the top
         layout.addStretch()
 
     def toggle_maximize_editor(self):
-        """Maximize or restore the text editor area"""
-        # First switch to the analysis tab
+        """Maximizes or restores the text editor area."""
+        # Switch to the analysis tab.
         self.tabs.setCurrentIndex(0)
         
         if self.maximize_editor_btn.text() == "Maximize Text Editor":
-            # Save current sizes for later restoration
+            # Save current sizes for later restoration.
             self.saved_sizes = self.main_splitter.sizes()
-            
-            # Set sizes to emphasize the editor (nearly invisible top and bottom)
+            # Emphasize the editor (nearly invisible top and bottom sections).
             self.main_splitter.setSizes([1, 10000, 1])
             self.maximize_editor_btn.setText("Restore Layout")
         else:
-            # Restore previous sizes or defaults
             if hasattr(self, 'saved_sizes'):
                 self.main_splitter.setSizes(self.saved_sizes)
             else:
@@ -386,15 +557,13 @@ class TextAnalysisApp(QWidget):
             self.maximize_editor_btn.setText("Maximize Text Editor")
 
     def restore_default_layout(self):
-        """Reset the splitters to default positions"""
-        # First switch to the analysis tab
+        """Resets the splitters to default positions."""
         self.tabs.setCurrentIndex(0)
-        
-        # Restore default splitter sizes
         self.main_splitter.setSizes([150, 400, 150])
         self.maximize_editor_btn.setText("Maximize Text Editor")
 
     def genre_changed(self, text):
+        """Shows or hides the custom target grade controls based on the genre selection."""
         if text == CUSTOM_OPTION:
             self.custom_label.show()
             self.custom_entry.show()
@@ -403,83 +572,48 @@ class TextAnalysisApp(QWidget):
             self.custom_entry.hide()
 
     def run_analysis(self):
+        """Runs the text analysis on the input text."""
         full_text = self.text_edit.toPlainText()
         if not full_text:
-            self.results_label.setText("Please enter text to analyze.")
+            self.results_label.setText("Please enter text for analysis.")
             return
-            
+        if self.analysis_instance is None or self.analysis_instance.nlp is None:
+            self.results_label.setText("The model is not loaded.")
+            return
+
         selected_genre = self.genre_combo.currentText()
         if selected_genre == CUSTOM_OPTION:
             try:
                 target_grade = float(self.custom_entry.text())
             except ValueError:
-                self.results_label.setText("Invalid custom grade level. Please enter a valid number.")
+                self.results_label.setText("Invalid difficulty level. Please enter a valid number.")
                 return
         else:
             target_grade = GENRE_TARGET_GRADES.get(selected_genre, 8)
 
-        # Retain the original text
-        self.text_edit.setPlainText(full_text)
         self.results_label.setText("Analyzing text...")
-
-        # Get enabled analyses
-        enabled_analyses = {key: checkbox.isChecked() for key, checkbox in self.analysis_options.items()}
-
-        # Get thresholds
-        try:
-            overused_threshold = int(self.overused_threshold.text())
-            overused_window = int(self.overused_window.text())
-            repetitive_threshold = int(self.repetitive_threshold.text())
-        except ValueError:
-            self.results_label.setText("Invalid threshold values. Please enter valid numbers.")
-            return
-
-        self.worker = ComprehensiveAnalysisWorker(full_text, target_grade)
-        self.worker.enabled_analyses = enabled_analyses
-        self.worker.finished.connect(lambda results: self.update_highlighting(results, enabled_analyses))
+        self.worker = ComprehensiveAnalysisWorker(full_text, target_grade, self.analysis_instance)
+        self.worker.finished.connect(self.update_highlighting)
         self.worker.error.connect(self.handle_error)
         self.worker.start()
 
-    def update_highlighting(self, results, enabled_analyses):
+    def update_highlighting(self, results):
+        """
+        Updates the text highlighting based on the analysis results.
+        Recomputes the enabled analysis options and applies the corresponding text formats.
+        """
+        enabled_analyses = {key: checkbox.isChecked() for key, checkbox in self.analysis_options.items()}
         cursor = self.text_edit.textCursor()
-        
-        # Create format objects for each issue type
-        formats = {
-            "complex": QTextCharFormat(),
-            "weak": QTextCharFormat(),
-            "nonstandard": QTextCharFormat(),
-            "filter": QTextCharFormat(),
-            "telling": QTextCharFormat(),
-            "weak_verb": QTextCharFormat(),
-            "overused": QTextCharFormat(),
-            "pronoun": QTextCharFormat(),
-            "repetitive": QTextCharFormat()
-        }
-        
-        # Set colors for each format
+        formats = {key: QTextCharFormat() for key in COLORS}
         for issue_type, color in COLORS.items():
             formats[issue_type].setBackground(QBrush(color))
-
-        # Clear any existing formatting
+        
         cursor.setPosition(0)
         cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
-        clear_format = QTextCharFormat()
-        cursor.setCharFormat(clear_format)
+        cursor.setCharFormat(QTextCharFormat())
         
-        # Track statistics for summary
-        stats = {
-            "complex_sentences": 0,
-            "weak_formulations": 0,
-            "nonstandard_speech": 0,
-            "filter_words": 0,
-            "telling_not_showing": 0,
-            "weak_verbs": 0,
-            "overused_words": 0,
-            "pronoun_clarity": 0,
-            "repetitive_starts": 0
-        }
-
-        # Apply highlighting for complex sentences
+        stats = {key: 0 for key in ["complex_sentences", "weak_formulations", "nonstandard_speech", "filter_words", "telling_not_showing", "weak_verbs", "overused_words", "pronoun_clarity", "repetitive_starts"]}
+        
         if enabled_analyses.get("complexity", False):
             for sent in results["sentence_analysis"]:
                 if sent["complex"]:
@@ -487,106 +621,74 @@ class TextAnalysisApp(QWidget):
                     cursor.setPosition(sent["end"], QTextCursor.KeepAnchor)
                     cursor.mergeCharFormat(formats["complex"])
                     stats["complex_sentences"] += 1
-
-        # Apply highlighting for weak formulations and passive
+        
         if enabled_analyses.get("weak_formulations", False):
-            for sent in results["sentence_analysis"]:
-                sent_text = sent["sentence"]
-                sent_doc = sent["doc"]
-                sent_start = sent["start"]
-                
-                # Weak formulations
-                weak_spans = detect_weak_formulations(sent_text, sent_doc)
-                for span in weak_spans:
-                    token_start = sent_start + span[0]
-                    token_end = sent_start + span[1]
-                    cursor.setPosition(token_start)
-                    cursor.setPosition(token_end, QTextCursor.KeepAnchor)
-                    cursor.mergeCharFormat(formats["weak"])
-                    stats["weak_formulations"] += 1
-                
-                # Passive voice
-                passive_spans = detect_passive(sent_text, sent_doc)
-                for span in passive_spans:
-                    token_start = sent_start + span[0]
-                    token_end = sent_start + span[1]
-                    cursor.setPosition(token_start)
-                    cursor.setPosition(token_end, QTextCursor.KeepAnchor)
-                    cursor.mergeCharFormat(formats["weak"])
-                    stats["weak_formulations"] += 1
-
-        # Apply highlighting for non-standard speech verbs
+            for start, end in results["weak_formulations"]:
+                cursor.setPosition(start)
+                cursor.setPosition(end, QTextCursor.KeepAnchor)
+                cursor.mergeCharFormat(formats["weak"])
+                stats["weak_formulations"] += 1
+            for start, end in results["passive_voice"]:
+                cursor.setPosition(start)
+                cursor.setPosition(end, QTextCursor.KeepAnchor)
+                cursor.mergeCharFormat(formats["weak"])
+                stats["weak_formulations"] += 1
+        
         if enabled_analyses.get("speech_verbs", False):
-            for sent in results["sentence_analysis"]:
-                sent_text = sent["sentence"]
-                sent_start = sent["start"]
-                
-                nonstandard_spans = detect_nonstandard_speech_verbs(sent_text)
-                for span in nonstandard_spans:
-                    tag_start = sent_start + span[0]
-                    tag_end = sent_start + span[1]
-                    cursor.setPosition(tag_start)
-                    cursor.setPosition(tag_end, QTextCursor.KeepAnchor)
-                    cursor.mergeCharFormat(formats["nonstandard"])
-                    stats["nonstandard_speech"] += 1
-
-        # Apply highlighting for filter words
+            for start, end, _ in results["nonstandard_speech"]:
+                cursor.setPosition(start)
+                cursor.setPosition(end, QTextCursor.KeepAnchor)
+                cursor.mergeCharFormat(formats["nonstandard"])
+                stats["nonstandard_speech"] += 1
+        
         if enabled_analyses.get("filter_words", False):
-            for start, end, word in results["filter_words"]:
+            for start, end, _ in results["filter_words"]:
                 cursor.setPosition(start)
                 cursor.setPosition(end, QTextCursor.KeepAnchor)
                 cursor.mergeCharFormat(formats["filter"])
                 stats["filter_words"] += 1
-
-        # Apply highlighting for telling not showing
+        
         if enabled_analyses.get("telling", False):
-            for start, end, phrase in results["telling_not_showing"]:
+            for start, end, _ in results["telling_not_showing"]:
                 cursor.setPosition(start)
                 cursor.setPosition(end, QTextCursor.KeepAnchor)
                 cursor.mergeCharFormat(formats["telling"])
                 stats["telling_not_showing"] += 1
-
-        # Apply highlighting for weak verbs
+        
         if enabled_analyses.get("weak_verbs", False):
-            for start, end, construction, verb_type in results["weak_verbs"]:
+            for start, end, _, _ in results["weak_verbs"]:
                 cursor.setPosition(start)
                 cursor.setPosition(end, QTextCursor.KeepAnchor)
                 cursor.mergeCharFormat(formats["weak_verb"])
                 stats["weak_verbs"] += 1
-
-        # Apply highlighting for overused words
+        
         if enabled_analyses.get("overused", False):
-            for start, end, word, count in results["overused_words"]:
+            for start, end, _, _ in results["overused_words"]:
                 cursor.setPosition(start)
                 cursor.setPosition(end, QTextCursor.KeepAnchor)
                 cursor.mergeCharFormat(formats["overused"])
                 stats["overused_words"] += 1
-
-        # Apply highlighting for pronoun clarity
+        
         if enabled_analyses.get("pronoun_clarity", False):
-            for start, end, pronoun in results["pronoun_clarity"]:
+            for start, end, _ in results["pronoun_clarity"]:
                 cursor.setPosition(start)
                 cursor.setPosition(end, QTextCursor.KeepAnchor)
                 cursor.mergeCharFormat(formats["pronoun"])
                 stats["pronoun_clarity"] += 1
-
-        # Apply highlighting for repetitive sentence starts
+        
         if enabled_analyses.get("repetitive", False):
-            for start, end, pattern in results["repeated_sentence_starts"]:
+            for start, end, _ in results["repeated_sentence_starts"]:
                 cursor.setPosition(start)
                 cursor.setPosition(end, QTextCursor.KeepAnchor)
                 cursor.mergeCharFormat(formats["repetitive"])
                 stats["repetitive_starts"] += 1
-
-        # Update results summary
+        
         self.update_results_summary(stats, results["dialogue_ratio"])
 
     def update_results_summary(self, stats, dialogue_ratio):
+        """Updates the results summary label with the analysis statistics."""
         summary = "Analysis Results Summary:\n"
-        
-        # Count total issues
         total_issues = sum(stats.values())
-        
         summary += f"Total issues found: {total_issues}\n"
         summary += f"- Complex sentences: {stats['complex_sentences']}\n"
         summary += f"- Weak formulations/passive: {stats['weak_formulations']}\n"
@@ -598,7 +700,6 @@ class TextAnalysisApp(QWidget):
         summary += f"- Unclear pronoun references: {stats['pronoun_clarity']}\n"
         summary += f"- Repetitive sentence starts: {stats['repetitive_starts']}\n"
         
-        # Add dialogue ratio
         dialogue_percentage = round(dialogue_ratio * 100, 1)
         summary += f"\nDialogue percentage: {dialogue_percentage}%"
         if dialogue_percentage > 70:
@@ -609,10 +710,12 @@ class TextAnalysisApp(QWidget):
         self.results_label.setText(summary)
 
     def handle_error(self, exception):
+        """Handles errors during analysis."""
         self.results_label.setText(f"Error during analysis: {exception}")
 
     def save_and_close(self):
-        """Called when the 'Save & Close' button is clicked.
+        """
+        Called when the 'Save & Close' button is clicked.
         Retrieves the current text from the analysis editor, calls the save_callback
         (if provided) with the updated text, and then closes this window.
         """

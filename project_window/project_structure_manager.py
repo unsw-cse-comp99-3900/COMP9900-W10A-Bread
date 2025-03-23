@@ -3,7 +3,6 @@ from PyQt5.QtWidgets import QInputDialog, QMessageBox, QTreeWidgetItem
 from PyQt5.QtCore import Qt
 from . import tree_manager
 
-
 def add_act(window):
     text, ok = QInputDialog.getText(window, "Add Act", "Enter act name:")
     if ok and text.strip():
@@ -37,9 +36,8 @@ def add_chapter(window, act_item):
                 break
 
         # Refresh the tree using the updated structure.
-        from tree_manager import populate_tree, save_structure
-        populate_tree(window.project_tree.tree, window.model.structure)
-        save_structure(window.model.project_name, window.model.structure)
+        tree_manager.populate_tree(window.project_tree.tree, window.model.structure)
+        tree_manager.save_structure(window.model.project_name, window.model.structure)
         window.model.unsaved_changes = False # Reset unsaved changes flag after adding a chapter
 
 

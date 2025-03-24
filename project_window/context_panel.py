@@ -6,10 +6,7 @@ from PyQt5.QtCore import Qt
 
 # Assume get_compendium_text is imported from a shared module or defined elsewhere.
 from workshop.workshop import get_compendium_text  # Use the function from workshop.py
-
-# Reuse the sanitize function from compendium_panel.py
-def sanitize(text):
-    return re.sub(r'\W+', '', text)
+from settings.settings_manager import WWSettingsManager
 
 class ContextPanel(QWidget):
     """
@@ -91,8 +88,7 @@ class ContextPanel(QWidget):
         """Build a tree from the compendium data."""
         self.compendium_tree.clear()
         # Use the project-specific compendium file path
-        project_name_sanitized = sanitize(self.project_name)
-        filename = os.path.join(os.getcwd(), "Projects", project_name_sanitized, "compendium.json")
+        filename = WWSettingsManager.get_project_path(self.project_name, "compendium.json")
         try:
             if os.path.exists(filename):
                 with open(filename, "r", encoding="utf-8") as f:

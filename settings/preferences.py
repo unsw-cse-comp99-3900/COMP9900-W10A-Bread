@@ -1,5 +1,6 @@
 import sys
 import json
+import copy
 import os, urllib
 from PyQt5.QtWidgets import (QApplication, QWidget, QTabWidget, QVBoxLayout,
                              QCheckBox, QComboBox, QLabel, QLineEdit,
@@ -348,6 +349,9 @@ class SettingsDialog(QDialog):
         self.appearance_settings = WWSettingsManager.get_appearance_settings()
         self.llm_configs = WWSettingsManager.get_llm_configs()
         self.default_provider = WWSettingsManager.get_active_llm_name()
+        
+        # Store a deep copy of the original llm_configs for comparison
+        self.original_llm_configs = copy.deepcopy(self.llm_configs)
 
         self.ui_labels = UI_LABELS
         try:
@@ -717,11 +721,27 @@ class SettingsDialog(QDialog):
         self.appearance_settings["theme"] = self.theme_combobox.currentText()
         self.appearance_settings["text_size"] = self.text_size_spinbox.value()
 
-        WWSettingsManager.update_general_settings(self.general_settings)
-        WWSettingsManager.update_appearance_settings(self.appearance_settings)
-        WWSettingsManager.update_llm_configs(self.llm_configs, self.default_provider)
-        QMessageBox.information(self, "Save Result", self.labels["save_successful"])
-        self.unsaved_changes = False  # Reset unsaved changes flag
+        # Detect deleted llm_configs
+        deleted_configs = set(self.original_llm_configs.keys()) - set(self.llm_configs.keys())
+        for provider_name in deleted_configs:
+            success = WWSettingsManager.delete_llm_config(provider_name)
+            if not success:
+                QMessageBox.warning(self, "Warning", f"Failed to delete config {provider_name} from settings.json.")
+
+        # Save updated settings
+        success = (
+            WWSettingsManager.update_general_settings(self.general_settings) and
+            WWSettingsManager.update_appearance_settings(self.appearance_settings) and
+            WWSettingsManager.update_llm_configs(self.llm_configs, self.default_provider)
+        )
+
+        if success:
+            # Update original_llm_configs to match the newly saved state
+            self.original_llm_configs = copy.deepcopy(self.llm_configs)
+            QMessageBox.information(self, "Save Result", self.labels["save_successful"])
+            self.unsaved_changes = False  # Reset unsaved changes flag
+        else:
+            QMessageBox.warning(self, "Warning", "Failed to save settings.")
 
     def mark_unsaved_changes(self):
         """Mark that there are unsaved changes."""

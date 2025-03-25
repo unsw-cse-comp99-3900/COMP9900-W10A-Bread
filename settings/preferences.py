@@ -235,8 +235,9 @@ class ProviderDialog(QDialog):
         try:
             models = self.get_models_for_provider(provider_name, refresh)
         except Exception as e:
-            error_message = urllib.parse.unquote(str(e))
-            QMessageBox.warning(self, "Error", f"Error fetching models: {error_message}")
+            if refresh:
+                error_message = urllib.parse.unquote(str(e))
+                QMessageBox.warning(self, "Error", f"Error fetching models: {error_message}")
             models = ["Error"]
         self.model_combobox.clear()
         self.model_combobox.addItems(models)
@@ -269,9 +270,11 @@ class ProviderDialog(QDialog):
 
         provider_name = self.provider_combobox.currentText()
         endpoint = self.endpoint_url_input.text()
+        model = self.model_combobox.currentText()
         api_key = self.api_key_input.text()
         overrides = {
             "provider": provider_name,
+            "model": model,
         }
         if endpoint not in ("", "Default"):
             overrides["endpoint"] = endpoint

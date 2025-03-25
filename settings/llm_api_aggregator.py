@@ -15,7 +15,7 @@ from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
-from langchain_community.llms.together import Together
+from langchain_together import ChatTogether
 
 from .settings_manager import WWSettingsManager
 
@@ -80,23 +80,18 @@ class LLMProviderBase(ABC):
     def get_available_models(self, do_refresh: bool = False) -> List[str]:
         """Returns a list of available models from the provider."""
         if do_refresh or self.cached_models is None:
-            try:
-                # In a real implementation, this would make an API call to fetch models
-                url = self.get_base_url()
-                if url[-1] != "/":
-                    url += "/"
-                url += "models"
-                response = self._do_models_request(url)
-                if response.status_code == 200:
-                    models_data = response.json()
-                    self.cached_models = [model[self.model_key] for model in models_data.get(self.model_list_key, [])]
-                    self.cached_models.sort(reverse=self.use_reverse_sort)
-                else:
-                    self.cached_models = []
-                    
-            except Exception as e:
-                print(f"Error fetching {self.provider_name} models: {e}")
+            url = self.get_base_url()
+            if url[-1] != "/":
+                url += "/"
+            url += "models"
+            response = self._do_models_request(url)
+            if response.status_code == 200:
+                models_data = response.json()
+                self.cached_models = [model[self.model_key] for model in models_data.get(self.model_list_key, [])]
+                self.cached_models.sort(reverse=self.use_reverse_sort)
+            else:
                 self.cached_models = []
+                    
         if do_refresh and response.status_code != 200:
             raise ResourceWarning(response.json().get("error"))
         return self.cached_models
@@ -137,13 +132,15 @@ class LLMProviderBase(ABC):
     def test_connection(self, overrides = None) -> bool:
         """Test the connection to the provider."""
         overrides["max_tokens"] = 1 # Minimal request for testing
+        if not overrides["model"]:
+            overrides["model"] = "None"
         llm = self.get_llm_instance(overrides)
         if not llm:
             return False
 
-        prompt = PromptTemplate(input_variables=[], template="")
+        prompt = PromptTemplate(input_variables=[], template="testing connection")
         chain = prompt | llm | StrOutputParser()
-
+        response = chain.invoke({})
         return True
 
 class OpenAIProvider(LLMProviderBase):
@@ -160,9 +157,9 @@ class OpenAIProvider(LLMProviderBase):
     def get_llm_instance(self, overrides) -> BaseChatModel:
         if not self.llm_instance:
             self.llm_instance = ChatOpenAI(
-                openai_api_key=self.get_api_key(),
-                openai_api_base=self.get_base_url(),
-                model_name=self.get_current_model(),
+                openai_api_key=overrides.get("api_key", self.get_api_key()),
+                openai_api_base=overrides.get("endpoint", self.get_base_url()),
+                model_name=overrides.get("model", self.get_current_model()),
                 temperature=self.config.get("temperature", DEFAULT_TEMPERATURE),
                 max_tokens=self.config.get("max_tokens", DEFAULT_MAX_TOKENS),
                 request_timeout=self.get_timeout(overrides)
@@ -193,8 +190,9 @@ class AnthropicProvider(LLMProviderBase):
     def get_llm_instance(self, overrides) -> BaseChatModel:
         if not self.llm_instance:
             self.llm_instance = ChatAnthropic(
-                anthropic_api_key=self.get_api_key(),
-                model_name=self.get_current_model() or "claude-3-haiku-20240307",
+                anthropic_api_key=overrides.get("api_key", self.get_api_key()),
+                base_url=overrides.get("endpoint", None),
+                model_name=overrides.get("model", self.get_current_model() or "claude-3-haiku-20240307"),
                 temperature=self.config.get("temperature", DEFAULT_TEMPERATURE),
                 max_tokens=self.config.get("max_tokens", DEFAULT_MAX_TOKENS),
                 timeout=self.get_timeout(overrides)
@@ -225,6 +223,7 @@ class GeminiProvider(LLMProviderBase):
         if not self.llm_instance:
             self.llm_instance = ChatGoogleGenerativeAI(
                 google_api_key = overrides.get("api_key", self.get_api_key()),
+                google_api_base=overrides.get("endpoint", self.get_base_url()),
                 model = overrides.get("model", self.get_current_model() or "gemini-2.0-flash"),
                 temperature = overrides.get("temperature", self.config.get("temperature", DEFAULT_TEMPERATURE)),
                 max_output_tokens = overrides.get("max_tokens", self.config.get("max_tokens", DEFAULT_MAX_TOKENS)),
@@ -289,9 +288,7 @@ class OpenRouterProvider(LLMProviderBase):
             # OpenRouter uses the same API as OpenAI
             self.llm_instance = ChatOpenAI(
                 openai_api_key=overrides.get("api_key", self.get_api_key()),
-                openai_api_base= self.default_endpoint,
-#                openai_api_base=overrides.get("endpoint", self.get_base_url()),
-#                openai_api_base=overrides.get("endpoint", self.get_base_url()),
+                base_url=overrides.get("endpoint", self.get_base_url()),
                 model_name=overrides.get("model", self.get_current_model()),
                 temperature=overrides.get("temperature", self.config.get("temperature", DEFAULT_TEMPERATURE)),
                 max_tokens=overrides.get("max_tokens", self.config.get("max_tokens", DEFAULT_MAX_TOKENS)),
@@ -308,41 +305,43 @@ class TogetherAIProvider(LLMProviderBase):
     
     @property
     def default_endpoint(self) -> str:
-        return "https://api.together.xyz/v1/"
+        return "https://api.together.xyz/v1"
+    
+    @property
+    def model_requires_api_key(self) -> bool:
+        """Return whether the provider requires an API key."""
+        return True
     
     def get_llm_instance(self, overrides) -> BaseChatModel:
         if not self.llm_instance:
-            self.llm_instance = Together(
-                together_api_key=self.get_api_key(),
-                model_name=self.get_current_model(),
+            self.llm_instance = ChatTogether(
+                together_api_key=overrides.get("api_key", self.get_api_key()),
+                base_url=overrides.get("endpoint", self.get_base_url()),
+                model=overrides.get("model", self.get_current_model()),
                 temperature=self.config.get("temperature", DEFAULT_TEMPERATURE),
                 max_tokens=self.config.get("max_tokens", DEFAULT_MAX_TOKENS),
-                timeout=self.get_timeout(overrides)
             )
         return self.llm_instance
-    
+
     def get_available_models(self, do_refresh: bool = False) -> List[str]:
+        """Returns a list of available models from the provider."""
         if do_refresh or self.cached_models is None:
-            try:
-                response = requests.get(
-                    "https://api.together.xyz/models",
-                    headers={"Authorization": f"Bearer {self.get_api_key()}"}
-                )
-                if response.status_code == 200:
-                    models_data = response.json()
-                    self.cached_models = [
-                        model["name"] 
-                        for model in models_data 
-                        if model.get("task") == "text-generation"
-                    ]
-                else:
-                    self.cached_models = []
-            except Exception as e:
-                print(f"Error fetching Together AI models: {e}")
+            url = self.get_base_url()
+            if url[-1] != "/":
+                url += "/"
+            url += "models"
+            response = self._do_models_request(url)
+            if response.status_code == 200:
+                models_data = response.json()
+                self.cached_models = [model[self.model_key] for model in models_data]
+                self.cached_models.sort(reverse=self.use_reverse_sort)
+            else:
                 self.cached_models = []
+                    
+        if do_refresh and response.status_code != 200:
+            raise ResourceWarning(response.json().get("error"))
         return self.cached_models
-
-
+    
 class LMStudioProvider(LLMProviderBase):
     """LMStudio provider implementation."""
     
@@ -358,9 +357,9 @@ class LMStudioProvider(LLMProviderBase):
         if not self.llm_instance:
             # LMStudio uses the OpenAI-compatible API
             self.llm_instance = ChatOpenAI(
-                openai_api_key=self.get_api_key() or "not-needed",
-                openai_api_base=self.get_base_url() or "http://localhost:1234/v1",
-                model_name=self.get_current_model() or "local-model",
+                openai_api_key=overrides.get("api_key", self.get_api_key() or "not-needed"),
+                openai_api_base=overrides.get("endpoint", self.get_base_url()),
+                model_name=overrides.get("model", self.get_current_model() or "local-model"),
                 temperature=self.config.get("temperature", DEFAULT_TEMPERATURE),
                 max_tokens=self.config.get("max_tokens", DEFAULT_MAX_TOKENS),
                 request_timeout=self.get_timeout(overrides)

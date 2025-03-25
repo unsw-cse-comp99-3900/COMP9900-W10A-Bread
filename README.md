@@ -79,6 +79,7 @@ This project utilizes the following libraries:
 - textstat
 - tiktoken
 - BeautifulSoup4
+- wikipediaapi
 
 ## Contact
 

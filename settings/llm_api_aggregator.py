@@ -47,12 +47,12 @@ class LLMProviderBase(ABC):
     @property
     def model_list_key(self) -> str:
         """Return the key for the model name in the provider's json response."""
-        return "models"
+        return "data"
 
     @property
     def model_key(self) -> str:
         """Return the key for the model name in the provider's json response."""
-        return "name"
+        return "id"
     
     @property
     def model_requires_api_key(self) -> bool:
@@ -71,6 +71,9 @@ class LLMProviderBase(ABC):
     
     def _do_models_request(self, url: str, headers: Dict[str, str] = None) -> List[str]:
         """Send a request to the provider to fetch available models."""
+        headers = {
+            'Authorization': f'Bearer {self.get_api_key()}'
+        }
         return requests.get(url, headers=headers)
         
     
@@ -90,9 +93,12 @@ class LLMProviderBase(ABC):
                     self.cached_models.sort(reverse=self.use_reverse_sort)
                 else:
                     self.cached_models = []
+                    
             except Exception as e:
                 print(f"Error fetching {self.provider_name} models: {e}")
                 self.cached_models = []
+        if do_refresh and response.status_code != 200:
+            raise ResourceWarning(response.json().get("error"))
         return self.cached_models
 
     
@@ -163,7 +169,6 @@ class OpenAIProvider(LLMProviderBase):
             )
         return self.llm_instance
 
-
 class AnthropicProvider(LLMProviderBase):
     """Anthropic LLM provider implementation."""
     
@@ -185,16 +190,6 @@ class AnthropicProvider(LLMProviderBase):
         """Return whether to reverse the output of the model list."""
         return True
 
-    @property
-    def model_list_key(self) -> str:
-        """Return the key for the model name in the provider's json response."""
-        return "data"
-    
-    @property
-    def model_key(self) -> str:
-        """Return the key for the model name in the provider's json response."""
-        return "id"
-    
     def get_llm_instance(self, overrides) -> BaseChatModel:
         if not self.llm_instance:
             self.llm_instance = ChatAnthropic(
@@ -265,16 +260,6 @@ class OllamaProvider(LLMProviderBase):
     def default_endpoint(self) -> str:
         return "http://localhost:11434/v1/"
     
-    @property
-    def model_key(self) -> str:
-        """Return the key for the model name in the provider's json response."""
-        return "id"
-    
-    @property
-    def model_list_key(self) -> str:
-        """Return the key for the model name in the provider's json response."""
-        return "data"
-    
     def get_llm_instance(self, overrides) -> LLM:
         if not self.llm_instance:
             mymodel = overrides.get("model", self.get_current_model())
@@ -313,25 +298,6 @@ class OpenRouterProvider(LLMProviderBase):
                 request_timeout=self.get_timeout(overrides)
             )
         return self.llm_instance
-    
-    def get_available_models(self, do_refresh: bool = False) -> List[str]:
-        if do_refresh or self.cached_models is None:
-            try:
-                response = requests.get(
-                    "https://openrouter.ai/api/v1/models",
-                    headers={"Authorization": f"Bearer {self.get_api_key()}"}
-                )
-                if response.status_code == 200:
-                    models_data = response.json()
-                    self.cached_models = [model["id"] for model in models_data.get("data", [])]
-                    self.cached_models.sort()
-                else:
-                    self.cached_models = []
-            except Exception as e:
-                print(f"Error fetching OpenRouter models: {e}")
-                self.cached_models = []
-        return self.cached_models
-
 
 class TogetherAIProvider(LLMProviderBase):
     """Together AI provider implementation."""
@@ -400,22 +366,6 @@ class LMStudioProvider(LLMProviderBase):
                 request_timeout=self.get_timeout(overrides)
             )
         return self.llm_instance
-    
-    def get_available_models(self, do_refresh: bool = False) -> List[str]:
-        if do_refresh or self.cached_models is None:
-            try:
-                base_url = self.get_base_url() or "http://localhost:1234/v1"
-                response = requests.get(f"{base_url}/models")
-                if response.status_code == 200:
-                    models_data = response.json()
-                    self.cached_models = [model["id"] for model in models_data.get("data", [])]
-                else:
-                    self.cached_models = ["local-model"]
-            except Exception as e:
-                print(f"Error fetching LMStudio models: {e}")
-                self.cached_models = ["local-model"]
-        return self.cached_models
-
 
 class CustomProvider(LLMProviderBase):
     """Custom LLM provider implementation for local network tools."""
@@ -445,28 +395,6 @@ class CustomProvider(LLMProviderBase):
                 request_timeout=self.get_timeout(overrides)
             )
         return self.llm_instance
-    
-    def get_available_models(self, do_refresh: bool = False) -> List[str]:
-        if do_refresh or self.cached_models is None:
-            try:
-                response = requests.get(
-                    f"{self.get_base_url()}/models",
-                    headers={"Authorization": f"Bearer {self.get_api_key()}"}
-                )
-                if response.status_code == 200:
-                    models_data = response.json()
-                    self.cached_models = [model["id"] for model in models_data.get("data", [])]
-                else:
-                    if do_refresh:
-                        raise Exception(f"Error fetching Custom models: {response.text}")
-                    self.cached_models = ["custom-model"]
-            except Exception as e:
-                print(f"Error fetching custom models: {e}")
-                if do_refresh:
-                    raise e
-                self.cached_models = ["custom-model"]
-        return self.cached_models
-
 
 class WW_Aggregator:
     """Main aggregator class for managing LLM providers."""

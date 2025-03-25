@@ -1,5 +1,5 @@
 import json
-import os
+import os, re
 import copy
 import logging
 from typing import Any, Dict, Optional, List, Union
@@ -513,6 +513,13 @@ class SettingsManager:
         except Exception as e:
             self.logger.error(f"Error importing settings: {str(e)}")
             return False
+
+    def sanitize(self, text):
+        return re.sub(r'\W+', '', text)    
+    
+    def get_project_path(self, project_name = "", file = ""):
+        """Return the path to the project directory and desanitze any filename therein."""
+        return os.path.join(os.getcwd(), "Projects", self.sanitize(project_name), file)
 
 WWSettingsManager = SettingsManager()
 

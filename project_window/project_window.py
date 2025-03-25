@@ -13,7 +13,7 @@ from .bottom_stack import BottomStack
 from .focus_mode import FocusMode
 from .rewrite_feature import RewriteDialog
 from util.tts_manager import WW_TTSManager
-from . import summary_feature
+from .summary_feature import SummaryCreator
 from compendium.compendium_panel import CompendiumPanel
 from settings.backup_manager import show_backup_dialog
 from settings.llm_worker import LLMWorker
@@ -439,9 +439,8 @@ class ProjectWindow(QMainWindow):
         self.model.unsaved_changes = True
 
     def create_summary(self):
-        dialog = CreateSummaryDialog("Enter your summarizer prompt here...", self)
-        if dialog.exec_() == QDialog.Accepted:
-            summary_feature.create_summary(self)
+        summary_creator = SummaryCreator(self)
+        summary_creator.create_summary()
 
     def save_summary(self):
         current_item = self.project_tree.tree.currentItem()

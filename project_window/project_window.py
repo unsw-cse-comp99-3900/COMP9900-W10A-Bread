@@ -21,6 +21,7 @@ from settings.theme_manager import ThemeManager
 from workshop.workshop import WorkshopWindow
 from .dialogs import CreateSummaryDialog
 from util.text_analysis_gui import TextAnalysisApp
+from util.wikidata_dialog import WikidataDialog
 from muse.prompts import PromptsWindow
 import muse.prompt_handler as prompt_handler
 
@@ -523,6 +524,10 @@ class ProjectWindow(QMainWindow):
         current_text = self.scene_editor.editor.toPlainText()
         self.analysis_editor_window = TextAnalysisApp(parent=self, initial_text=current_text, save_callback=self.analysis_save_callback)
         self.analysis_editor_window.show()
+        
+    def open_wikidata_search(self):
+        self.wikidata_dialog = WikidataDialog(self)
+        self.wikidata_dialog.show()
 
     def analysis_save_callback(self, updated_text):
         self.scene_editor.editor.setPlainText(updated_text)

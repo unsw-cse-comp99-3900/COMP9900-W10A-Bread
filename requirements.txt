@@ -6,6 +6,7 @@ langchain-anthropic
 langchain-google-genai
 langchain-ollama
 langchain-community
+langchain-together
 numpy==1.24.0
 pydantic==2.9.2
 PyQt5>=5.15.0

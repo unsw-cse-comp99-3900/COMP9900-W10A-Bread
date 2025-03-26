@@ -15,7 +15,7 @@ DEBUG = False
 # ENHANCED COMPENDIUM CLASS #
 #############################
 class EnhancedCompendiumWindow(QMainWindow):
-    def __init__(self, project_name="My First Project", parent=None):
+    def __init__(self, project_name="default", parent=None):
         super().__init__(parent)
         self.ignore_item_change = False
         self.dirty = False
@@ -76,19 +76,35 @@ class EnhancedCompendiumWindow(QMainWindow):
         projects_path = os.path.join(os.getcwd(), "Projects")
         if not os.path.exists(projects_path):
             os.makedirs(projects_path)
+        # Get all project folders
         projects = [d for d in os.listdir(projects_path) if os.path.isdir(os.path.join(projects_path, d))]
+        
+        # If there are other projects and "default" is among them, remove it.
+        if projects and len(projects) > 1 and "default" in projects:
+            projects.remove("default")
+        
+        # Block signals during update
+        self.project_combo.blockSignals(True)
         self.project_combo.clear()
+        
         if projects:
             self.project_combo.addItems(projects)
+            # If self.project_name isn’t in the list, use the first project from the folder.
+            index = self.project_combo.findText(self.project_name)
+            if index < 0:
+                self.project_combo.setCurrentIndex(0)
+                self.project_name = self.project_combo.currentText()
+            else:
+                self.project_combo.setCurrentIndex(index)
         else:
-            self.project_combo.addItem("My First Project")
-        index = self.project_combo.findText(self.project_name)
-        if index >= 0:
-            self.project_combo.setCurrentIndex(index)
-        else:
+            # If there are no project folders, fall back to "default"
+            self.project_combo.addItem("default")
             self.project_combo.setCurrentIndex(0)
-            self.project_name = self.project_combo.currentText()
+            self.project_name = "default"
+        
+        self.project_combo.blockSignals(False)
         self.project_combo.currentTextChanged.connect(self.on_project_combo_changed)
+        self.setWindowTitle(f"Enhanced Compendium - {self.project_name}")
     
     def on_project_combo_changed(self, new_project):
         """Update the project and reload the compendium when a different project is selected."""
@@ -265,7 +281,7 @@ class EnhancedCompendiumWindow(QMainWindow):
             elif "entries" not in self.compendium_data["extensions"]:
                 self.compendium_data["extensions"]["entries"] = {}
             
-            # Populate tree view from categories
+            # Populate tree view from categories and set entry colors
             for cat in self.compendium_data.get("categories", []):
                 cat_item = QTreeWidgetItem(self.tree, [cat.get("name", "Unnamed Category")])
                 cat_item.setData(0, Qt.UserRole, "category")
@@ -274,6 +290,14 @@ class EnhancedCompendiumWindow(QMainWindow):
                     entry_item = QTreeWidgetItem(cat_item, [entry_name])
                     entry_item.setData(0, Qt.UserRole, "entry")
                     entry_item.setData(1, Qt.UserRole, entry.get("content", ""))
+                    # Set the entry color based on the first tag if available
+                    if entry_name in self.compendium_data["extensions"]["entries"]:
+                        extended_data = self.compendium_data["extensions"]["entries"][entry_name]
+                        tags = extended_data.get("tags", [])
+                        if tags:
+                            first_tag = tags[0]
+                            tag_color = first_tag["color"] if isinstance(first_tag, dict) else "#000000"
+                            entry_item.setForeground(0, QBrush(QColor(tag_color)))
                 cat_item.setExpanded(True)
             self.update_relation_combo()
             

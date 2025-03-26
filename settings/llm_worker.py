@@ -1,7 +1,4 @@
-import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTextEdit, QPushButton, QVBoxLayout, QWidget
 from PyQt5.QtCore import QThread, pyqtSignal
-
 from .llm_api_aggregator import WWApiAggregator
 
 class LLMWorker(QThread):

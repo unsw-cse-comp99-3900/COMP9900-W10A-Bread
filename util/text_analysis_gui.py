@@ -26,7 +26,10 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 # Dictionary of languages and corresponding module names.
 LANGUAGES = {
     "English": "text_analysis",
-    "Polish": "text_analysis_pl"
+    "Polski": "text_analysis_pl",
+    "Français": "text_analysis_fr",
+    "Español": "text_analysis_es",
+    "Deutsch": "text_analysis_de"
 }
 
 GENRE_TARGET_GRADES = {
@@ -317,6 +320,7 @@ class TextAnalysisApp(QWidget):
         """
         Switches the text analysis module based on the selected language.
         After successful model loading, it updates the tooltip translations.
+        Supports English, Polish, French, Spanish, and German.
         """
         self.current_language = language
         module_name = LANGUAGES.get(language, "text_analysis")
@@ -330,11 +334,48 @@ class TextAnalysisApp(QWidget):
                     self.results_label.setText(f"The model for {language} is downloading, please wait...")
                 else:
                     self.results_label.setText(f"Language switched to {language}")
-                # Update tooltips from the language module.
+                # Update tooltips from the language module
+                if hasattr(self.analysis_instance, "get_tooltips"):
+                    translated_tooltips = self.analysis_instance.get_tooltips()
+                    self.set_tooltips(translated_tooltips)
+            elif module_name == "text_analysis_fr":
+                import util.text_analysis_fr as fr_module
+                self.current_module = fr_module
+                self.analysis_instance = fr_module.FrenchTextAnalysis()
+                self.analysis_instance.model_loaded.connect(self.on_model_loaded)
+                if not self.analysis_instance.initialize():
+                    self.results_label.setText(f"The model for {language} is downloading, please wait...")
+                else:
+                    self.results_label.setText(f"Language switched to {language}")
+                if hasattr(self.analysis_instance, "get_tooltips"):
+                    translated_tooltips = self.analysis_instance.get_tooltips()
+                    self.set_tooltips(translated_tooltips)
+            elif module_name == "text_analysis_es":
+                import util.text_analysis_es as es_module
+                self.current_module = es_module
+                self.analysis_instance = es_module.SpanishTextAnalysis()
+                self.analysis_instance.model_loaded.connect(self.on_model_loaded)
+                if not self.analysis_instance.initialize():
+                    self.results_label.setText(f"The model for {language} is downloading, please wait...")
+                else:
+                    self.results_label.setText(f"Language switched to {language}")
+                if hasattr(self.analysis_instance, "get_tooltips"):
+                    translated_tooltips = self.analysis_instance.get_tooltips()
+                    self.set_tooltips(translated_tooltips)
+            elif module_name == "text_analysis_de":
+                import util.text_analysis_de as de_module
+                self.current_module = de_module
+                self.analysis_instance = de_module.GermanTextAnalysis()
+                self.analysis_instance.model_loaded.connect(self.on_model_loaded)
+                if not self.analysis_instance.initialize():
+                    self.results_label.setText(f"The model for {language} is downloading, please wait...")
+                else:
+                    self.results_label.setText(f"Language switched to {language}")
                 if hasattr(self.analysis_instance, "get_tooltips"):
                     translated_tooltips = self.analysis_instance.get_tooltips()
                     self.set_tooltips(translated_tooltips)
             else:
+                # Default to English
                 import util.text_analysis as text_analysis
                 self.current_module = text_analysis
                 self.analysis_instance = text_analysis.EnglishTextAnalysis()

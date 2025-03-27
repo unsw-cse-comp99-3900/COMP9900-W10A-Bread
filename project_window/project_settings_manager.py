@@ -2,12 +2,14 @@
 import os
 import json
 
+from settings.settings_manager import WWSettingsManager
+
 PROJECT_SETTINGS_FILE = "project_settings.json"
 
 def load_project_settings(project_name):
     """Load settings for the given project."""
     settings = {}
-    filepath = os.path.join(os.getcwd(), "Projects", PROJECT_SETTINGS_FILE)
+    filepath = WWSettingsManager.get_project_path(file=PROJECT_SETTINGS_FILE)
     if not os.path.exists(filepath): # backward compatibility
         oldpath = os.path.join(os.getcwd(), PROJECT_SETTINGS_FILE)
         if os.path.exists(oldpath):
@@ -25,7 +27,7 @@ def load_project_settings(project_name):
 def save_project_settings(project_name, project_settings):
     """Save the given settings for the project."""
     settings = {}
-    filepath = os.path.join(os.getcwd(), "Projects", PROJECT_SETTINGS_FILE)
+    filepath = WWSettingsManager.get_project_path(file=PROJECT_SETTINGS_FILE)
     if os.path.exists(filepath):
         try:
             with open(filepath, "r", encoding="utf-8") as f:

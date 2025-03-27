@@ -90,7 +90,7 @@ class EnhancedCompendiumWindow(QMainWindow):
         if projects:
             self.project_combo.addItems(projects)
             # If self.project_name isn’t in the list, use the first project from the folder.
-            index = self.project_combo.findText(self.project_name)
+            index = self.project_combo.findText(self.sanitize(self.project_name))
             if index < 0:
                 self.project_combo.setCurrentIndex(0)
                 self.project_name = self.project_combo.currentText()

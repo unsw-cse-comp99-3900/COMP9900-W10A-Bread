@@ -7,13 +7,14 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from settings.llm_worker import LLMWorker
+from settings.settings_manager import WWSettingsManager
 
 def get_rewrite_prompts(project_name):
     """
     Load the 'Rewrite' prompts for the given project from its prompts JSON file.
     The file is assumed to be named as: prompts_<projectname_no_spaces>.json
     """
-    prompts_file = "prompts.json"
+    prompts_file = WWSettingsManager.get_project_path(file="prompts.json")
     if os.path.exists(prompts_file):
         try:
             with open(prompts_file, "r", encoding="utf-8") as f:

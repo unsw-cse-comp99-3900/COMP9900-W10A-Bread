@@ -9,6 +9,7 @@ from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from project_window.project_window import ProjectWindow
 from settings.preferences import SettingsDialog
+from settings.settings_manager import WWSettingsManager
 
 # Define the file used for storing project data.
 PROJECTS_FILE = "projects.json"
@@ -31,10 +32,6 @@ def load_version():
 # Load settings at module level.
 VERSION = load_version()
 
-def get_project_path(project_name = ""):
-    """Return the path to the project directory."""
-    sanitized = project_name.replace(" ", "")
-    return os.path.join(os.getcwd(), "Projects", sanitized)
 
 def load_projects():
     """Load project data from a JSON file. If the file does not exist, return default projects."""
@@ -140,7 +137,7 @@ class ProjectPostIt(QToolButton):
                 
                 # Project name from the workbench
                 project_name = self.project['name']
-                project_path = get_project_path(project_name)
+                project_path = WWSettingsManager.get_project_path(project_name)
                 
                 # Print debugging info
                 print(f"Looking for project: {project_name}")
@@ -164,7 +161,7 @@ class ProjectPostIt(QToolButton):
                     from PyQt5.QtWidgets import QFileDialog
                     
                     # Set the initial directory to the Projects folder if it exists
-                    initial_dir = get_project_path() 
+                    initial_dir = WWSettingsManager.get_project_path() 
                     if not os.path.exists(initial_dir):
                         initial_dir = os.getcwd()
                     
@@ -212,7 +209,7 @@ class ProjectPostIt(QToolButton):
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Select Book Cover", "", "Image Files (*.png *.jpg *.jpeg *.bmp)"
         )
-        destination_path = get_project_path(self.project["name"])
+        destination_path = WWSettingsManager.get_project_path(self.project["name"])
         if not destination_path:
             os.makedirs(destination_path, exist_ok=True)
         if file_path and os.path.dirname(file_path) != destination_path:

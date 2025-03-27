@@ -18,7 +18,7 @@ def get_workshop_prompts(project_name):
     If the file is missing or fails to load, returns a dummy prompt.
     """
     
-    filepath = os.path.join(os.getcwd(), "Projects", "prompts.json")
+    filepath = WWSettingsManager.get_project_path(file="prompts.json")
     if not os.path.exists(filepath):
         oldpath = os.path.join(os.getcwd(), "prompts.json") # backward compatibility
         if os.path.exists(oldpath):
@@ -43,7 +43,7 @@ def load_project_options(project_name):
     """Load project options to inject dynamic values into default prompts."""
     options = {}
     PROJECT_SETTINGS_FILE = "project_settings.json"
-    filepath = os.path.join(os.getcwd(), "Projects", PROJECT_SETTINGS_FILE)
+    filepath = WWSettingsManager.get_project_path(file=PROJECT_SETTINGS_FILE)
     if not os.path.exists(filepath):
         oldpath = os.path.join(os.getcwd(), PROJECT_SETTINGS_FILE) # backward compatibility
         if (os.path.exists(oldpath)):
@@ -66,8 +66,8 @@ class PromptsWindow(QDialog):
         self.resize(800, 600)  # Made window larger
 
         # Define file names to use global prompts file
-        self.prompts_file = os.path.join(os.getcwd(), "Projects", "prompts.json")
-        self.backup_file = os.path.join(os.getcwd(), "Projects", "prompts.bak.json")
+        self.prompts_file = WWSettingsManager.get_project_path(file="prompts.json")
+        self.backup_file = WWSettingsManager.get_project_path(file="prompts.bak.json")
 
         # Default categories
         self.default_categories = ["Workshop", "Summary", "Prose", "Rewrite"]

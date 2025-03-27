@@ -4,11 +4,12 @@ import json
 import re
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 from PyQt5.QtCore import Qt
+from settings.settings_manager import WWSettingsManager
 
 def get_structure_file_path(project_name, backward_compat=False):
     """Return the path to the project-specific structure file."""
     sanitized = re.sub(r'\s+', '', project_name)
-    path = os.path.join(os.getcwd(), "Projects", f"{sanitized}", f"{sanitized}_structure.json")
+    path = WWSettingsManager.get_project_path(file=sanitized + '_structure.json')
     if backward_compat and not os.path.exists(path):
         oldpath = os.path.join(os.getcwd(), f"{sanitized}_structure.json")
         if os.path.exists(oldpath):

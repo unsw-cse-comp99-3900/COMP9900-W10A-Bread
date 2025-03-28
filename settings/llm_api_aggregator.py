@@ -201,12 +201,14 @@ class AnthropicProvider(LLMProviderBase):
     
     def _do_models_request(self, url: str, headers: Dict[str, str] = None) -> List[str]:
         """Send a request to the provider to fetch available models."""
-        headers = {
-            'x-api-key': self.get_api_key(),
-            'anthropic-version': '2023-06-01',
+        default_headers = {
+            "x-api-key": self.get_api_key(),
+            "anthropic-version": '2023-06-01'
 #            'Authorization': f'Bearer {self.get_api_key()}',
         }
-        return requests.get(url, headers=headers)
+        if headers:
+            default_headers.update(headers)
+        return requests.get(url, headers=default_headers)
 
 class GeminiProvider(LLMProviderBase):
     """Google Gemini provider implementation."""
@@ -219,6 +221,26 @@ class GeminiProvider(LLMProviderBase):
     def default_endpoint(self) -> str:
         return "https://generativelanguage.googleapis.com/v1beta/"
     
+    @property
+    def model_requires_api_key(self) -> bool:
+        """Return whether the provider requires an API key."""
+        return True
+    
+    @property
+    def model_list_key(self) -> str:
+        """Return the key for the model name in the provider's json response."""
+        return "models"
+
+    @property
+    def model_key(self) -> str:
+        """Return the key for the model name in the provider's json response."""
+        return "name"
+    
+    @property
+    def use_reverse_sort(self) -> bool:
+        """Return whether to reverse the output of the model list."""
+        return True
+    
     def get_llm_instance(self, overrides) -> BaseChatModel:
         if not self.llm_instance:
             self.llm_instance = ChatGoogleGenerativeAI(
@@ -230,24 +252,16 @@ class GeminiProvider(LLMProviderBase):
                 timeout = self.get_timeout(overrides)
             )
         return self.llm_instance
+
+    def _do_models_request(self, url: str, headers: Dict[str, str] = None) -> List[str]:
+        """Send a request to the provider to fetch available models."""
+
+        api_key = self.get_api_key()
+        if api_key:
+            url += f"?key={api_key}"
+
+        return requests.get(url, headers=headers)
     
-    def get_available_models(self, do_refresh: bool = False) -> List[str]:
-        if do_refresh or self.cached_models is None:
-            try:
-                # Google does not provide a public API to fetch models
-                self.cached_models = [
-                    "gemini-2.0-flash",
-                    "gemini-2.0-flash-lite",
-                    "gemini-1.5-pro",
-                    "gemini-1.5-flash",
-                    "gemini-1.0-pro"
-                ]
-            except Exception as e:
-                print(f"Error fetching Gemini models: {e}")
-                self.cached_models = []
-        return self.cached_models
-
-
 class OllamaProvider(LLMProviderBase):
     """Ollama LLM provider implementation."""
     

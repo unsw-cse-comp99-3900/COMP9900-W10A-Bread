@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QStackedWidget, QHBoxLayout, QPushButton, QTextEdit, QComboBox, QLabel, QCheckBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QStackedWidget, QHBoxLayout, QPushButton, QTextEdit, QComboBox, QLabel, QCheckBox, QSizePolicy
 from PyQt5.QtGui import QColor
 from .focus_mode import PlainTextEdit
 from .context_panel import ContextPanel
@@ -66,7 +66,7 @@ class BottomStack(QWidget):
         left_layout.setContentsMargins(0, 0, 0, 0)
         self.prompt_input = PlainTextEdit()
         self.prompt_input.setPlaceholderText("Enter your action beats here...")
-        self.prompt_input.setMinimumHeight(100)
+        self.prompt_input.setFixedHeight(100)
         self.prompt_input.textChanged.connect(self.controller.on_prompt_input_text_changed)
         left_layout.addWidget(self.prompt_input)
 
@@ -76,22 +76,32 @@ class BottomStack(QWidget):
         self.prompt_dropdown.addItem("Select Prose Prompt")
         self.prompt_dropdown.currentIndexChanged.connect(self.controller.prompt_dropdown_changed)
         buttons_layout.addWidget(self.prompt_dropdown)
+
+        self.preview_button = QPushButton()
+        self.preview_button.setIcon(self.controller.get_tinted_icon("assets/icons/eye.svg", self.tint_color))
+        self.preview_button.setToolTip("Preview the final prompt")
+        self.preview_button.clicked.connect(self.controller.preview_prompt)
+        buttons_layout.addWidget(self.preview_button)
+
         self.send_button = QPushButton()
         self.send_button.setIcon(self.controller.get_tinted_icon("assets/icons/send.svg", self.tint_color))
         self.send_button.setToolTip("Sends the action beats to the LLM")
         self.send_button.clicked.connect(self.controller.send_prompt)
         buttons_layout.addWidget(self.send_button)
+
         self.stop_button = QPushButton()
         self.stop_button.setIcon(self.controller.get_tinted_icon("assets/icons/x-octagon.svg", self.tint_color))
         self.stop_button.setToolTip("Stop the LLM processing")
         self.stop_button.clicked.connect(self.controller.stop_llm)
         buttons_layout.addWidget(self.stop_button)
+
         self.context_toggle_button = QPushButton()
         self.context_toggle_button.setIcon(self.controller.get_tinted_icon("assets/icons/book.svg", self.tint_color))
         self.context_toggle_button.setToolTip("Toggle context panel")
         self.context_toggle_button.setCheckable(True)
         self.context_toggle_button.clicked.connect(self.controller.toggle_context_panel)
         buttons_layout.addWidget(self.context_toggle_button)
+
         self.model_indicator = QLabel("")
         self.model_indicator.setStyleSheet("font-weight: bold; padding-left: 10px;")
         self.model_indicator.setToolTip("Selected prompt's model")
@@ -101,6 +111,7 @@ class BottomStack(QWidget):
 
         self.context_panel = ContextPanel(self.model.structure, self.model.project_name)
         self.context_panel.setVisible(False)
+        left_container.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         action_layout.addWidget(left_container, stretch=2)
         action_layout.addWidget(self.context_panel, stretch=1)
 

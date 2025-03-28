@@ -1,8 +1,9 @@
 import os
 import time
 import json
+import tiktoken
 
-from PyQt5.QtWidgets import QMainWindow, QSplitter, QLabel, QShortcut, QMessageBox, QInputDialog, QMenu, QDialog
+from PyQt5.QtWidgets import QMainWindow, QSplitter, QLabel, QShortcut, QMessageBox, QInputDialog, QApplication, QDialog
 from PyQt5.QtCore import Qt, QTimer, QSettings, pyqtSlot
 from PyQt5.QtGui import QIcon, QColor, QTextCharFormat, QFont, QTextCursor, QPixmap, QPainter, QKeySequence
 from .project_model import ProjectModel
@@ -17,12 +18,15 @@ from .summary_feature import SummaryCreator
 from compendium.compendium_panel import CompendiumPanel
 from settings.backup_manager import show_backup_dialog
 from settings.llm_worker import LLMWorker
+from settings.settings_manager import WWSettingsManager
 from settings.theme_manager import ThemeManager
 from workshop.workshop import WorkshopWindow
 from .dialogs import CreateSummaryDialog
 from util.text_analysis_gui import TextAnalysisApp
 from util.wikidata_dialog import WikidataDialog
 from muse.prompts import PromptsWindow
+from muse.prompt_preview_dialog import PromptPreviewDialog
+from .token_limit_dialog import TokenLimitDialog
 import muse.prompt_handler as prompt_handler
 
 
@@ -348,7 +352,7 @@ class ProjectWindow(QMainWindow):
     def populate_prompt_dropdown(self):
         prose_prompts = []
         # TODO: Move prompt loading to the prompt handler module
-        prompts_file = os.path.join(os.getcwd(), "Projects", "prompts.json")
+        prompts_file = WWSettingsManager.get_project_path(file="prompts.json")
         if (not os.path.exists(prompts_file)):
             oldfile = os.path.join(os.getcwd(), "prompts.json") #backward compatiblity
             if os.path.exists(oldfile):
@@ -385,34 +389,142 @@ class ProjectWindow(QMainWindow):
         self.current_prose_config = selected_prompt
         self.bottom_stack.model_indicator.setText(f"[Model: {selected_prompt.get('model', 'Unknown')}]")
 
+    def preview_prompt(self):
+        action_beats = self.bottom_stack.prompt_input.toPlainText().strip()
+        if not action_beats:
+            QMessageBox.warning(self, "Preview Prompt", "Please enter some action beats to preview.")
+            return
+        
+        prompt_config = self.current_prose_config or {
+            "text": "You are collaborating with the author to write a scene. Write the scene in {pov} point of view, from the perspective of {pov_character}, and in {tense}.",
+            "provider": "Local",
+            "model": "Local Model",
+            "max_tokens": 200,
+            "temperature": 0.7,
+            "variables": ["pov", "pov_character", "tense"]
+        }
+        
+        additional_vars = {
+            "pov": self.model.settings["global_pov"] or "Third Person",
+            "pov_character": self.model.settings["global_pov_character"] or "Character",
+            "tense": self.model.settings["global_tense"] or "Present Tense",
+        }
+        
+        current_scene_text = self.scene_editor.editor.toPlainText().strip() if self.project_tree.tree.currentItem() and self.project_tree.get_item_level(self.project_tree.tree.currentItem()) >= 2 else None
+        extra_context = self.bottom_stack.context_panel.get_selected_context_text()
+        
+        # Show the preview dialog
+        dialog = PromptPreviewDialog(prompt_config, action_beats, additional_vars, current_scene_text, extra_context, self)
+        dialog.exec_()
+
     def send_prompt(self):
         action_beats = self.bottom_stack.prompt_input.toPlainText().strip()
         if not action_beats:
             QMessageBox.warning(self, "LLM Prompt", "Please enter some action beats before sending.")
             return
-        prose_prompt = self.current_prose_prompt or "You are collaborating with the author to write a scene. Write the scene in {pov} point of view, from the perspective of {pov_character}, and in {tense}."
-        pov = self.model.settings["global_pov"] or "Third Person"
-        pov_character = self.model.settings["global_pov_character"] or "Character"
-        tense = self.model.settings["global_tense"] or "Present Tense"
-        overrides = self.current_prose_config or {"provider": "Local", "model": "Local Model", "max_tokens": 200, "temperature": 0.7}
+        
+        overrides = self.current_prose_config
+        
+        prompt_config = self.current_prose_config or {
+            "text": "You are collaborating with the author to write a scene. Write the scene in {pov} point of view, from the perspective of {pov_character}, and in {tense}.",
+            "provider": "Local",
+            "model": "Local Model",
+            "max_tokens": 200,
+            "temperature": 0.7,
+            "variables": ["pov", "pov_character", "tense"]
+        }
+        
+        additional_vars = {
+            "pov": self.model.settings["global_pov"] or "Third Person",
+            "pov_character": self.model.settings["global_pov_character"] or "Character",
+            "tense": self.model.settings["global_tense"] or "Present Tense",
+            # Add more ad-hoc tags here if needed, e.g., "assistant": "Grok"
+        }
+        
         current_scene_text = self.scene_editor.editor.toPlainText().strip() if self.project_tree.tree.currentItem() and self.project_tree.get_item_level(self.project_tree.tree.currentItem()) >= 2 else None
         extra_context = self.bottom_stack.context_panel.get_selected_context_text()
-        final_prompt = prompt_handler.assemble_final_prompt(action_beats, prose_prompt, pov, pov_character, tense, current_scene_text, extra_context)
+        
+        final_prompt = prompt_handler.assemble_final_prompt(prompt_config, action_beats, additional_vars, current_scene_text, extra_context)
+        
         self.bottom_stack.preview_text.clear()
         self.bottom_stack.send_button.setEnabled(False)
-        from PyQt5.QtWidgets import QApplication
+        self.bottom_stack.preview_text.setReadOnly(True) # User clicks can really mess up the text inserts
         QApplication.processEvents()
         self.worker = LLMWorker(final_prompt, overrides)
         self.worker.data_received.connect(self.update_text)
         self.worker.finished.connect(self.on_finished)
+        self.worker.token_limit_exceeded.connect(self.handle_token_limit_error)
         self.worker.start()
 
+
+    def handle_token_limit_error(self, error_msg):
+        self.bottom_stack.send_button.setEnabled(True)
+        current_item = self.project_tree.tree.currentItem()
+        level = self.project_tree.get_item_level(current_item) if current_item else -1
+        
+        # Step 1: Check for existing summary
+        if current_item and level < 2 and current_item.data(0, Qt.UserRole).get("summary"):
+            summary = current_item.data(0, Qt.UserRole)["summary"]
+            self.retry_with_summary(summary)
+            return
+        
+        # Step 2: Auto-generate summary
+        self.statusBar().showMessage("Generating summary to fit token limit…")
+        summary_creator = SummaryCreator(self)
+        summary_creator.create_summary()  # This updates scene_editor.editor
+        QTimer.singleShot(1000, lambda: self.retry_with_auto_summary())
+
+    def retry_with_summary(self, summary):
+        additional_vars = {
+            "pov": self.model.settings["global_pov"] or "Third Person",
+            "pov_character": self.model.settings["global_pov_character"] or "Character",
+            "tense": self.model.settings["global_tense"] or "Present Tense",
+            # Add more ad-hoc tags here if needed, e.g., "assistant": "Grok"
+        }
+        action_beats = self.bottom_stack.prompt_input.toPlainText().strip()
+        final_prompt = prompt_handler.assemble_final_prompt(
+            self.current_prose_prompt,
+            action_beats, additional_vars,
+            summary,  # Use summary instead of full story
+            None
+        )
+        self.bottom_stack.preview_text.clear()
+        self.bottom_stack.preview_text.setReadOnly(True) # User clicks can really mess up the text inserts
+        self.worker = LLMWorker(final_prompt, self.current_prose_config)
+        self.worker.data_received.connect(self.update_text)
+        self.worker.finished.connect(self.on_finished)
+        self.worker.token_limit_exceeded.connect(self.show_token_limit_dialog)
+        self.worker.start()
+
+    def retry_with_auto_summary(self):
+        summary = self.scene_editor.editor.toPlainText().strip()
+        self.bottom_stack.preview_text.setPlainText(summary)  # Show for editing
+        self.statusBar().showMessage("Summary generated. Edit if needed, then resend.")
+        # User can hit "Send" again after tweaking
+
+    def show_token_limit_dialog(self, error_msg):
+        max_tokens = self.current_prose_config.get("max_tokens", 2000)
+        dialog = TokenLimitDialog(error_msg, self.bottom_stack.preview_text.toPlainText(), max_tokens, parent=self)
+        dialog.use_summary.connect(self.retry_with_summary)
+        dialog.truncate_story.connect(self.retry_with_truncated_story)
+        dialog.exec_()
+
+    def retry_with_truncated_story(self):
+        full_text = self.scene_editor.editor.toPlainText()
+        tokens = tiktoken.get_encoding("cl100k_base").encode(full_text)
+        max_tokens = self.current_prose_config.get("max_tokens", 2000) * 0.5  # Use half for safety
+        truncated = self.encoding.decode(tokens[-int(max_tokens):])
+        self.retry_with_summary(truncated)
+
     def update_text(self, text):
+        cursor = self.bottom_stack.preview_text.textCursor()
+        cursor.movePosition(QTextCursor.End)  # Move cursor to the end
+        self.bottom_stack.preview_text.setTextCursor(cursor)
         self.bottom_stack.preview_text.insertPlainText(text)
-        self.bottom_stack.preview_text.setReadOnly(False)
 
     def on_finished(self):
         self.bottom_stack.send_button.setEnabled(True)
+        self.bottom_stack.preview_text.setReadOnly(False)
         if not self.bottom_stack.preview_text.toPlainText().strip():
             QMessageBox.warning(self, "LLM Response", "The LLM did not return any text. Possible token limit reached or an error occurred.")
 
@@ -420,6 +532,7 @@ class ProjectWindow(QMainWindow):
         if hasattr(self, 'worker') and self.worker.isRunning():
             self.worker.terminate()
         self.bottom_stack.send_button.setEnabled(True)
+        self.bottom_stack.preview_text.setReadOnly(False)
 
     def apply_preview(self):
         preview = self.bottom_stack.preview_text.toPlainText().strip()
@@ -579,7 +692,7 @@ class ProjectWindow(QMainWindow):
             self.bottom_stack.context_toggle_button.setIcon(self.get_tinted_icon("assets/icons/book-open.svg"))
 
     def update_pov_character_dropdown(self):
-        compendium_path = os.path.join(os.getcwd(), "Projects", self.model.sanitize(self.model.project_name), "compendium.json")
+        compendium_path = WWSettingsManager.get_project_path(self.model.project_name, "compendium.json")
         characters = []
         if os.path.exists(compendium_path):
             try:
@@ -616,7 +729,7 @@ class ProjectWindow(QMainWindow):
         self.model.unsaved_changes = True
 
     def load_prompt_input(self):
-        prompt_input_file = os.path.join(os.getcwd(), "Projects", self.model.sanitize(self.model.project_name), "action-beat.txt")
+        prompt_input_file = WWSettingsManager.get_project_path(self.model.project_name, "action-beat.txt")
         if os.path.exists(prompt_input_file):
             try:
                 with open(prompt_input_file, "r", encoding="utf-8") as f:
@@ -634,7 +747,7 @@ class ProjectWindow(QMainWindow):
             self.prompt_input_timer.start(5000)  # 5 seconds
 
     def save_prompt_input(self):
-        project_folder = os.path.join(os.getcwd(), "Projects", self.model.sanitize(self.model.project_name))
+        project_folder = WWSettingsManager.get_project_path(self.model.project_name)
         os.makedirs(project_folder, exist_ok=True)
         prompt_input_file = os.path.join(project_folder, "action-beat.txt")
         try:

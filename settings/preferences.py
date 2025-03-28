@@ -70,7 +70,7 @@ UI_LABELS = {
 }
 
 # Placeholder for available languages
-LANGUAGES = ["en", "de", "es", "fr", "pt", "pl", "ja", "zh", "ko"]
+LANGUAGES = ["en", "de", "es", "fr", "pt", "pl", "ru", "ja", "zh", "ko"]
 
 class ProviderDialog(QDialog):
     def __init__(self, parent=None, provider_name=None, provider_data=None, providers=None, labels=None, is_default=False):

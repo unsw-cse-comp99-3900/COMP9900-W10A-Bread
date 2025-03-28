@@ -210,8 +210,7 @@ class ProjectPostIt(QToolButton):
             self, "Select Book Cover", "", "Image Files (*.png *.jpg *.jpeg *.bmp)"
         )
         destination_path = WWSettingsManager.get_project_path(self.project["name"])
-        if not destination_path:
-            os.makedirs(destination_path, exist_ok=True)
+        os.makedirs(destination_path, exist_ok=True)
         if file_path and os.path.dirname(file_path) != destination_path:
             file_path = os.path.relpath(shutil.copy2(file_path, destination_path))
         if file_path:

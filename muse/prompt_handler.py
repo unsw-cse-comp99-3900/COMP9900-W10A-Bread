@@ -1,30 +1,82 @@
 # prompt_handler.py
 import json
 import os
+
+from langchain.prompts import PromptTemplate
 from settings.llm_api_aggregator import WWApiAggregator
 
-def build_final_prompt(action_beats, prose_prompt, pov, pov_character, tense):
-    final_prompt = prose_prompt.format(pov=pov, pov_character=pov_character, tense=tense)
-    final_prompt += "\n" + action_beats
+
+def assemble_final_prompt(prompt_config, user_input, additional_vars=None, current_scene_text=None, extra_context=None):
+    """
+    Assemble a final prompt using a configurable PromptTemplate.
+    
+    Args:
+        prompt_config (dict): Configuration from prompts.json with 'text' and optional 'variables'.
+        user_input (str): The user's input (e.g., action beats).
+        additional_vars (dict, optional): Extra variables to inject (e.g., {'pov': 'First Person'}).
+        current_scene_text (str, optional): Current scene content.
+        extra_context (str, optional): Additional context from the context panel.
+    
+    Returns:
+        PromptTemplate: The assembled prompt ready for invocation.
+    """
+    # Extract prompt text and variables from config
+    prompt_text = prompt_config.get("text", "Write a story chapter based on the following user input")
+    expected_vars = prompt_config.get("variables", [])  # e.g., ["pov", "tense"]
+
+    # Base template structure
+    base_template = """
+    ### System
+    {system_prompt}
+
+    ### Context
+    {context}
+
+    ### Story Up-to-now
+    {story_so_far}
+
+    ### User
+    {user_input}
+    """
+
+    # Dynamically append sections for additional variables
+    if additional_vars:
+        for var_name, var_value in additional_vars.items():
+            base_template += f"\n### {var_name.capitalize()}\n{{{var_name}}}"
+    
+#    full_prompt_text = prompt_text + "\n" + base_template
+
+    # Define default variables
+    default_vars = {
+        "system_prompt": prompt_text,
+        "context": extra_context or "No additional context provided.",
+        "story_so_far": current_scene_text or "No previous story content.",
+        "user_input": user_input
+    }
+
+    # Merge additional variables (e.g., from UI settings or ad-hoc tags)
+    if additional_vars:
+        default_vars.update(additional_vars)
+
+    # Create the PromptTemplate with all possible variables
+    prompt_template = PromptTemplate(
+        input_variables=list(set(expected_vars + list(default_vars.keys()))),
+        template=base_template # was full_prompt_text
+    )
+
+    # Validate that all required variables are provided
+    missing_vars = [var for var in prompt_template.input_variables if var not in default_vars]
+    if missing_vars:
+        raise ValueError(f"Missing variables for prompt: {missing_vars}")
+
+    # Invoke the template with the variables
+    final_prompt = prompt_template.invoke(default_vars)
     return final_prompt
 
-def assemble_final_prompt(action_beats, prose_prompt, pov, pov_character, tense, current_scene_text=None, extra_context=None):
-    """
-    Assemble the final prompt by first building the base prompt using the action beats,
-    prose prompt, and context parameters, and then appending the current scene text and any extra context.
-    """
-    # Build the base prompt.
-    final_prompt = build_final_prompt(
-        action_beats, prose_prompt, pov, pov_character, tense)
-    context_parts = []
-    if current_scene_text:
-        context_parts.append("[Current Scene]:\n" + current_scene_text)
-    if extra_context:
-        context_parts.append(extra_context)
-    if context_parts:
-        final_prompt += "\n\n" + "\n\n".join(context_parts)
-    return final_prompt
-
+def preview_final_prompt(prompt_config, user_input, additional_vars=None, current_scene_text=None, extra_context=None):
+    """Generate a preview of the final prompt as a string."""
+    final_prompt = assemble_final_prompt(prompt_config, user_input, additional_vars, current_scene_text, extra_context)
+    return final_prompt.text  # Return as plain text for display
 
 def send_final_prompt(final_prompt, prompt_config=None, overrides=None):
     """

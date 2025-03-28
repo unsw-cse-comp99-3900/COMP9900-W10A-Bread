@@ -1,7 +1,7 @@
 import os
 import json
 import re
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QSplitter, QTreeWidget, QTreeWidgetItem
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QSplitter, QTreeWidget, QTreeWidgetItem, QTextEdit
 from PyQt5.QtCore import Qt
 
 # Assume get_compendium_text is imported from a shared module or defined elsewhere.
@@ -160,11 +160,12 @@ class ContextPanel(QWidget):
     def get_selected_context_text(self):
         """Collect selected text from both panels, formatted with headers."""
         texts = []
+        temp_editor = QTextEdit()
 
         # Gather from Project panel
         root = self.project_tree.invisibleRootItem()
         for i in range(root.childCount()):
-            self._traverse_project_item(root.child(i), texts)
+            self._traverse_project_item(root.child(i), texts, temp_editor)
 
         # Gather from Compendium panel
         for i in range(self.compendium_tree.topLevelItemCount()):
@@ -180,13 +181,15 @@ class ContextPanel(QWidget):
             return "Additional Context:\n" + "\n\n".join(texts)
         return ""
 
-    def _traverse_project_item(self, item, texts):
+    def _traverse_project_item(self, item, texts, temp_editor):
         data = item.data(0, Qt.UserRole)
         # If this is a scene and it's checked, gather its content
         if data and data.get("type") == "scene" and item.checkState(0) == Qt.Checked:
             content = data.get("data", {}).get("content", "")
             if content:
+                temp_editor.setHtml(content)
+                content = temp_editor.toPlainText()
                 texts.append(f"[Scene Content - {item.text(0)}]:\n{content}")
         # Recurse children
         for i in range(item.childCount()):
-            self._traverse_project_item(item.child(i), texts)
+            self._traverse_project_item(item.child(i), texts, temp_editor)

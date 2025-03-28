@@ -222,6 +222,11 @@ class GeminiProvider(LLMProviderBase):
         return "https://generativelanguage.googleapis.com/v1beta/"
     
     @property
+    def model_requires_api_key(self) -> bool:
+        """Return whether the provider requires an API key."""
+        return True
+    
+    @property
     def model_list_key(self) -> str:
         """Return the key for the model name in the provider's json response."""
         return "models"

@@ -70,7 +70,8 @@ class SummaryCreator:
         # text = ' '.join(word for word in words if word.lower() not in self.stop_words)
         # 3. Simplify punctuation
         text = re.sub(r'[.!?]+', '. ', text)  # Normalize sentence endings
-        text = re.sub(r'[^a-zA-Z0-9\s.]', '', text)  # Remove special chars except periods
+#       Non-ascii characters would choke if we did the next line.
+#        text = re.sub(r'[^a-zA-Z0-9\s.]', '', text)  # Remove special chars except periods
 
         # Check token count (approximate: 1 word ≈ 1.3 tokens)
         tokens = self.encoding.encode(text)
@@ -304,7 +305,7 @@ class SummaryCreator:
             hierarchy.insert(0, temp.text(0).strip())
             temp = temp.parent()
 
-        project_name = self.project_window.model.project_name
+        project_name = WWSettingsManager.sanitize(self.project_window.model.project_name)
         sanitized = [WWSettingsManager.sanitize(x) for x in hierarchy]
         filename = f"{project_name}-Summary-{'-'.join(sanitized)}.txt"
         return WWSettingsManager.get_project_path(project_name, filename)

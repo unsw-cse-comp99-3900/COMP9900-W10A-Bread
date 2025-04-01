@@ -9,12 +9,28 @@ from settings.settings_manager import WWSettingsManager
 def get_structure_file_path(project_name, backward_compat=False):
     """Return the path to the project-specific structure file."""
     sanitized = re.sub(r'\s+', '', project_name)
-    path = WWSettingsManager.get_project_path(file=sanitized + '_structure.json')
-    if backward_compat and not os.path.exists(path):
-        oldpath = os.path.join(os.getcwd(), f"{sanitized}_structure.json")
-        if os.path.exists(oldpath):
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            os.rename(oldpath, path)
+    structure_name = sanitized + '_structure.json'
+    path = WWSettingsManager.get_project_path(sanitized, structure_name)
+    if backward_compat:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        if os.path.exists(path): 
+            oldpath = WWSettingsManager.get_project_path(file=structure_name)
+            if os.path.exists(oldpath):
+                newpath_modtime = os.path.getmtime(path)
+                oldpath_modtime = os.path.getmtime(oldpath)
+                if (oldpath_modtime > newpath_modtime):
+                    os.rename(oldpath, path)
+        else:
+            # check in Projects home
+            oldpath = WWSettingsManager.get_project_path(file=structure_name)
+            if os.path.exists(oldpath):
+                os.rename(oldpath, path)
+            else:
+                # check in cwd
+                oldpath = os.path.join(os.getcwd(), structure_name)
+                if os.path.exists(oldpath):
+                    os.rename(oldpath, path)
     return path
 
 def load_structure(project_name):

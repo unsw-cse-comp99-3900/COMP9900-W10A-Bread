@@ -23,8 +23,11 @@ class WorkshopWindow(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Workshop")
+        # Allow the user to maximize the window by including the maximize hint.
+
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
         self.resize(1000, 600)
+        # Optionally, start maximized:
         self.setWindowState(self.windowState() | Qt.WindowMaximized)
         self.model = getattr(parent, "model", None) if parent else None  # Access model from parent if available
         self.project_name = getattr(self.model, "project_name", "DefaultProject") if parent else "DefaultProject"
@@ -32,11 +35,12 @@ class WorkshopWindow(QDialog):
         self.workshop_prompt_config = None
 
         # Conversation management
-        self.conversation_history = []
-        self.conversations = {}
+        self.conversation_history = []   # current active conversation history
+        self.conversations = {}          # dict mapping conversation name -> history list
         self.current_conversation = "Chat 1"
         self.conversations[self.current_conversation] = []
 
+        # Initialize the embedding index for context retrieval.
         # Embedding index
         self.embedding_index = EmbeddingIndex()
 
@@ -52,7 +56,7 @@ class WorkshopWindow(QDialog):
     def init_ui(self):
         main_layout = QVBoxLayout(self)
 
-        # Outer splitter
+        # Outer splitter divides conversation list and the chat panel.
         outer_splitter = QSplitter(Qt.Horizontal)
 
         # Conversation History Panel
@@ -77,6 +81,7 @@ class WorkshopWindow(QDialog):
         chat_panel = QWidget()
         chat_layout = QVBoxLayout(chat_panel)
 
+        # Chat log (display area)
         self.chat_log = QTextEdit()
         self.chat_log.setReadOnly(True)
         chat_layout.addWidget(self.chat_log)
@@ -93,16 +98,19 @@ class WorkshopWindow(QDialog):
         # Buttons and Mode/Prompt Selector
         buttons_layout = QHBoxLayout()
 
+        # Add pulldown menu for mode selection (Normal, Economy, Ultra-Light)
         self.mode_selector = QComboBox()
         self.mode_selector.addItems(["Normal", "Economy", "Ultra-Light"])
         self.mode_selector.currentIndexChanged.connect(self.mode_changed)
         buttons_layout.addWidget(self.mode_selector)
 
+        # Workshop Prompt pulldown menu instead of a button.
         self.prompt_selector = QComboBox()
         prompts = muse.prompts.get_workshop_prompts(self.project_name)
         if prompts:
             for p in prompts:
                 name = p.get("name", "Unnamed")
+                # Store the entire prompt configuration as the associated data.
                 self.prompt_selector.addItem(name, p)
         else:
             self.prompt_selector.addItem("No Workshop Prompts")
@@ -110,17 +118,20 @@ class WorkshopWindow(QDialog):
         self.prompt_selector.currentIndexChanged.connect(self.prompt_selection_changed)
         buttons_layout.addWidget(self.prompt_selector)
 
+        # Send button: remove text and set icon from assets/icons folder
         self.send_button = QPushButton()
         self.send_button.setIcon(QIcon("assets/icons/send.svg"))
         self.send_button.clicked.connect(self.send_message)
         buttons_layout.addWidget(self.send_button)
 
+        # Context button: remove text and set icon; update icon on toggle
         self.context_button = QPushButton()
         self.context_button.setCheckable(True)
         self.context_button.setIcon(QIcon("assets/icons/book.svg"))
         self.context_button.clicked.connect(self.toggle_context_panel)
         buttons_layout.addWidget(self.context_button)
 
+        # Model label
         self.model_label = QLabel("Model: [None]")
         buttons_layout.addWidget(self.model_label)
         buttons_layout.addStretch()
@@ -141,6 +152,7 @@ class WorkshopWindow(QDialog):
         main_layout.addWidget(outer_splitter)
 
     def prompt_selection_changed(self, index):
+        """Called when a workshop prompt is selected from the pulldown menu."""
         if not self.prompt_selector.isEnabled():
             return
         prompt_config = self.prompt_selector.itemData(index)
@@ -204,11 +216,13 @@ class WorkshopWindow(QDialog):
         if context_text:
             augmented_message += "\n\nContext:\n" + context_text
 
+        # Append message to chat log.
         self.chat_log.append("You: " + user_message)
         self.chat_input.clear()
         self.chat_log.append("LLM: Generating response...")
         QApplication.processEvents()
 
+        # Maintain conversation history.
         conversation_payload = list(self.conversation_history)
         if not conversation_payload and self.workshop_prompt_config:
             conversation_payload.append({
@@ -217,6 +231,7 @@ class WorkshopWindow(QDialog):
             })
         conversation_payload.append({"role": "user", "content": augmented_message})
 
+        # Depending on the mode, adjust overrides or summarization strategies.
         overrides = {}
         if self.workshop_prompt_config:
             overrides = {
@@ -227,11 +242,13 @@ class WorkshopWindow(QDialog):
             }
 
         try:
+            # Summarize or prune conversation if token limit is exceeded.
             if estimate_conversation_tokens(conversation_payload) > TOKEN_LIMIT:
                 summary = summarize_conversation(conversation_payload)
                 conversation_payload = [conversation_payload[0], {"role": "system", "content": summary}]
                 self.chat_log.append("LLM: [Conversation summarized to reduce token count.]")
 
+            # Retrieve additional context using FAISS based on the user message.
             retrieved_context = self.embedding_index.query(user_message)
             if retrieved_context:
                 augmented_message += "\n[Retrieved Context]:\n" + "\n".join(retrieved_context)
@@ -251,6 +268,7 @@ class WorkshopWindow(QDialog):
             self.conversations[self.current_conversation] = self.conversation_history
             self.save_conversations()
 
+            # Add the user message to the embedding index for future context retrieval.
             self.embedding_index.add_text(user_message)
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to generate response: {e}")
@@ -312,13 +330,16 @@ class WorkshopWindow(QDialog):
             self.save_conversations()
 
     def load_conversations(self):
+        """Load saved conversations from a JSON file (if it exists) and update the conversation list widget."""
         if os.path.exists("conversations.json"):
             try:
                 with open("conversations.json", "r", encoding="utf-8") as f:
                     self.conversations = json.load(f)
+                # Update the conversation list widget
                 self.conversation_list.clear()
                 for conv_name in self.conversations:
                     self.conversation_list.addItem(conv_name)
+                # Set the current conversation
                 if self.conversations:
                     self.current_conversation = list(self.conversations.keys())[0]
                     self.conversation_history = self.conversations[self.current_conversation]
@@ -328,12 +349,14 @@ class WorkshopWindow(QDialog):
             except Exception as e:
                 print("Error loading conversations:", e)
         else:
+            # No file yet; start with a default conversation.
             self.conversations = {"Chat 1": []}
             self.current_conversation = "Chat 1"
             self.conversation_list.clear()
             self.conversation_list.addItem("Chat 1")
 
     def save_conversations(self):
+        """Save current conversations to a JSON file."""
         try:
             with open("conversations.json", "w", encoding="utf-8") as f:
                 json.dump(self.conversations, f, indent=4)

@@ -3,9 +3,7 @@ import json
 import re
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QSplitter, QTreeWidget, QTreeWidgetItem, QTextEdit
 from PyQt5.QtCore import Qt
-
-# Assume get_compendium_text is imported from a shared module or defined elsewhere.
-from workshop.workshop import get_compendium_text  # Use the function from workshop.py
+from compendium.compendium_manager import CompendiumManager
 from settings.settings_manager import WWSettingsManager
 
 class ContextPanel(QWidget):
@@ -22,8 +20,10 @@ class ContextPanel(QWidget):
         self.project_structure = project_structure  # reference to the project structure
         self.project_name = project_name
         self.controller = parent
+        self.compendium_manager = CompendiumManager(project_name)
         self.init_ui()
-        self.controller.model.structureChanged.connect(self.on_structure_changed)
+        if hasattr(self.controller, "model") and self.controller.model:
+            self.controller.model.structureChanged.connect(self.on_structure_changed)
 
     def init_ui(self):
         # Use a horizontal layout to take advantage of the unused horizontal space.
@@ -104,17 +104,9 @@ class ContextPanel(QWidget):
         self.project_tree.expandAll()
 
     def build_compendium_tree(self):
-        data = {}
         """Build a tree from the compendium data."""
         self.compendium_tree.clear()
-        # Use the project-specific compendium file path
-        filename = WWSettingsManager.get_project_path(self.project_name, "compendium.json")
-        try:
-            if os.path.exists(filename):
-                with open(filename, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-        except Exception:
-            data = {}
+        data = self.compendium_manager.load_data()
 
         # Get categories from the new format (list) or legacy format (dict)
         categories = data.get("categories", [])
@@ -203,7 +195,7 @@ class ContextPanel(QWidget):
             for j in range(cat_item.childCount()):
                 entry_item = cat_item.child(j)
                 if entry_item.checkState(0) == Qt.Checked:
-                    text = get_compendium_text(category, entry_item.text(0), self.project_name)
+                    text = self.compendium_manager.get_text(category, entry_item.text(0), self.project_name)
                     texts.append(f"[Compendium Entry - {category} - {entry_item.text(0)}]:\n{text}")
 
         if texts:

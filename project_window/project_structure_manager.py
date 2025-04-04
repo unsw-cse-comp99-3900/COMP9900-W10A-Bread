@@ -4,89 +4,42 @@ from PyQt5.QtCore import Qt
 from . import tree_manager
 
 def add_act(window):
+    """Add a new act using ProjectModel."""
     text, ok = QInputDialog.getText(window, "Add Act", "Enter act name:")
     if ok and text.strip():
-        new_act = {
-            "name": text.strip(),
-            "summary": f"This is the summary for {text.strip()}.",
-            "chapters": []
-        }
-        window.model.structure.setdefault("acts", []).append(new_act)
-        tree_manager.populate_tree(window.project_tree.tree, window.model.structure)
-        tree_manager.save_structure(window.model.project_name, window.model.structure)
-
+        window.model.add_act(text.strip())  # Delegate to ProjectModel
+        # No need to update the tree here; ProjectModel emits structureChanged
 
 def add_chapter(window, act_item):
-    text, ok = QInputDialog.getText(
-        window, "Add Chapter", "Enter chapter name:")
+    """Add a new chapter using ProjectModel."""
+    text, ok = QInputDialog.getText(window, "Add Chapter", "Enter chapter name:")
     if ok and text.strip():
-        new_chapter = {
-            "name": text.strip(),
-            "summary": f"This is the summary for {text.strip()}.",
-            "scenes": []
-        }
-
-        # Get the act name from the act_item
         act_name = act_item.text(0)
-
-        # Find the corresponding act in the in-memory structure and append the new chapter.
-        for act in window.model.structure.get("acts", []):
-            if act.get("name") == act_name:
-                act.setdefault("chapters", []).append(new_chapter)
-                break
-
-        # Refresh the tree using the updated structure.
-        tree_manager.populate_tree(window.project_tree.tree, window.model.structure)
-        tree_manager.save_structure(window.model.project_name, window.model.structure)
-        window.model.unsaved_changes = False # Reset unsaved changes flag after adding a chapter
-
+        window.model.add_chapter(act_name, text.strip())  # Delegate to ProjectModel
+        # No need to update the tree here; ProjectModel emits structureChanged
 
 def add_scene(window, chapter_item):
+    """Add a new scene using ProjectModel."""
     text, ok = QInputDialog.getText(window, "Add Scene", "Enter scene name:")
     if ok and text.strip():
-        new_scene = {
-            "name": text.strip(),
-            "content": f"This is the scene content for {text.strip()}."
-        }
-
-        # Get the chapter name and its parent act's name.
         chapter_name = chapter_item.text(0)
         act_item = chapter_item.parent()
         act_name = act_item.text(0)
-
-        # Find the corresponding act and chapter in the in-memory structure.
-        for act in window.model.structure.get("acts", []):
-            if act.get("name") == act_name:
-                for chapter in act.get("chapters", []):
-                    if chapter.get("name") == chapter_name:
-                        chapter.setdefault("scenes", []).append(new_scene)
-                        break
-                break
-
-        # Refresh the tree using the updated structure.
-        tree_manager.populate_tree(window.project_tree.tree, window.model.structure)
-        tree_manager.save_structure(window.model.project_name, window.model.structure)
-        window.model.unsaved_changes = False # Reset unsaved changes flag after adding a scene
-
+        window.model.add_scene(act_name, chapter_name, text.strip())  # Delegate to ProjectModel
+        # No need to update the tree here; ProjectModel emits structureChanged
 
 def rename_item(window, item):
+    """Rename a tree item and sync via ProjectModel."""
     current_name = item.text(0)
     new_name, ok = QInputDialog.getText(
         window, "Rename", "Enter new name:", text=current_name)
     if ok and new_name.strip():
-        new_name = new_name.strip()
-        item.setText(0, new_name)
-        data = item.data(0, Qt.UserRole)
-        if isinstance(data, dict):
-            data["name"] = new_name
-        else:
-            data = {"name": new_name}
-        item.setData(0, Qt.UserRole, data)
-        # Update the structure from the tree to sync changes
-        tree_manager.update_structure_from_tree(window.project_tree.tree, window.model.project_name)
-
+        hierarchy = window.get_item_hierarchy(item)
+        window.model.rename_node(hierarchy, new_name.strip())
+        # Tree will update via structureChanged signal
 
 def move_item_up(window, item):
+    """Move an item up in the tree."""
     parent = item.parent() or window.project_tree.tree.invisibleRootItem()
     index = parent.indexOfChild(item)
     if index > 0:
@@ -95,8 +48,8 @@ def move_item_up(window, item):
         window.project_tree.tree.setCurrentItem(item)
         tree_manager.update_structure_from_tree(window.project_tree.tree, window.model.project_name)
 
-
 def move_item_down(window, item):
+    """Move an item down in the tree."""
     parent = item.parent() or window.project_tree.tree.invisibleRootItem()
     index = parent.indexOfChild(item)
     if index < parent.childCount() - 1:

@@ -520,6 +520,11 @@ class SettingsManager:
     def get_project_path(self, project_name = "", file = ""):
         """Return the path to the project directory and desanitze any filename therein."""
         return os.path.join(os.getcwd(), "Projects", self.sanitize(project_name), file)
+    
+    def get_project_relpath(self, project_name = "", file = ""):
+        """Return the relative path to the project directory and desanitze any filename therein."""
+        return os.path.join("Projects", self.sanitize(project_name), file)
+
 
 WWSettingsManager = SettingsManager()
 

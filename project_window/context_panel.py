@@ -21,7 +21,9 @@ class ContextPanel(QWidget):
         super().__init__(parent)
         self.project_structure = project_structure  # reference to the project structure
         self.project_name = project_name
+        self.controller = parent
         self.init_ui()
+        self.controller.model.structureChanged.connect(self.on_structure_changed)
 
     def init_ui(self):
         # Use a horizontal layout to take advantage of the unused horizontal space.
@@ -60,6 +62,15 @@ class ContextPanel(QWidget):
             )
             act_item.setFlags(act_item.flags() & ~Qt.ItemIsUserCheckable)
 
+            # Add Summary item if it exists
+            if "summary" in act and not act["summary"].startswith("This is the summary"):
+                summary_item = QTreeWidgetItem(act_item, ["Summary"])
+                summary_item.setFlags(summary_item.flags() | Qt.ItemIsUserCheckable)
+                summary_item.setCheckState(0, Qt.Unchecked)
+                summary_item.setData(
+                    0, Qt.UserRole, {"type": "summary", "data": act}
+                )
+
             for chapter in act.get("chapters", []):
                 # Create the Chapter item (not user-checkable)
                 chapter_item = QTreeWidgetItem(
@@ -69,6 +80,15 @@ class ContextPanel(QWidget):
                 chapter_item.setData(
                     0, Qt.UserRole, {"type": "chapter", "data": chapter}
                 )
+
+                # Add Summary item if it exists
+                if "summary" in chapter and not chapter["summary"].startswith("This is the summary"):
+                    summary_item = QTreeWidgetItem(chapter_item, ["Summary"])
+                    summary_item.setFlags(summary_item.flags() | Qt.ItemIsUserCheckable)
+                    summary_item.setCheckState(0, Qt.Unchecked)
+                    summary_item.setData(
+                        0, Qt.UserRole, {"type": "summary", "data": chapter}
+                    )
 
                 for scene in chapter.get("scenes", []):
                     # Scenes remain checkable
@@ -127,7 +147,16 @@ class ContextPanel(QWidget):
         are checked. If you don't want partial checks at all, you can remove or
         simplify this logic.
         """
-        if item.childCount() > 0:
+        data = item.data(0, Qt.UserRole)
+        if data and data.get("type") == "summary" and item.checkState(column) == Qt.Checked:
+            # When summary is checked, uncheck all children of the parent
+            parent = item.parent()
+            if parent:
+                for i in range(parent.childCount()):
+                    child = parent.child(i)
+                    if child != item and child.flags() & Qt.ItemIsUserCheckable:
+                        child.setCheckState(0, Qt.Unchecked)
+        elif item.childCount() > 0:
             state = item.checkState(column)
             for i in range(item.childCount()):
                 child = item.child(i)
@@ -174,22 +203,103 @@ class ContextPanel(QWidget):
             for j in range(cat_item.childCount()):
                 entry_item = cat_item.child(j)
                 if entry_item.checkState(0) == Qt.Checked:
-                    text = get_compendium_text(category, entry_item.text(0))
-                    texts.append(text)
+                    text = get_compendium_text(category, entry_item.text(0), self.project_name)
+                    texts.append(f"[Compendium Entry - {category} - {entry_item.text(0)}]:\n{text}")
 
         if texts:
-            return "Additional Context:\n" + "\n\n".join(texts)
+            return "\n\n".join(texts)
         return ""
+
+    def _load_content(self, data_type, data, hierarchy):
+        """Helper method to load content consistently for summaries and scenes."""
+        if data_type == "summary":
+            content = self.controller.model.load_summary(hierarchy)
+            return content
+        elif data_type == "scene":
+            # Use existing autosave loading logic
+            return self.controller.model.load_autosave(hierarchy) or data.get("content")
+        return None
 
     def _traverse_project_item(self, item, texts, temp_editor):
         data = item.data(0, Qt.UserRole)
-        # If this is a scene and it's checked, gather its content
-        if data and data.get("type") == "scene" and item.checkState(0) == Qt.Checked:
-            content = data.get("data", {}).get("content", "")
+        hierarchy = self.controller.get_item_hierarchy(item)
+        
+        if data and item.checkState(0) == Qt.Checked:
+            content_type = data.get("type")
+            content = self._load_content(content_type, data.get("data"), hierarchy)
+            
             if content:
                 temp_editor.setHtml(content)
-                content = temp_editor.toPlainText()
-                texts.append(f"[Scene Content - {item.text(0)}]:\n{content}")
+                content_text = temp_editor.toPlainText()
+                if content_type == "summary":
+                    texts.append(f"[Summary - {item.parent().text(0)}]:\n{content_text}")
+                elif content_type == "scene":
+                    texts.append(f"[Scene Content - {item.text(0)}]:\n{content_text}")
+        
         # Recurse children
         for i in range(item.childCount()):
             self._traverse_project_item(item.child(i), texts, temp_editor)
+
+    def on_structure_changed(self, hierarchy):
+        """Handle structure changes by updating only affected items."""
+        if self.isHidden():
+            return # Panel will be populated when shown
+        if hierarchy:
+            self._update_item_for_summary(hierarchy)
+        else:
+            # Fallback to full rebuild if no current item
+            self.build_project_tree()
+
+    def _update_item_for_summary(self, hierarchy):
+        """Update or insert a summary checkbox for the item at the given hierarchy."""
+        root = self.project_tree.invisibleRootItem()
+        current_item = None
+        current_level_items = [root.child(i) for i in range(root.childCount())]
+        
+        # Traverse to find the item matching the hierarchy
+        for level, name in enumerate(hierarchy):
+            for item in current_level_items:
+                if item.text(0) == name:
+                    current_item = item
+                    if level == len(hierarchy) - 1:
+                        break
+                    current_level_items = [current_item.child(i) for i in range(current_item.childCount())]
+                    break
+            else:
+#                print(f"Debug: Item not found for hierarchy: {hierarchy}")
+                return  # Item not found, abort
+
+        if not current_item:
+#            print(f"Debug: No current item found for hierarchy: {hierarchy}")
+            return
+
+        # Check if summary already exists in the tree
+        has_summary_item = False
+        child = None
+        for i in range(current_item.childCount()):
+            child = current_item.child(i)
+            if child.text(0) == "Summary":
+                has_summary_item = True
+                break
+
+        # Get the node's data from the model
+        node_data = self.controller.model._get_node_by_hierarchy(hierarchy)
+        if node_data and "summary" in node_data and not has_summary_item:
+            # Insert a new summary item
+            summary_item = QTreeWidgetItem()  # Create without parent initially
+            summary_item.setText(0, "Summary")
+            summary_item.setFlags(summary_item.flags() | Qt.ItemIsUserCheckable)
+            summary_item.setCheckState(0, Qt.Unchecked)
+            summary_item.setData(
+                0, Qt.UserRole, {"type": "summary", "data": node_data}
+            )
+            current_item.insertChild(0, summary_item)  # Insert at the top
+            self.project_tree.expandItem(current_item)
+            child = summary_item
+
+        if not child:
+            return
+        
+        font =child.font(0)
+        font.setBold(True)
+        child.setFont(0, font)

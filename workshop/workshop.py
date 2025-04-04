@@ -11,6 +11,7 @@ from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QIcon  # Added import for icons
 import muse.prompts
 from settings.llm_api_aggregator import WWApiAggregator
+from settings.autosave_manager import load_latest_autosave
 from .conversation_history_manager import estimate_conversation_tokens, summarize_conversation
 from .embedding_manager import EmbeddingIndex
 
@@ -426,8 +427,8 @@ class WorkshopWindow(QDialog):
             for chapter in act.get("chapters", []):
                 for scene in chapter.get("scenes", []):
                     if scene.get("name", "").lower() == scene_name.lower():
-                        print(f"DEBUG: Found scene content: {scene.get('content')}")
-                        return scene.get("content", f"[No content for scene {scene_name}]")
+                        content = load_latest_autosave(self.project_name, [act.get("name"), chapter.get("name"), scene.get("name")])
+                        return content or f"[No content for scene {scene_name}]"
         print(f"DEBUG: No scene content found for: {scene_name}")
         return f"[No content for scene {scene_name}]"
 

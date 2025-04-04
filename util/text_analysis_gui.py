@@ -22,14 +22,59 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QTextCursor, QTextCharFormat, QBrush, QColor
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
+from util.analyzers import text_analysis
 
 # Dictionary of languages and corresponding module names.
 LANGUAGES = {
     "English": "text_analysis",
-    "Polski": "text_analysis_pl",
-    "Français": "text_analysis_fr",
+    "Dansk": "text_analysis_da",
+    "Deutsch": "text_analysis_de",
     "Español": "text_analysis_es",
-    "Deutsch": "text_analysis_de"
+    "Français": "text_analysis_fr",
+    "Hrvatski": "text_analysis_hr",
+    "Italian": "text_analysis_it",
+    "Lietuvių": "text_analysis_lt",
+    "Nederlands": "text_analysis_nl",
+    "Norsk Bokmål": "text_analysis_nb",
+    "Polski": "text_analysis_pl",
+    "Português": "text_analysis_pt",
+    "Română": "text_analysis_ro",
+    "Slovenščina": "text_analysis_sl",
+    "Suomi": "text_analysis_fi",
+    "Svenska": "text_analysis_sv",
+    "Ελληνικά": "text_analysis_el",
+    "Русский": "text_analysis_ru",
+    "Українська": "text_analysis_uk",
+    "Македонски": "text_analysis_mk",
+    "日本語": "text_analysis_ja",
+    "한국어": "text_analysis_ko",
+    "中文": "text_analysis_zh"
+}
+
+LANGUAGE_CLASS_MAP = {
+    "English": "English",
+    "Dansk": "Danish",
+    "Deutsch": "German",
+    "Español": "Spanish",
+    "Français": "French",
+    "Hrvatski": "Croatian",
+    "Italian": "Italian",
+    "Lietuvių": "Lithuanian",
+    "Nederlands": "Dutch",
+    "Norsk Bokmål": "Norwegian",
+    "Polski": "Polish",
+    "Português": "Portuguese",
+    "Română": "Romanian",
+    "Slovenščina": "Slovenian",
+    "Suomi": "Finnish",
+    "Svenska": "Swedish",
+    "Ελληνικά": "Greek",
+    "Русский": "Russian",
+    "Українська": "Ukrainian",
+    "Македонски": "Macedonian",
+    "日本語": "Japanese",
+    "한국어": "Korean",
+    "中文": "Chinese"
 }
 
 GENRE_TARGET_GRADES = {
@@ -96,24 +141,39 @@ class TextAnalysisApp(QWidget):
         self.analysis_instance = None
         self.current_language = "English"
         
-        # Initialize user interface.
+        # Initialize UI first
         self.init_ui()
         
-        # Set initial text and change language.
-        self.text_edit.setPlainText(initial_text)
-        self.change_language("English")
-        
-        self.analysis_results = None
-        self.current_module = None
-        self.polish_model = None
-
+        # FORCE ENGLISH INITIALIZATION
         try:
-            import util.text_analysis as text_analysis
+            from util.analyzers import text_analysis
             if text_analysis.initialize():
+                self.analysis_instance = text_analysis.EnglishTextAnalysis()
                 self.current_module = text_analysis
-        except ImportError as e:
-            print("Error loading English module:", e)
-            self.current_module = None
+                
+                # LOAD TOOLTIP TEXTS BEFORE SETTING LANGUAGE IN THE COMBOBOX
+                if hasattr(self.analysis_instance, "get_tooltips"):
+                    current_tooltips = self.analysis_instance.get_tooltips()
+                    self.set_tooltips(current_tooltips)
+                    
+                self.language_combo.setCurrentText("English")
+                self.results_label.setText("English model initialized")
+                
+                # FORCE IMMEDIATE TOOLTIP UPDATE
+                QApplication.processEvents()
+                
+                # SAVE THE MODEL DIRECTLY IN THE INSTANCE
+                if text_analysis.nlp is not None:
+                    self.analysis_instance.nlp = text_analysis.nlp
+                else:
+                    raise RuntimeError("Global English model not loaded")
+                    
+        except Exception as e:
+            print("English init error:", e)
+            self.results_label.setText("Critical error loading English")
+            self.analysis_instance = None
+
+        self.text_edit.setPlainText(initial_text)
 
     def init_ui(self):
         """Initializes the user interface."""
@@ -135,62 +195,7 @@ class TextAnalysisApp(QWidget):
         top_layout = QVBoxLayout(top_widget)
         top_layout.setContentsMargins(0, 0, 0, 0)
     
-        # Create the legend with default tooltips.
-        default_tooltips = {
-            "complex": """
-                <b>Complex sentences</b><br>
-                Highlights sentences that are very long or have many clauses, making them hard to follow.<br>
-                Consider breaking them into shorter, clearer sentences.
-            """,
-            "weak": """
-                <b>Weak formulations/passive voice</b><br>
-                Marks parts of the text where the language is not assertive.<br>
-                Includes:<br>
-                - Weak formulations (phrases that sound vague or indecisive)<br>
-                - Passive voice (sentences where the subject isn't performing the action)<br>
-                Example: 'The ball was thrown' vs 'John threw the ball'<br>
-                Both can make writing feel less direct and lively.
-            """,
-            "nonstandard": """
-                <b>Non-standard speech verbs</b><br>
-                Identifies unusual or uncommon verbs used for speaking<br>
-                (instead of common words like 'said').<br>
-                These can confuse readers if they're too creative or unfamiliar.
-            """,
-            "filter": """
-                <b>Filter words</b><br>
-                Flags words that act as filters – words that soften or obscure the message<br>
-                (like 'just,' 'really,' or 'quite').<br>
-                Removing them can make your statements stronger and clearer.
-            """,
-            "telling": """
-                <b>Telling not showing</b><br>
-                Highlights parts where the text tells what a character feels or does<br>
-                instead of showing it through description or action.<br>
-                This can make the narrative less engaging.
-            """,
-            "weak_verb": """
-                <b>Weak verbs</b><br>
-                Marks verbs that don't convey a strong sense of action or emotion.<br>
-                Replacing them with vivid, precise verbs can make writing more dynamic.
-            """,
-            "overused": """
-                <b>Overused words</b><br>
-                Identifies words that appear too often, making the text repetitive or dull.<br>
-                Consider using synonyms or rephrasing to keep language fresh.
-            """,
-            "pronoun": """
-                <b>Unclear pronoun references</b><br>
-                Flags pronouns ('he,' 'she,' 'it,' 'they') with unclear noun references.<br>
-                Clear pronoun use is important to avoid confusion.
-            """,
-            "repetitive": """
-                <b>Repetitive sentence starts</b><br>
-                Highlights when several sentences begin the same way.<br>
-                Varying sentence beginnings helps keep the reader's interest.
-            """
-        }
-        self.legend_container = self.create_legend_with_tooltips(default_tooltips)
+        self.legend_container = self.create_legend_with_tooltips({})
         top_layout.addWidget(self.legend_container)
     
         instruction = QLabel("Enter your text below. Problematic text will be highlighted according to the legend.")
@@ -317,112 +322,123 @@ class TextAnalysisApp(QWidget):
         main_layout.addWidget(save_close_button)
         
     def change_language(self, language):
-        """
-        Switches the text analysis module based on the selected language.
-        After successful model loading, it updates the tooltip translations.
-        Supports English, Polish, French, Spanish, and German.
-        """
+        """Handles language switching with model state validation."""
+        if language == self.current_language:
+            return
+
         self.current_language = language
-        module_name = LANGUAGES.get(language, "text_analysis")
-        try:
-            if module_name == "text_analysis_pl":
-                import util.text_analysis_pl as pl_module
-                self.current_module = pl_module
-                self.analysis_instance = pl_module.PolishTextAnalysis()
-                self.analysis_instance.model_loaded.connect(self.on_model_loaded)
-                if not self.analysis_instance.initialize():
-                    self.results_label.setText(f"The model for {language} is downloading, please wait...")
-                else:
-                    self.results_label.setText(f"Language switched to {language}")
-                # Update tooltips from the language module
-                if hasattr(self.analysis_instance, "get_tooltips"):
-                    translated_tooltips = self.analysis_instance.get_tooltips()
-                    self.set_tooltips(translated_tooltips)
-            elif module_name == "text_analysis_fr":
-                import util.text_analysis_fr as fr_module
-                self.current_module = fr_module
-                self.analysis_instance = fr_module.FrenchTextAnalysis()
-                self.analysis_instance.model_loaded.connect(self.on_model_loaded)
-                if not self.analysis_instance.initialize():
-                    self.results_label.setText(f"The model for {language} is downloading, please wait...")
-                else:
-                    self.results_label.setText(f"Language switched to {language}")
-                if hasattr(self.analysis_instance, "get_tooltips"):
-                    translated_tooltips = self.analysis_instance.get_tooltips()
-                    self.set_tooltips(translated_tooltips)
-            elif module_name == "text_analysis_es":
-                import util.text_analysis_es as es_module
-                self.current_module = es_module
-                self.analysis_instance = es_module.SpanishTextAnalysis()
-                self.analysis_instance.model_loaded.connect(self.on_model_loaded)
-                if not self.analysis_instance.initialize():
-                    self.results_label.setText(f"The model for {language} is downloading, please wait...")
-                else:
-                    self.results_label.setText(f"Language switched to {language}")
-                if hasattr(self.analysis_instance, "get_tooltips"):
-                    translated_tooltips = self.analysis_instance.get_tooltips()
-                    self.set_tooltips(translated_tooltips)
-            elif module_name == "text_analysis_de":
-                import util.text_analysis_de as de_module
-                self.current_module = de_module
-                self.analysis_instance = de_module.GermanTextAnalysis()
-                self.analysis_instance.model_loaded.connect(self.on_model_loaded)
-                if not self.analysis_instance.initialize():
-                    self.results_label.setText(f"The model for {language} is downloading, please wait...")
-                else:
-                    self.results_label.setText(f"Language switched to {language}")
-                if hasattr(self.analysis_instance, "get_tooltips"):
-                    translated_tooltips = self.analysis_instance.get_tooltips()
-                    self.set_tooltips(translated_tooltips)
-            else:
-                # Default to English
-                import util.text_analysis as text_analysis
-                self.current_module = text_analysis
-                self.analysis_instance = text_analysis.EnglishTextAnalysis()
-                if self.analysis_instance.initialize():
-                    self.current_language = language
-                    self.language_combo.setCurrentText(language)
-                    self.results_label.setText(f"Language switched to {language}")
-                    if hasattr(self.analysis_instance, "get_tooltips"):
-                        translated_tooltips = self.analysis_instance.get_tooltips()
-                        self.set_tooltips(translated_tooltips)
-                else:
-                    self.results_label.setText(f"Error initializing the {language} model, reverting to English")
-                    self.revert_to_english()
-        except ImportError as e:
-            self.results_label.setText(f"{language} is not available yet.")
-            print(f"ImportError: {e}")
+        module_name = LANGUAGES.get(language)
+        
+        if not module_name:
             self.revert_to_english()
+            return
+
+        try:
+            # Special handling for English
+            if module_name == "text_analysis":
+                from util.analyzers import text_analysis
+                if not text_analysis.initialize():
+                    raise RuntimeError("English model failed to initialize")
+                
+                # Create new instance with proper model injection
+                self.analysis_instance = text_analysis.EnglishTextAnalysis()
+                
+                # Force model reference from global module
+                if text_analysis.nlp is not None:
+                    self.analysis_instance.nlp = text_analysis.nlp
+                    
+                if not hasattr(self.analysis_instance, 'nlp') or self.analysis_instance.nlp is None:
+                    raise RuntimeError("English model reference missing")
+                
+                self.current_module = text_analysis
+                self.language_combo.setCurrentText("English")
+                self.results_label.setText("English model active")
+                
+                # Update tooltip texts for English
+                if hasattr(self.analysis_instance, "get_tooltips"):
+                    self.set_tooltips(self.analysis_instance.get_tooltips())
+                return
+
+            # Handling other languages
+            module = importlib.import_module(f"util.analyzers.{module_name}")
+            class_name = LANGUAGE_CLASS_MAP[language] + "TextAnalysis"
+            analysis_class = getattr(module, class_name)
+            new_instance = analysis_class()
+            
+            # Connect model_loaded signal to update tooltips when the model finishes downloading
+            if hasattr(new_instance, 'model_loaded'):
+                new_instance.model_loaded.connect(self.on_model_loaded)
+            
+            # Initialize model; if download is in progress, update instance and exit early
+            if not new_instance.initialize():
+                if getattr(new_instance, 'download_in_progress', False):
+                    self.results_label.setText(f"Downloading {language} model...")
+                    self.analysis_instance = new_instance
+                    return
+                else:
+                    self.revert_to_english()
+                    return
+            
+            # Update references after successful initialization
+            self.analysis_instance = new_instance
+            self.current_module = module
+            self.language_combo.setCurrentText(language)
+            self.results_label.setText(f"{language} model active")
+            
+            # Update tooltips if available
+            if hasattr(new_instance, "get_tooltips"):
+                self.set_tooltips(new_instance.get_tooltips())
+
         except Exception as e:
-            self.results_label.setText("Unexpected error. Switching to English.")
-            print(f"Unexpected Error: {e}")
-            traceback.print_exc()
+            print(f"Language switch error: {str(e)}")
             self.revert_to_english()
 
+    def handle_language_error(self, language, error_msg):
+        """Handles errors during language switching"""
+        logging.error(f"Language switch error ({language}): {error_msg}")
+        traceback.print_exc()
+        self.results_label.setText(f"Error loading {language}. Reverting to English.")
+        self.revert_to_english()
+
     def revert_to_english(self):
-        """Reverts to the default English language module."""
+        """Forceful English revert with model verification."""
         try:
-            import util.text_analysis as text_analysis
-            self.current_module = text_analysis
+            from util.analyzers import text_analysis
+            
+            # Reinitialize core English module
+            if not text_analysis.initialize():
+                raise RuntimeError("Core English initialization failed")
+                
+            # Create new instance with model injection
+            self.analysis_instance = text_analysis.EnglishTextAnalysis()
+            
+            # Force model reference from global state
+            if text_analysis.nlp is not None:
+                self.analysis_instance.nlp = text_analysis.nlp
+                
+            # Final verification
+            if not hasattr(self.analysis_instance, 'nlp') or self.analysis_instance.nlp is None:
+                raise RuntimeError("Model reference not propagated")
+                
             self.current_language = "English"
-            if hasattr(self, 'language_combo'):
-                self.language_combo.setCurrentText("English")
-            print("Reverting to English...")
-            logging.info("Reverting to English...")
-            if hasattr(self.current_module, 'initialize'):
-                self.current_module.initialize()
-            self.results_label.setText("Language switched to English")
+            self.language_combo.setCurrentText("English")
+            self.results_label.setText("English model restored")
+            
+            # Update tooltips
+            if hasattr(self.analysis_instance, "get_tooltips"):
+                self.set_tooltips(self.analysis_instance.get_tooltips())
+                
         except Exception as e:
-            print(f"Error reverting to English: {e}")
-            logging.error(f"Error reverting to English: {e}", exc_info=True)
-            self.results_label.setText("Error switching to English.")
+            print(f"Critical English revert failure: {str(e)}")
+            self.results_label.setText("Fatal error: English unavailable")
+            self.analysis_instance = None
                 
     def on_model_loaded(self):
-        """Updates the UI when the model is loaded."""
-        self.results_label.setText(f"Language switched to {self.current_language}")
-        # Safely check if download_timer exists and is active.
-        if hasattr(self, 'download_timer') and self.download_timer:
-            self.download_timer.stop()
+        """Callback triggered when the model finishes downloading."""
+        # Once the model is loaded, update the tooltips immediately.
+        if hasattr(self.analysis_instance, "get_tooltips"):
+            self.set_tooltips(self.analysis_instance.get_tooltips())
+        self.results_label.setText(f"{self.current_language} model active")
 
     def check_module_ready(self, language):
         """Checks if the module is ready. (Not used with the signal/slot approach)"""
@@ -466,19 +482,12 @@ class TextAnalysisApp(QWidget):
         return legend_group
         
     def set_tooltips(self, tooltips):
-        """
-        Updates the legend's tooltips based on the provided translations.
-        :param tooltips: Dictionary with keys corresponding to issue types and tooltip strings.
-        """
-        # Re-create the legend with the new tooltips.
+        """Updates the legend's tooltips based on the provided translations."""
         new_legend = self.create_legend_with_tooltips(tooltips)
-        # Replace the old legend widget with the new one.
         parent_layout = self.legend_container.parentWidget().layout()
         index = parent_layout.indexOf(self.legend_container)
-        # Remove the old widget.
         parent_layout.takeAt(index)
         self.legend_container.deleteLater()
-        # Set the new legend and add it to the same position.
         self.legend_container = new_legend
         parent_layout.insertWidget(index, self.legend_container)
 

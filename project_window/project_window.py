@@ -14,14 +14,12 @@ from .bottom_stack import BottomStack
 from .focus_mode import FocusMode
 from .rewrite_feature import RewriteDialog
 from util.tts_manager import WW_TTSManager
-from .summary_feature import SummaryCreator
 from compendium.compendium_panel import CompendiumPanel
 from settings.backup_manager import show_backup_dialog
 from settings.llm_worker import LLMWorker
 from settings.settings_manager import WWSettingsManager
 from settings.theme_manager import ThemeManager
 from workshop.workshop import WorkshopWindow
-from .dialogs import CreateSummaryDialog
 from util.text_analysis_gui import TextAnalysisApp
 from util.wikidata_dialog import WikidataDialog
 from muse.prompts import PromptsWindow
@@ -40,6 +38,7 @@ class ProjectWindow(QMainWindow):
         self.current_prose_prompt = None
         self.current_prose_config = None
         self.previous_item = None
+        self.unsaved_preview = False
         self.init_ui()
         self.setup_connections()
         self.read_settings()
@@ -75,6 +74,7 @@ class ProjectWindow(QMainWindow):
         top_horizontal_splitter.setStretchFactor(1, 3)  # Editor
 
         self.bottom_stack = BottomStack(self, self.model, self.icon_tint)
+        self.bottom_stack.preview_text.textChanged.connect(self.on_preview_text_changed)
         right_vertical_splitter.addWidget(top_horizontal_splitter)
         right_vertical_splitter.addWidget(self.bottom_stack)
         right_vertical_splitter.setStretchFactor(0, 3)
@@ -171,7 +171,7 @@ class ProjectWindow(QMainWindow):
 
     def check_unsaved_changes(self):
         warning_message = None
-        if self.bottom_stack.preview_text.toPlainText().strip():
+        if self.unsaved_preview:
             warning_message = "You have content in the preview text that hasn't been applied."
         if self.model.unsaved_changes:
             warning_message = "You have unsaved content on this screen."
@@ -192,6 +192,7 @@ class ProjectWindow(QMainWindow):
         self.load_current_item_content()
         self.previous_item = current
         self.model.unsaved_changes = False
+        self.unsaved_preview = False
 
     def tree_item_changed(self, current, previous):
         if not current:
@@ -204,18 +205,18 @@ class ProjectWindow(QMainWindow):
             return
         level = self.project_tree.get_item_level(current)
         editor = self.scene_editor.editor
+        hierarchy = self.get_item_hierarchy(current)
         if level >= 2:  # Scene
-            autosave_content = self.model.load_autosave(self.get_item_hierarchy(current))
-            content = autosave_content if autosave_content is not None else current.data(0, Qt.UserRole).get("content", "")
-            if content.lstrip().startswith("<"):
+            content = self.model.load_scene_content(hierarchy)
+            if content and content.lstrip().startswith("<"):
                 editor.setHtml(content)
             else:
                 editor.setPlainText(content)
             editor.setPlaceholderText("Enter scene content...")
             self.bottom_stack.stack.setCurrentIndex(1)
         else:  # Summary
-            content = current.data(0, Qt.UserRole).get("summary", "") if current.data(0, Qt.UserRole) else ""
-            if content.lstrip().startswith("<"):
+            content = self.model.load_summary(hierarchy)
+            if content and content.lstrip().startswith("<"):
                 editor.setHtml(content)
             else:
                 editor.setPlainText(content)
@@ -235,7 +236,7 @@ class ProjectWindow(QMainWindow):
         scene_data = item.data(0, Qt.UserRole) or {"name": item.text(0)}
         scene_data["status"] = new_status
         item.setData(0, Qt.UserRole, scene_data)
-        self.project_tree.update_scene_status_icon(item)
+        self.project_tree.assign_item_icon(item, self.project_tree.get_item_level(item))  # Update icon
         self.model.update_structure(self.project_tree.tree)
 
     def manual_save_scene(self):
@@ -251,10 +252,6 @@ class ProjectWindow(QMainWindow):
         filepath = self.model.save_scene(hierarchy, content)
         if filepath:
             self.update_save_status("Scene manually saved")
-            scene_data = current_item.data(0, Qt.UserRole) or {"name": current_item.text(0)}
-            scene_data.update({"content": content, "status": scene_data.get("status", "To Do")})
-            current_item.setData(0, Qt.UserRole, scene_data)
-            self.model.update_structure(self.project_tree.tree)
             self.model.unsaved_changes = False
 
     def autosave_scene(self):
@@ -268,11 +265,8 @@ class ProjectWindow(QMainWindow):
         filepath = self.model.save_scene(hierarchy, content)
         if filepath:
             self.update_save_status("Scene autosaved")
-            scene_data = current_item.data(0, Qt.UserRole) or {"name": current_item.text(0)}
-            scene_data.update({"content": content, "status": scene_data.get("status", "To Do")})
-            current_item.setData(0, Qt.UserRole, scene_data)
-            self.model.update_structure(self.project_tree.tree)
             self.model.unsaved_changes = False
+
 
     def update_save_status(self, message):
         now = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -293,10 +287,6 @@ class ProjectWindow(QMainWindow):
                 editor.setHtml(content)
             else:
                 editor.setPlainText(content)
-            scene_data = current_item.data(0, Qt.UserRole) or {"name": current_item.text(0)}
-            scene_data["content"] = content
-            current_item.setData(0, Qt.UserRole, scene_data)
-            self.model.update_structure(self.project_tree.tree)
             QMessageBox.information(self, "Backup Loaded", f"Backup loaded from:\n{backup_file_path}")
 
     def handle_pov_change(self, index):
@@ -470,9 +460,8 @@ class ProjectWindow(QMainWindow):
         
         # Step 2: Auto-generate summary
         self.statusBar().showMessage("Generating summary to fit token limit…")
-        summary_creator = SummaryCreator(self)
-        summary_creator.create_summary()  # This updates scene_editor.editor
-        QTimer.singleShot(1000, lambda: self.retry_with_auto_summary())
+        self.bottom_stack.summary_controller.create_summary()
+        QTimer.singleShot(30000, lambda: self.retry_with_auto_summary())
 
     def retry_with_summary(self, summary):
         additional_vars = {
@@ -527,6 +516,10 @@ class ProjectWindow(QMainWindow):
         self.bottom_stack.preview_text.setReadOnly(False)
         if not self.bottom_stack.preview_text.toPlainText().strip():
             QMessageBox.warning(self, "LLM Response", "The LLM did not return any text. Possible token limit reached or an error occurred.")
+        
+        # Connect preview_text modified signal if not already connected
+        if not self.bottom_stack.preview_text.receivers(self.bottom_stack.preview_text.textChanged):
+            self.bottom_stack.preview_text.textChanged.connect(self.on_preview_text_changed)
 
     def stop_llm(self):
         if hasattr(self, 'worker') and self.worker.isRunning():
@@ -551,23 +544,23 @@ class ProjectWindow(QMainWindow):
         self.bottom_stack.preview_text.clear()
         self.bottom_stack.prompt_input.clear()
         self.model.unsaved_changes = True
-
-    def create_summary(self):
-        summary_creator = SummaryCreator(self)
-        summary_creator.create_summary()
+        self.unsaved_preview = False
 
     def save_summary(self):
         current_item = self.project_tree.tree.currentItem()
         if not current_item:
             QMessageBox.warning(self, "Summary", "No Act or Chapter selected.")
             return
-        summary_text = self.scene_editor.editor.toPlainText()
-        item_data = current_item.data(0, Qt.UserRole) or {"name": current_item.text(0)}
-        item_data["summary"] = summary_text
-        current_item.setData(0, Qt.UserRole, item_data)
-        self.model.update_structure(self.project_tree.tree)
-        QMessageBox.information(self, "Summary", "Summary saved successfully.")
-
+        summary_text = self.scene_editor.editor.toHtml()  # Use HTML to preserve formatting
+        hierarchy = self.get_item_hierarchy(current_item)
+        filepath = self.model.save_summary(hierarchy, summary_text)
+        if filepath:
+            self.update_save_status("Summary saved successfully")
+            self.model.unsaved_changes = False
+            QMessageBox.information(self, "Summary", "Summary saved successfully.")
+        else:
+            QMessageBox.critical(self, "Summary", "Failed to save summary.")
+            
     def toggle_bold(self):
         cursor = self.scene_editor.editor.textCursor()
         fmt = QTextCharFormat()
@@ -716,7 +709,7 @@ class ProjectWindow(QMainWindow):
         self.global_toolbar.update_tint(self.icon_tint)
         self.scene_editor.update_tint(self.icon_tint)
         self.bottom_stack.update_tint(self.icon_tint)
-        self.project_tree.assign_tree_icons()
+        self.project_tree.assign_all_icons()
 
     def change_theme(self, new_theme):
         self.current_theme = new_theme
@@ -727,6 +720,10 @@ class ProjectWindow(QMainWindow):
         text = self.scene_editor.editor.toPlainText()
         self.word_count_label.setText(f"Words: {len(text.split())}")
         self.model.unsaved_changes = True
+
+    def on_preview_text_changed(self):
+        preview_text = self.bottom_stack.preview_text.toPlainText().strip()
+        self.unsaved_preview = bool(preview_text)  # True if not empty, False if empty
 
     def load_prompt_input(self):
         prompt_input_file = WWSettingsManager.get_project_path(self.model.project_name, "action-beat.txt")

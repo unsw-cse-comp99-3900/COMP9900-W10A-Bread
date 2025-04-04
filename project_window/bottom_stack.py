@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QStackedWidget, QHBoxLayout, QPushButton, QTextEdit, QComboBox, QLabel, QCheckBox, QSizePolicy
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QStackedWidget, QHBoxLayout, QPushButton, 
+                            QTextEdit, QComboBox, QLabel, QCheckBox, QSizePolicy, QGroupBox,
+                            QSpinBox, QFormLayout)
 from PyQt5.QtGui import QColor
 from .focus_mode import PlainTextEdit
 from .context_panel import ContextPanel
+from .summary_controller import SummaryController
+from .summary_model import SummaryModel
+from settings.settings_manager import WWSettingsManager
+from settings.llm_api_aggregator import WWApiAggregator
+from muse.prompt_preview_dialog import PromptPreviewDialog
+import json
+import os
 
 class BottomStack(QWidget):
     """Stacked widget for summary and LLM panels."""
@@ -12,6 +21,13 @@ class BottomStack(QWidget):
         self.model = model
         self.tint_color = tint_color
         self.stack = QStackedWidget()
+        self.scene_editor = controller.scene_editor  # Access editor via controller
+        self.summary_controller = SummaryController(
+            SummaryModel(model.project_name),
+            self,
+            controller.project_tree
+        )
+        self.summary_controller.status_updated.connect(self._update_status)
         self.init_ui()
 
     def init_ui(self):
@@ -27,14 +43,42 @@ class BottomStack(QWidget):
     def create_summary_panel(self):
         panel = QWidget()
         layout = QHBoxLayout(panel)
+
+        # LLM Settings Group
+        llm_settings_group = QGroupBox()
+        llm_settings_layout = QFormLayout()
+
+        self.summary_prompt_dropdown = QComboBox()
+        self.summary_prompt_dropdown.setToolTip("Select a summary prompt")
+        self.summary_prompt_dropdown.addItem("Select Summary Prompt")
+        self.summary_prompt_dropdown.addItems([prompt["name"] for prompt in self._load_summary_prompts()])
+        self.summary_prompt_dropdown.currentIndexChanged.connect(self.summary_prompt_changed)
+        self.summary_prompt_dropdown.setMinimumWidth(300)
+        llm_settings_layout.addWidget(self.summary_prompt_dropdown)
+
+        self.summary_model_combo = QComboBox()
+        self.summary_model_combo.setMinimumWidth(300)
+        llm_settings_layout.addWidget(self.summary_model_combo)
+
+        llm_settings_group.setLayout(llm_settings_layout)
+        llm_settings_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        layout.addWidget(llm_settings_group)
+
+        self.summary_preview_button = QPushButton()
+        self.summary_preview_button.setIcon(self.controller.get_tinted_icon("assets/icons/eye.svg", self.tint_color))
+        self.summary_preview_button.setToolTip("Preview the final prompt")
+        self.summary_preview_button.clicked.connect(self.summary_controller.preview_summary)
+        layout.addWidget(self.summary_preview_button)
+
         layout.addStretch()
         self.create_summary_button = QPushButton("Create Summary")
-        self.create_summary_button.clicked.connect(self.controller.create_summary)
+        self.create_summary_button.clicked.connect(self.summary_controller.create_summary)
         self.save_summary_button = QPushButton("Save Summary")
         self.save_summary_button.clicked.connect(self.controller.save_summary)
         layout.addWidget(self.create_summary_button)
         layout.addWidget(self.save_summary_button)
         layout.addStretch()
+
         return panel
 
     def create_llm_panel(self):
@@ -109,7 +153,7 @@ class BottomStack(QWidget):
         buttons_layout.addStretch()
         left_layout.addLayout(buttons_layout)
 
-        self.context_panel = ContextPanel(self.model.structure, self.model.project_name)
+        self.context_panel = ContextPanel(self.model.structure, self.model.project_name, self.controller)
         self.context_panel.setVisible(False)
         left_container.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         action_layout.addWidget(left_container, stretch=2)
@@ -128,3 +172,70 @@ class BottomStack(QWidget):
         self.stop_button.setIcon(self.controller.get_tinted_icon("assets/icons/x-octagon.svg", tint_color))
         self.context_toggle_button.setIcon(self.controller.get_tinted_icon(
             "assets/icons/book-open.svg" if self.context_panel.isVisible() else "assets/icons/book.svg", tint_color))
+
+    def _update_status(self, message):
+        self.controller.statusBar().showMessage(message, 5000)
+
+    def update_model_combo(self, provider_name):
+        """Update the model dropdown based on the selected provider."""
+        self.model_combo.clear()
+        provider = WWApiAggregator.aggregator.get_provider(provider_name)
+        if provider:
+            try:
+                models = provider.get_available_models()
+                self.model_combo.addItems(models)
+            except Exception as e:
+                self.model_combo.addItem("Default Model")
+                print(f"Error fetching models for {provider_name}: {e}")
+        else:
+            self.model_combo.addItem("Default Model")
+
+    def get_llm_settings(self):
+        """Return the current LLM settings from the summary panel."""
+        return {
+            "provider": self.provider_combo.currentText(),
+            "model": self.model_combo.currentText(),
+            "timeout": self.timeout_spin.value()
+        }
+    
+    def summary_prompt_changed(self):
+        """Handle changes in the summary prompt dropdown."""
+        selected_prompt = self.summary_prompt_dropdown.currentText()
+        if selected_prompt == "Select Summary Prompt":
+            self.summary_model_combo.clear()
+            self.summary_model_combo.addItem("Default Model")
+            return
+
+        prompts = self._load_summary_prompts()
+        self.summary_model_combo.clear()
+
+        for prompt in prompts:
+            if prompt["name"] == selected_prompt:
+                llm = WWApiAggregator.aggregator.get_provider(prompt["provider"])
+                if llm:
+                    self.summary_model_combo.addItems(llm.get_available_models())
+                    self.summary_model_combo.setCurrentText(prompt["model"])
+                else:
+                    self.summary_model_combo.addItem(prompt["model"])
+                break
+
+
+    def _load_summary_prompts(self):
+        """
+        Load summary prompts from the project's prompts JSON file.
+
+        Returns:
+            list: A list of summary prompt dictionaries, or an empty list if loading fails.
+        """
+        prompts_file = WWSettingsManager.get_project_path(file="prompts.json")
+        if not os.path.exists(prompts_file):
+            return []
+
+        try:
+            with open(prompts_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data.get("Summary", [])
+        except Exception as e:
+            print(f"Error loading summary prompts: {e}")
+            return []
+

@@ -30,21 +30,29 @@ def get_project_folder(project_name: str) -> str:
         os.makedirs(project_folder)
     return project_folder
 
-def load_latest_autosave(project_name: str, hierarchy: list) -> str:
+def get_latest_autosave_path(project_name: str, hierarchy: list) -> str | None:
     """
-    Load the content of the most recent autosave file for a given scene.
-    Supports both legacy .txt files and new HTML files.
-    Returns the content if found, or None otherwise.
+    Return the path to the most recent autosave file for a given scene.
+    Supports both legacy .txt files and new .html files.
+    Returns None if no autosave file exists.
     """
     scene_identifier = build_scene_identifier(project_name, hierarchy)
     project_folder = get_project_folder(project_name)
-    # Search for both .txt (legacy) and .html (new) files
     pattern_txt = os.path.join(project_folder, f"{scene_identifier}_*.txt")
     pattern_html = os.path.join(project_folder, f"{scene_identifier}_*{NEW_FILE_EXTENSION}")
     autosave_files = glob.glob(pattern_txt) + glob.glob(pattern_html)
     if not autosave_files:
         return None
-    latest_file = max(autosave_files, key=os.path.getmtime)
+    return max(autosave_files, key=os.path.getmtime)
+
+def load_latest_autosave(project_name: str, hierarchy: list) -> str | None:
+    """
+    Load the content of the most recent autosave file for a given scene.
+    Returns the content if found, or None otherwise.
+    """
+    latest_file = get_latest_autosave_path(project_name, hierarchy)
+    if not latest_file:
+        return None
     try:
         with open(latest_file, "r", encoding="utf-8") as f:
             return f.read()

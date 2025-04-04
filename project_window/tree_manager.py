@@ -56,7 +56,7 @@ def load_structure(project_name):
              "chapters": [
                  {"name": "Chapter 1", "summary": "This is the summary for Chapter 1.",
                   "scenes": [
-                      {"name": "Scene 1", "content": "This is the scene content for Scene 1."}
+                      {"name": "Scene 1"}
                   ]
                  }
              ]

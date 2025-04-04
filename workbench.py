@@ -10,6 +10,7 @@ from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from project_window.project_window import ProjectWindow
 from settings.preferences import SettingsDialog
 from settings.settings_manager import WWSettingsManager
+from project_window import project_settings_manager
 
 # Define the file used for storing project data.
 PROJECTS_FILE = "projects.json"
@@ -102,6 +103,7 @@ class ProjectPostIt(QToolButton):
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
+        rename_action = menu.addAction("Rename Project")
         delete_action = menu.addAction("Delete Project")
         export_action = menu.addAction("Export Project")
         stats_action = menu.addAction("Project Statistics")
@@ -204,6 +206,13 @@ class ProjectPostIt(QToolButton):
             except Exception as e:
                 QMessageBox.warning(self, "Error Adding Cover",
                                     f"Error adding book cover: {e}")
+        elif action == rename_action:
+            try:
+                self.rename_project()
+                save_projects(PROJECTS)
+            except Exception as e:
+                QMessageBox.warning(self, "Error renaming project",
+                                    f"Error renaming project: {e}")
 
     def add_book_cover(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -227,7 +236,79 @@ class ProjectPostIt(QToolButton):
             self.setIcon(icon)
             self.setIconSize(default_size)
 
+    def rename_project(self):
+        newname, ok = QInputDialog.getText(
+            self, "Rename Project", "Enter the project's new name:")
+        
+        if ok and newname.strip():
+            oldname = self.project["name"]
+            newname = newname.strip()
+            if newname in [p["name"] for p in PROJECTS] or WWSettingsManager.sanitize(newname) in [WWSettingsManager.sanitize(p["name"]) for p in PROJECTS]:
+                QMessageBox.warning(self, "Rename Project",
+                                    f"Project '{newname}' already exists.")
+                return
+            if newname == oldname:
+                QMessageBox.warning(self, "Rename Project",
+                                    f"Project name is unchanged.")
+                return
 
+            self.rename_project_dir(oldname, newname)
+            self.project["name"] = newname
+            self.rename_cover(newname)
+            save_projects(PROJECTS)
+
+            # Update project settings - not so critical if we fail
+            settings = project_settings_manager.load_project_settings(oldname)
+            if settings:
+                project_settings_manager.save_project_settings(newname, settings, PROJECTS)
+
+            # Update UI
+            workbench = self.window()
+            workbench.load_covers()
+            QMessageBox.information(self,
+                "Rename Project", f"Project {oldname} renamed to '{newname}'.")
+
+    def rename_project_dir(self, oldname, newname):
+        old_name = WWSettingsManager.sanitize(oldname)
+        new_name = WWSettingsManager.sanitize(newname)
+        if old_name == new_name:
+            return # No change required
+        old_dirname = WWSettingsManager.get_project_path(old_name)
+        new_dirname = WWSettingsManager.get_project_path(new_name)
+        if (os.path.exists(new_dirname)):
+            raise FileExistsError(f"Project '{newname}' directory already exists.")
+        if not os.path.exists(old_dirname):
+            return # Nothing to rename - must be an empty project
+
+        self.rename_project_dir_contents(old_dirname, new_dirname, old_name, new_name)
+
+    def rename_project_dir_contents(self, old_dirname, new_dirname, old_name, new_name):
+        os.mkdir(new_dirname)
+
+        for filename in os.listdir(old_dirname):
+            old_path = os.path.join(old_dirname, filename)
+
+            # Check if filename starts with old_start
+            if filename.startswith(old_name):
+                # Get the part after old_start
+                remainder = filename[len(old_name):]
+                # Create new filename
+                new_filename = new_name + remainder
+                # Create full paths
+                new_path = os.path.join(new_dirname, new_filename)
+            else: 
+                new_path = os.path.join(new_dirname, filename)
+            shutil.copy2(old_path, new_path)
+        
+        # Success - remove the old directory
+        shutil.rmtree(old_dirname)
+
+    def rename_cover(self, new_name):
+        cover = self.project.get("cover")
+        if cover:
+            filename = os.path.basename(cover)
+            new_filepath = WWSettingsManager.get_project_path(new_name, filename)
+            self.project["cover"] = os.path.relpath(new_filepath)
 
 class ProjectCoverWidget(QWidget):
     """
@@ -436,6 +517,10 @@ class WorkbenchWindow(QMainWindow):
         name, ok = QInputDialog.getText(
             self, "New Project", "Enter new project name:")
         if ok and name.strip():
+            if name.strip() in [p["name"] for p in PROJECTS] or WWSettingsManager.sanitize(name) in [WWSettingsManager.sanitize(p["name"]) for p in PROJECTS]:
+                QMessageBox.warning(self, "New Project",
+                                    f"Project '{name}' already exists.")
+                return
             new_project = {"name": name.strip(), "cover": None}
             PROJECTS.append(new_project)
             save_projects(PROJECTS)

@@ -637,6 +637,65 @@ class PromptsWindow(QDialog):
         })
         category_item.setExpanded(True)
 
+    def save_prompt(self, prompt_item):
+        """Save the current prompt's changes to prompts_data and file."""
+        data = prompt_item.data(0, Qt.UserRole)
+        if data.get("type") != "prompt" or data.get("default", False):
+            QMessageBox.information(self, "Save Prompt",
+                                    "Cannot save: Either not a prompt or it is a default prompt (read-only).")
+            return
+
+        # Update the prompt data with current UI values
+        new_text = self.editor.toPlainText()
+        data["text"] = new_text
+
+        provider_index = self.provider_combo.currentIndex()
+        provider_config = self.provider_combo.itemData(provider_index)
+        if isinstance(provider_config, dict):
+            data["provider"] = provider_config.get("provider", "Local")
+        else:
+            data["provider"] = provider_config
+
+        data["model"] = self.model_combo.currentText()
+        data["max_tokens"] = self.max_tokens_spin.value()
+        data["temperature"] = self.temp_spin.value()
+
+        # Update tooltip
+        tooltip = (
+            f"Provider: {data['provider']}\n"
+            f"Model: {data['model']}\n"
+            f"Max Tokens: {data['max_tokens']}\n"
+            f"Temperature: {data['temperature']}\n"
+            f"Text: {new_text}"
+        )
+        prompt_item.setToolTip(0, tooltip)
+
+        # Update the prompts_data structure
+        parent_item = prompt_item.parent()
+        if parent_item:
+            category = parent_item.text(0)
+            for prompt in self.prompts_data.get(category, []):
+                if prompt.get("name") == data.get("name"):
+                    prompt.update(data)
+                    break
+
+        # Save to file
+        try:
+            with open(self.prompts_file, "w", encoding="utf-8") as f:
+                json.dump(self.prompts_data, f, indent=4)
+            with open(self.backup_file, "w", encoding="utf-8") as f:
+                json.dump(self.prompts_data, f, indent=4)
+            QMessageBox.information(self, "Save Prompt", f"Prompt '{data['name']}' saved successfully.")
+            
+            # Refresh the tree to reflect changes
+            self.refresh_tree()
+
+            # Re-select the prompt to update the UI
+            self.reselect_prompt_by_name(data["name"])
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Error saving prompt: {e}")
+
     def rename_prompt(self, prompt_item):
         """Rename a prompt."""
         data = prompt_item.data(0, Qt.UserRole)

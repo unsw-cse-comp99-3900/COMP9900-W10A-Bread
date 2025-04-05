@@ -1,8 +1,9 @@
 import os
 import json
 import shutil
+import random
 from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QStackedWidget, QHBoxLayout, QVBoxLayout,
+    QMainWindow, QWidget, QStackedWidget, QHBoxLayout, QVBoxLayout, QSizePolicy,
     QToolButton, QPushButton, QLabel, QMessageBox, QMenu, QFileDialog, QInputDialog
 )
 from PyQt5.QtGui import QIcon, QPixmap
@@ -350,8 +351,12 @@ class WorkbenchWindow(QMainWindow):
     def init_ui(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
-        layout.setSpacing(15)
+        self.main_layout = QVBoxLayout(central_widget)
+        self.main_layout.setSpacing(15)
+        
+        # Create a content layout for dynamic widgets
+        self.content_layout = QVBoxLayout()
+        self.main_layout.addLayout(self.content_layout)
 
         header_container = QWidget()
         header_layout = QHBoxLayout(header_container)
@@ -366,11 +371,10 @@ class WorkbenchWindow(QMainWindow):
         settings_button = QPushButton("")
         cog_icon_path = os.path.join("assets", "icons", "settings.svg")
         settings_button.setIcon(QIcon(cog_icon_path))
-        settings_button.setToolTip(
-            "Click here to configure global options (paths, fonts, themes, etc.)")
+        settings_button.setToolTip("Click here to configure global options (paths, fonts, themes, etc.)")
         settings_button.clicked.connect(self.open_settings)
         header_layout.addWidget(settings_button)
-        layout.addWidget(header_container)
+        self.content_layout.addWidget(header_container)
 
         carousel_container = QWidget()
         carousel_layout = QHBoxLayout(carousel_container)
@@ -378,8 +382,7 @@ class WorkbenchWindow(QMainWindow):
         carousel_layout.setSpacing(10)
 
         self.left_button = QPushButton("")
-        left_arrow_icon = QIcon(os.path.join(
-            "assets", "icons", "chevron-left.svg"))
+        left_arrow_icon = QIcon(os.path.join("assets", "icons", "chevron-left.svg"))
         self.left_button.setIcon(left_arrow_icon)
         self.left_button.setIconSize(QSize(32, 32))
         self.left_button.setFixedSize(60, 60)
@@ -392,36 +395,125 @@ class WorkbenchWindow(QMainWindow):
         carousel_layout.addWidget(self.coverStack, stretch=1)
 
         self.right_button = QPushButton("")
-        right_arrow_icon = QIcon(os.path.join(
-            "assets", "icons", "chevron-right.svg"))
+        right_arrow_icon = QIcon(os.path.join("assets", "icons", "chevron-right.svg"))
         self.right_button.setIcon(right_arrow_icon)
         self.right_button.setIconSize(QSize(32, 32))
         self.right_button.setFixedSize(60, 60)
         self.right_button.setToolTip("Next Project")
         self.right_button.clicked.connect(self.show_next)
         carousel_layout.addWidget(self.right_button)
-        layout.addWidget(carousel_container)
+        self.content_layout.addWidget(carousel_container)
 
         new_project_button = QPushButton("＋ New Project")
         new_project_button.setObjectName("newProjectButton")
         new_project_button.setFixedSize(200, 50)
         new_project_button.setToolTip("Create a brand-new project")
         new_project_button.clicked.connect(self.new_project)
-        layout.addWidget(new_project_button, alignment=Qt.AlignCenter)
+        self.content_layout.addWidget(new_project_button, alignment=Qt.AlignCenter)
+
+        self.quoteLabel = None
+        if WWSettingsManager.get_general_settings().get("show_random_quote", False):
+            self.create_quote_label()
 
         self.coverStack.currentChanged.connect(self.updateCoverStackSize)
         self.load_covers()
 
-        # Add stretch to push the version label to the bottom
-        layout.addStretch()
+        # Add stretch to push footer to the bottom
+        self.main_layout.addStretch()
 
-        # Add version display at the bottom right corner
+        # Footer: version display at the bottom right corner
         version_layout = QHBoxLayout()
         version_layout.addStretch()
         version_label = QLabel(f"Version: {VERSION.get('version', 'No Version Set')}")
         version_label.setAlignment(Qt.AlignRight)
         version_layout.addWidget(version_label)
-        layout.addLayout(version_layout)
+        self.main_layout.addLayout(version_layout)
+        
+    def create_quote_label(self):
+        """Creates a quote label and adds it to the content layout (or main layout as fallback)."""
+        if self.quoteLabel:  # If already exists, just update the text
+            return
+
+        self.quoteLabel = QLabel()
+        self.quoteLabel.setObjectName("quoteLabel")
+        self.quoteLabel.setAlignment(Qt.AlignCenter)
+        self.quoteLabel.setWordWrap(True)
+        self.quoteLabel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.quoteLabel.setStyleSheet("font-style: italic; color: #666; margin: 10px;")
+
+        # Load and format the quote
+        random_quote = self.load_random_quote()
+        quote_text = random_quote.get('text', 'No quote available')
+        author_text = random_quote.get('author', 'Unknown')
+        formatted_text = (
+            f"<html><body>"
+            f"<div style='text-align:center;'>"
+            f"<span style='font-size:18px;'>{quote_text}</span><br/>"
+            f"<span style='font-size:14px; color:#444;'> {author_text}</span>"
+            f"</div>"
+            f"</body></html>"
+        )
+        self.quoteLabel.setText(formatted_text)
+        self.quoteLabel.setMinimumSize(650, 150)
+
+        # Add to content_layout if available, otherwise to main_layout
+        if hasattr(self, 'content_layout'):
+            self.content_layout.addWidget(self.quoteLabel, 0, Qt.AlignCenter)
+        else:
+            self.main_layout.addWidget(self.quoteLabel, 0, Qt.AlignCenter)
+        
+    def load_random_quote(self):
+        """Load a random quote from the appropriate quotes file based on selected language,
+           falling back to English if necessary."""
+        language = WWSettingsManager.get_general_settings().get("language", "en")
+        # Determine the file name based on language
+        if language == "pl":
+            file_name = "quotes_pl.json"
+        else:
+            file_name = "quotes.json"
+
+        # Build the file path in the assets/quotes folder
+        quotes_file = os.path.join(os.getcwd(), "assets", "quotes", file_name)
+
+        try:
+            with open(quotes_file, "r", encoding="utf-8") as f:
+                quotes = json.load(f)
+            if not quotes:
+                raise ValueError("Empty quotes list")
+            return random.choice(quotes)
+        except Exception as e:
+            # If the selected language is not English, fall back to English quotes
+            if language != "en":
+                print(f"Falling back to English quotes due to error: {e}")
+                fallback_file = os.path.join(os.getcwd(), "assets", "quotes", "quotes.json")
+                try:
+                    with open(fallback_file, "r", encoding="utf-8") as f:
+                        quotes = json.load(f)
+                    if not quotes:
+                        raise ValueError("Empty quotes list")
+                    return random.choice(quotes)
+                except Exception as ex:
+                    print(f"Error loading English quotes: {ex}")
+            print(f"Error loading quotes: {e}")
+            return {"text": "No quote available", "author": ""}
+            
+    def handle_quote_setting_change(self):
+        """Responds to changing quote settings"""
+        if WWSettingsManager.get_general_settings().get("show_random_quote", False):
+            self.show_quote()
+        else:
+            self.hide_quote()
+
+    def show_quote(self):
+        """Shows a quote (creates if it doesn't exist)"""
+        if not self.quoteLabel:
+            self.create_quote_label()
+        self.quoteLabel.show()
+
+    def hide_quote(self):
+        """Hides the quote (if there is one)"""
+        if self.quoteLabel:
+            self.quoteLabel.hide()
 
     def apply_fixed_stylesheet(self):
         fixed_styles = """
@@ -468,6 +560,7 @@ class WorkbenchWindow(QMainWindow):
 
     def open_settings(self):
         options = SettingsDialog(self)
+        options.settings_saved.connect(self.handle_quote_setting_change)
         options.exec_()
 
     def updateCoverStackSize(self, index):

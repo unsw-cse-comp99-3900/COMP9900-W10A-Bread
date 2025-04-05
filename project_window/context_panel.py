@@ -195,7 +195,7 @@ class ContextPanel(QWidget):
             for j in range(cat_item.childCount()):
                 entry_item = cat_item.child(j)
                 if entry_item.checkState(0) == Qt.Checked:
-                    text = self.compendium_manager.get_text(category, entry_item.text(0), self.project_name)
+                    text = self.compendium_manager.get_text(category, entry_item.text(0))
                     texts.append(f"[Compendium Entry - {category} - {entry_item.text(0)}]:\n{text}")
 
         if texts:

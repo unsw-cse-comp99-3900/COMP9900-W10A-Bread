@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QTabWidget, QVBoxLayout,
                              QScrollArea, QFrame, QRadioButton, QGroupBox,
                              QDialogButtonBox)
 from PyQt5.QtGui import QIcon, QPalette, QColor, QIntValidator, QFont
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 
 from .theme_manager import ThemeManager
 from .llm_api_aggregator import WWApiAggregator
@@ -23,6 +23,7 @@ UI_LABELS = {
         "general_tab": "General",
         "fast_tts": "Fast Text to Speech",
         "enable_autosave": "Enable Auto-Save",
+        "show_random_quote": "Show Random Quotes",
         "language": "Language",
         "appearance_tab": "Appearance",
         "theme": "Theme",
@@ -339,6 +340,7 @@ class ProviderDialog(QDialog):
 
 
 class SettingsDialog(QDialog):
+    settings_saved = pyqtSignal()
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Preferences")
@@ -412,6 +414,11 @@ class SettingsDialog(QDialog):
         self.enable_autosave_checkbox = QCheckBox(self.labels["enable_autosave"])
         self.enable_autosave_checkbox.stateChanged.connect(self.mark_unsaved_changes)
         layout.addRow(self.enable_autosave_checkbox)
+        
+        # New: Checkbox for random quotes
+        self.show_quote_checkbox = QCheckBox(self.labels["show_random_quote"])
+        self.show_quote_checkbox.stateChanged.connect(self.mark_unsaved_changes)
+        layout.addRow(self.show_quote_checkbox)
 
         self.language_combobox = QComboBox()
         self.language_combobox.setMinimumWidth(80)
@@ -674,6 +681,7 @@ class SettingsDialog(QDialog):
         self.tabs.setTabText(2, self.labels["provider_tab"])
         self.fast_tts_checkbox.setText(self.labels["fast_tts"])
         self.enable_autosave_checkbox.setText(self.labels["enable_autosave"])
+        self.show_quote_checkbox.setText(self.labels["show_random_quote"])
         self.language_label.setText(self.labels["language"])
         self.theme_label.setText(self.labels["theme"])
         self.background_color_button.setText(self.labels["background_color"])
@@ -712,11 +720,14 @@ class SettingsDialog(QDialog):
 
         # Populate provider list
         self.populate_providers_list()
+        
+        self.show_quote_checkbox.setChecked(self.general_settings.get("show_random_quote", False))
 
     def save_settings_to_file(self):
         """Saves the current UI settings to the JSON file."""
         self.general_settings["fast_tts"] = self.fast_tts_checkbox.isChecked()
         self.general_settings["enable_autosave"] = self.enable_autosave_checkbox.isChecked()
+        self.general_settings["show_random_quote"] = self.show_quote_checkbox.isChecked()
         self.general_settings["language"] = self.language_combobox.currentText()
         self.appearance_settings["theme"] = self.theme_combobox.currentText()
         self.appearance_settings["text_size"] = self.text_size_spinbox.value()
@@ -740,6 +751,7 @@ class SettingsDialog(QDialog):
             self.original_llm_configs = copy.deepcopy(self.llm_configs)
             QMessageBox.information(self, "Save Result", self.labels["save_successful"])
             self.unsaved_changes = False  # Reset unsaved changes flag
+            self.settings_saved.emit()
         else:
             QMessageBox.warning(self, "Warning", "Failed to save settings.")
 

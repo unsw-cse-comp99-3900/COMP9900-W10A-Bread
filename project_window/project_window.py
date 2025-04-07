@@ -479,7 +479,7 @@ class ProjectWindow(QMainWindow):
             None
         )
         self.bottom_stack.preview_text.clear()
-        self.bottom_stack.psetRe # User clicks can really mess up the text inserts
+        self.bottom_stack.preview_text.setReadOnly(True) # User clicks can really mess up the text inserts
         self.worker = LLMWorker(final_prompt, self.current_prose_config)
         self.worker.data_received.connect(self.update_text)
         self.worker.finished.connect(self.on_finished)

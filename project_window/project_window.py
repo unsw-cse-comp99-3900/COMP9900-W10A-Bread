@@ -593,10 +593,36 @@ class ProjectWindow(QMainWindow):
         self.scene_editor.editor.setAlignment(Qt.AlignRight)
 
     def set_font_size(self, size):
-        font = self.scene_editor.editor.currentFont()
-        font.setPointSize(size)
-        self.scene_editor.editor.setCurrentFont(font)
+        cursor = self.scene_editor.editor.textCursor()
+        if not cursor.hasSelection():
+            # Apply to the current position for typing new text
+            fmt = self.scene_editor.editor.currentCharFormat()
+            fmt.setFontPointSize(float(size))  # Ensure size is a float
+            self.scene_editor.editor.setCurrentCharFormat(fmt)
+        else:
+            # Apply to selected text, preserving formatting
+            fmt = QTextCharFormat()  # Get the current format of the selection
+            fmt.setFontPointSize(float(size))  # Update only the size
+            cursor.mergeCharFormat(fmt)  # Apply to the selection directly
+        # No need for setTextCursor here, as mergeCharFormat updates the text directly
 
+    def update_font_family(self, font):
+        cursor = self.scene_editor.editor.textCursor()
+        if not cursor.hasSelection():
+            # Apply to current position for typing new text
+            fmt = self.scene_editor.editor.currentCharFormat()
+            fmt.setFontFamilies([font.family()])
+            # Preserve existing size if set, otherwise use default from combo
+            current_size = self.scene_editor.font_size_combo.currentText()
+            fmt.setFontPointSize(float(current_size) if current_size else font.pointSizeF())
+            self.scene_editor.editor.setCurrentCharFormat(fmt)
+        else:
+            # Apply to selected text, preserving formatting
+            fmt = QTextCharFormat()  # Get the current format of the selection
+            fmt.setFontFamilies([font.family()])  # Update only the family
+            cursor.mergeCharFormat(fmt)  # Apply to the selection directly
+        # No need for setTextCursor here, as mergeCharFormat updates the text directly
+       
     def toggle_tts(self):
         if self.tts_playing:
             WW_TTSManager.stop()

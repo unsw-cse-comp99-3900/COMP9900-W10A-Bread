@@ -44,7 +44,7 @@ from workbench import WorkbenchWindow
 from settings.theme_manager import ThemeManager
 from settings.settings_manager import WWSettingsManager
 
-def writeway_preload_settings(app):
+def writingway_preload_settings(app):
     # Load and apply the saved theme to the application.
     theme = WWSettingsManager.get_appearance_settings()["theme"]
     try:
@@ -61,7 +61,7 @@ def writeway_preload_settings(app):
 
 def main():
     app = QApplication(sys.argv)
-    writeway_preload_settings(app)
+    writingway_preload_settings(app)
     window = WorkbenchWindow()
     window.show()
     sys.exit(app.exec_())

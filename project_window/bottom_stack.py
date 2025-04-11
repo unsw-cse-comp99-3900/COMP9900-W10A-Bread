@@ -12,7 +12,6 @@ from settings.llm_api_aggregator import WWApiAggregator
 from muse.prompt_preview_dialog import PromptPreviewDialog
 import json
 import os
-import re
 
 class BottomStack(QWidget):
     """Stacked widget for summary and LLM panels."""
@@ -36,7 +35,7 @@ class BottomStack(QWidget):
         layout.addWidget(self.stack)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self.summary_panel = self.create_summary_panel()
+        self.summary_panel = self.cate_summary_panel()
         self.llm_panel = self.create_llm_panel()
         self.stack.addWidget(self.summary_panel)
         self.stack.addWidget(self.llm_panel)
@@ -219,7 +218,6 @@ class BottomStack(QWidget):
                 else:
                     self.summary_model_combo.addItem(prompt["model"])
                 break
-
     def _load_summary_prompts(self):
         """
         Load summary prompts from the project's prompts JSON file.

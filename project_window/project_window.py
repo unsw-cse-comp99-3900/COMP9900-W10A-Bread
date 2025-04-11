@@ -178,7 +178,7 @@ class ProjectWindow(QMainWindow):
         if self.model.unsaved_changes:
             self.autosave_scene(item)
         if self.unsaved_preview:
-            self.autsave_preview()
+            self.autosave_preview()
         return True
 
     @pyqtSlot(QTreeWidgetItem, QTreeWidgetItem)

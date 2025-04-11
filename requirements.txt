@@ -17,3 +17,9 @@ spacy==3.7.5
 textstat
 tiktoken
 wikipedia-api
+noisereduce
+pyaudio
+whisper
+openai-whisper
+pydub
+moviepy

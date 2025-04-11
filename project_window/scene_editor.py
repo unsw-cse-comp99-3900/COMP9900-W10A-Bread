@@ -51,6 +51,7 @@ class SceneEditor(QWidget):
         self.manual_save_action = self.add_action("manual_save", "assets/icons/save.svg", "Manual Save", self.controller.manual_save_scene)
         self.oh_shit_action = self.add_action("oh_shit", "assets/icons/share.svg", "Show Backups", self.controller.on_oh_shit)
         self.analysis_editor_action = self.add_action("analysis_editor", "assets/icons/feather.svg", "Open Analysis Editor", self.controller.open_analysis_editor)
+        self.whisper_app_action = self.add_action("whisper_app", "assets/icons/mic.svg", "Open Whisper App", self.controller.open_whisper_app)
         self.wikidata_dialog_action = self.add_action("wikidata_dialog", "assets/icons/wikidata.svg", "Open Wikipedia", self.controller.open_wikidata_search)
         self.toolbar.addSeparator()
 

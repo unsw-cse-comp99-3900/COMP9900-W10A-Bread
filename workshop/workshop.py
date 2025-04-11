@@ -1,3 +1,8 @@
+import datetime
+import tempfile
+import pyaudio
+import wave
+import whisper
 import json
 import os
 import re
@@ -7,8 +12,8 @@ from PyQt5.QtWidgets import (
     QPushButton, QMessageBox, QInputDialog, QTreeWidget, QTreeWidgetItem,
     QSplitter, QWidget, QScrollArea, QLabel, QApplication, QListWidget, QListWidgetItem, QMenu, QComboBox
 )
-from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt, QPoint, QThread, pyqtSignal, QTime, QTimer
+from PyQt5.QtGui import QIcon, QCursor, QPixmap  # Added QCursor and QPixmap for cursor manipulation
 import muse.prompts
 from settings.llm_api_aggregator import WWApiAggregator
 from settings.autosave_manager import load_latest_autosave
@@ -24,7 +29,6 @@ class WorkshopWindow(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Workshop")
         # Allow the user to maximize the window by including the maximize hint.
-
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
         self.resize(1000, 600)
         # Optionally, start maximized:
@@ -41,10 +45,17 @@ class WorkshopWindow(QDialog):
         self.conversations[self.current_conversation] = []
 
         # Initialize the embedding index for context retrieval.
-        # Embedding index
         self.embedding_index = EmbeddingIndex()
 
         self.current_mode = "Normal"
+        
+        # Audio recording variables
+        self.pause_start = None  # Track when pause begins
+        self.available_models = self.get_available_models()  # Get installed models
+
+        # Define custom cursors for transcription
+        self.waiting_cursor = QCursor(QPixmap("assets/icons/clock.svg"))  # Waiting cursor with clock icon
+        self.normal_cursor = QCursor()  # Default system cursor
 
         self.init_ui()
         self.load_conversations()
@@ -52,6 +63,17 @@ class WorkshopWindow(QDialog):
         # Connect model signal if available
         if self.model:
             self.model.structureChanged.connect(self.context_panel.on_structure_changed)
+
+    def get_available_models(self):
+        """Retrieves a list of installed models from cache"""
+        cache_dir = os.path.expanduser("~/.cache/whisper")
+        models = []
+        if os.path.exists(cache_dir):
+            for file in os.listdir(cache_dir):
+                if file.endswith(".pt"):
+                    model_name = file.split(".")[0]
+                    models.append(model_name)
+        return models or ["tiny"]  # Default to tiny if no models found
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
@@ -130,6 +152,52 @@ class WorkshopWindow(QDialog):
         self.context_button.setIcon(QIcon("assets/icons/book.svg"))
         self.context_button.clicked.connect(self.toggle_context_panel)
         buttons_layout.addWidget(self.context_button)
+        
+        # Audio recording and transcription section
+        audio_group_layout = QHBoxLayout()
+        
+        # Record button
+        self.record_button = QPushButton()
+        self.record_button.setIcon(QIcon("assets/icons/mic.svg"))
+        self.record_button.setCheckable(True)
+        self.record_button.clicked.connect(self.toggle_recording)
+        audio_group_layout.addWidget(self.record_button)
+        
+        # Pause button
+        self.pause_button = QPushButton()
+        self.pause_button.setIcon(QIcon("assets/icons/pause.svg"))
+        self.pause_button.setCheckable(True)
+        self.pause_button.setEnabled(False)
+        self.pause_button.clicked.connect(self.toggle_pause)
+        audio_group_layout.addWidget(self.pause_button)
+        
+        # Recording time display
+        self.time_label = QLabel("00:00")
+        audio_group_layout.addWidget(self.time_label)
+        
+        # Whisper model selection - only show installed models
+        audio_group_layout.addWidget(QLabel("Model:"))
+        self.model_combo = QComboBox()
+        self.model_combo.addItems(self.available_models)
+        audio_group_layout.addWidget(self.model_combo)
+        
+        # Language selection with expanded language options
+        audio_group_layout.addWidget(QLabel("Language:"))
+        self.language_combo = QComboBox()
+        self.language_combo.addItems([
+            "Auto", "English", "Polish", "Spanish", "French", "German", 
+            "Italian", "Portuguese", "Russian", "Japanese", "Chinese", 
+            "Korean", "Dutch", "Arabic", "Hindi", "Swedish", "Czech", 
+            "Finnish", "Turkish", "Greek", "Ukrainian"
+        ])
+        audio_group_layout.addWidget(self.language_combo)
+        
+        # Add audio group to the main buttons layout
+        buttons_layout.addLayout(audio_group_layout)
+        
+        # Timer for updating recording time
+        self.recording_timer = QTimer()
+        self.recording_timer.timeout.connect(self.update_recording_time)
 
         # Model label
         self.model_label = QLabel("Model: [None]")
@@ -366,6 +434,149 @@ class WorkshopWindow(QDialog):
     def closeEvent(self, event):
         self.save_conversations()
         event.accept()
+        
+    def toggle_recording(self):
+        if not self.record_button.isChecked():
+            # Stop recording
+            self.recorder.stop_recording()
+            self.recording_timer.stop()
+            self.pause_button.setEnabled(False)
+            self.record_button.setIcon(QIcon("assets/icons/mic.svg"))
+            self.time_label.setText("00:00")
+        else:
+            # Start recording
+            self.recording_file = tempfile.mktemp(suffix='.wav')
+            self.recorder = AudioRecorder()
+            self.recorder.setup_recording(self.recording_file)
+            self.recorder.finished.connect(self.on_recording_finished)
+            self.recorder.start()
+            
+            self.start_time = datetime.datetime.now()
+            self.pause_start = None
+            self.recording_timer.start(1000)
+            self.pause_button.setEnabled(True)
+            self.record_button.setIcon(QIcon("assets/icons/stop-circle.svg"))
+
+    def toggle_pause(self):
+        if self.recorder.is_paused:
+            self.recorder.resume()
+            self.pause_button.setIcon(QIcon("assets/icons/pause.svg"))
+            # Update time after pause
+            if self.pause_start:
+                pause_duration = datetime.datetime.now() - self.pause_start
+                self.start_time += pause_duration
+                self.pause_start = None
+        else:
+            self.recorder.pause()
+            self.pause_button.setIcon(QIcon("assets/icons/play.svg"))
+            self.pause_start = datetime.datetime.now()
+
+    def update_recording_time(self):
+        if self.start_time and not self.recorder.is_paused:
+            delta = datetime.datetime.now() - self.start_time
+            if self.pause_start:
+                delta -= datetime.datetime.now() - self.pause_start
+            self.time_label.setText(str(delta).split('.')[0])
+
+    def on_recording_finished(self, file_path):
+        # Change the cursor to the waiting state (clock icon) before transcription starts
+        QApplication.setOverrideCursor(self.waiting_cursor)
+        
+        # Start transcription with language
+        language = None if self.language_combo.currentText() == "Auto" else self.language_combo.currentText()
+        self.transcription_worker = TranscriptionWorker(
+            file_path, 
+            self.model_combo.currentText(),
+            language
+        )
+        self.transcription_worker.finished.connect(self.handle_transcription)
+        self.transcription_worker.start()
+
+    def handle_transcription(self, text):
+        # Restore the normal cursor after transcription completes
+        QApplication.restoreOverrideCursor()
+        
+        if not text.startswith("Error"):
+            # Append the transcribed text to existing content instead of replacing
+            current_text = self.chat_input.toPlainText()
+            if current_text:
+                # Add a space between existing text and new text
+                self.chat_input.setPlainText(current_text + " " + text)
+            else:
+                self.chat_input.setPlainText(text)
+        else:
+            QMessageBox.warning(self, "Transcription Error", text)
+        
+class AudioRecorder(QThread):
+    finished = pyqtSignal(str)
+    
+    def __init__(self):
+        super().__init__()
+        self.is_recording = False
+        self.is_paused = False
+        self.output_file = ""
+        self.start_time = None
+
+    def setup_recording(self, output_file):
+        self.output_file = output_file
+        self.is_recording = True
+        self.is_paused = False
+        self.start_time = datetime.datetime.now()
+
+    def run(self):
+        FORMAT = pyaudio.paInt16
+        CHANNELS = 1
+        RATE = 16000
+        CHUNK = 1024
+        
+        audio = pyaudio.PyAudio()
+        stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+        frames = []
+        
+        while self.is_recording:
+            data = stream.read(CHUNK)
+            if not self.is_paused:
+                frames.append(data)
+            self.msleep(10)
+            
+        stream.stop_stream()
+        stream.close()
+        audio.terminate()
+        
+        if frames:
+            wf = wave.open(self.output_file, 'wb')
+            wf.setnchannels(CHANNELS)
+            wf.setsampwidth(audio.get_sample_size(FORMAT))
+            wf.setframerate(RATE)
+            wf.writeframes(b''.join(frames))
+            wf.close()
+            self.finished.emit(self.output_file)
+
+    def stop_recording(self):
+        self.is_recording = False
+
+    def pause(self):
+        self.is_paused = True
+
+    def resume(self):
+        self.is_paused = False
+
+class TranscriptionWorker(QThread):
+    finished = pyqtSignal(str)
+    
+    def __init__(self, file_path, model_name="tiny", language=None):
+        super().__init__()
+        self.file_path = file_path
+        self.model_name = model_name
+        self.language = language
+
+    def run(self):
+        try:
+            model = whisper.load_model(self.model_name)
+            result = model.transcribe(self.file_path, language=self.language)
+            self.finished.emit(result["text"])
+        except Exception as e:
+            self.finished.emit(f"Error: {str(e)}")
 
 # For testing standalone
 if __name__ == "__main__":

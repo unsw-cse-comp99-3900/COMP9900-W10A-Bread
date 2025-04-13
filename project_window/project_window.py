@@ -24,6 +24,7 @@ from settings.theme_manager import ThemeManager
 from workshop.workshop import WorkshopWindow
 from util.text_analysis_gui import TextAnalysisApp
 from util.wikidata_dialog import WikidataDialog
+from util.whisper_app import WhisperApp
 from muse.prompts import PromptsWindow
 from muse.prompt_preview_dialog import PromptPreviewDialog
 from .token_limit_dialog import TokenLimitDialog
@@ -661,6 +662,10 @@ class ProjectWindow(QMainWindow):
     def open_wikidata_search(self):
         self.wikidata_dialog = WikidataDialog(self)
         self.wikidata_dialog.show()
+        
+    def open_whisper_app(self):
+        self.whisper_app = WhisperApp(self)
+        self.whisper_app.show()
 
     def analysis_save_callback(self, updated_text):
         self.scene_editor.editor.setPlainText(updated_text)

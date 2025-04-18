@@ -590,8 +590,6 @@ class TranscriptionWorker(QThread):
 
     def run(self):
         try:
-            # Temporary workaround for OpenMP conflict
-            os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
             model = whisper.load_model(self.model_name)
             result = model.transcribe(self.file_path, language=self.language)
             self.finished.emit(result["text"])

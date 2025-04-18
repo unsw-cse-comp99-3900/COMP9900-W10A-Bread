@@ -1,5 +1,3 @@
-import json
-import os
 import requests
 
 from typing import Dict, List, Optional, Any, Type, Union
@@ -159,7 +157,7 @@ class OpenAIProvider(LLMProviderBase):
             self.llm_instance = ChatOpenAI(
                 openai_api_key=overrides.get("api_key", self.get_api_key()),
                 openai_api_base=overrides.get("endpoint", self.get_base_url()),
-                model_name=overrides.get("model", self.get_current_model()),
+                model=overrides.get("model", self.get_current_model()),
                 temperature=self.config.get("temperature", DEFAULT_TEMPERATURE),
                 max_tokens=self.config.get("max_tokens", DEFAULT_MAX_TOKENS),
                 request_timeout=self.get_timeout(overrides)
@@ -192,7 +190,7 @@ class AnthropicProvider(LLMProviderBase):
             self.llm_instance = ChatAnthropic(
                 anthropic_api_key=overrides.get("api_key", self.get_api_key()),
                 base_url=overrides.get("endpoint", None),
-                model_name=overrides.get("model", self.get_current_model() or "claude-3-haiku-20240307"),
+                model=overrides.get("model", self.get_current_model() or "claude-3-haiku-20240307"),
                 temperature=self.config.get("temperature", DEFAULT_TEMPERATURE),
                 max_tokens=self.config.get("max_tokens", DEFAULT_MAX_TOKENS),
                 timeout=self.get_timeout(overrides)
@@ -303,7 +301,7 @@ class OpenRouterProvider(LLMProviderBase):
             self.llm_instance = ChatOpenAI(
                 openai_api_key=overrides.get("api_key", self.get_api_key()),
                 base_url=overrides.get("endpoint", self.get_base_url()),
-                model_name=overrides.get("model", self.get_current_model()),
+                model=overrides.get("model", self.get_current_model()),
                 temperature=overrides.get("temperature", self.config.get("temperature", DEFAULT_TEMPERATURE)),
                 max_tokens=overrides.get("max_tokens", self.config.get("max_tokens", DEFAULT_MAX_TOKENS)),
                 request_timeout=self.get_timeout(overrides)
@@ -461,7 +459,6 @@ class WW_Aggregator:
         return provider_map.get(provider_name)
 
 import threading
-import queue
 
 class LLMAPIAggregator:
     """Main class for the LLM API Aggregator."""
@@ -482,11 +479,10 @@ class LLMAPIAggregator:
     ) -> str:
         """Send a prompt to the active LLM and return the generated text."""
         overrides = overrides or {}
-        settings = WWSettingsManager.get_llm_configs()
         
         # Determine which provider to use
         provider_name = overrides.get("provider") or WWSettingsManager.get_active_llm_name()
-        if provider_name == "Local": # need to rename this to Default everywhere
+        if provider_name in ["Local", "Default"]:
             provider_name = WWSettingsManager.get_active_llm_name()
             overrides = {}
         if not provider_name:
@@ -534,11 +530,10 @@ class LLMAPIAggregator:
     ):
         """Stream a prompt to the active LLM and yield the generated text."""
         overrides = overrides or {}
-        settings = WWSettingsManager.get_llm_configs()
         
         # Determine which provider to use
         provider_name = overrides.get("provider") or WWSettingsManager.get_active_llm_name()
-        if provider_name == "Local": # need to rename this to Default everywhere
+        if provider_name in ["Local", "Default"]:
             provider_name = WWSettingsManager.get_active_llm_name()
             overrides = {}
         if not provider_name:
@@ -549,8 +544,17 @@ class LLMAPIAggregator:
         if not provider:
             raise ValueError(f"Provider '{provider_name}' not found or not configured")
         
+            # Validate provider configuration
+        if provider.model_requires_api_key:
+            api_key = overrides.get("api_key", provider.get_api_key())
+            if not api_key or api_key == "not-needed":
+                raise ValueError(f"API key required for {provider_name} but not provided")
+
         # Get the LLM instance
-        llm = provider.get_llm_instance(overrides)
+        try:
+            llm = provider.get_llm_instance(overrides)
+        except ValueError as e:
+            raise ValueError(f"Failed to initialize LLM: {e}")
         
         # Create messages format if conversation history is provided
         if conversation_history:

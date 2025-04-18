@@ -5,58 +5,11 @@ from PyQt5.QtWidgets import (
     QTextEdit, QPushButton, QHBoxLayout, QMenu, QInputDialog, QMessageBox,
     QLabel, QComboBox, QSpinBox, QDoubleSpinBox, QApplication
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QItemSelectionModel
 from PyQt5.QtGui import QIcon
+from .prompt_utils import get_prompt_categories, load_prompts, get_default_prompt
 from settings.llm_api_aggregator import WWApiAggregator
 from settings.settings_manager import WWSettingsManager
-
-def get_workshop_prompts(project_name):
-    """
-    Loads workshop prompts from a global prompts file.
-    The file is now named 'prompts.json', regardless of the project.
-    Returns a list of prompt objects from the "Workshop" category.
-    If the file is missing or fails to load, returns a dummy prompt.
-    """
-    
-    filepath = WWSettingsManager.get_project_path(file="prompts.json")
-    if not os.path.exists(filepath):
-        oldpath = os.path.join(os.getcwd(), "prompts.json") # backward compatibility
-        if os.path.exists(oldpath):
-            os.rename(oldpath, filepath)
-    if os.path.exists(filepath):
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return data.get("Workshop", [])
-        except Exception as e:
-            print("Error loading workshop prompts:", e)
-    return [{
-        "name": "Default Workshop Prompt",
-        "text": "I need your help with my project. Please provide creative brainstorming and ideas.",
-        "provider": "Local",
-        "model": "Local Model",
-        "max_tokens": 2000,
-        "temperature": 1.0
-    }]
-
-def load_project_options(project_name):
-    """Load project options to inject dynamic values into default prompts."""
-    options = {}
-    PROJECT_SETTINGS_FILE = "project_settings.json"
-    filepath = WWSettingsManager.get_project_path(file=PROJECT_SETTINGS_FILE)
-    if not os.path.exists(filepath):
-        oldpath = os.path.join(os.getcwd(), PROJECT_SETTINGS_FILE) # backward compatibility
-        if (os.path.exists(oldpath)):
-            os.rename(oldpath, filepath)
-
-    if os.path.exists(filepath):
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                all_settings = json.load(f)
-            options = all_settings.get(project_name, {})
-        except Exception as e:
-            print("Error loading project options:", e)
-    return options
 
 class PromptsWindow(QDialog):
     def __init__(self, project_name, parent=None):
@@ -70,7 +23,6 @@ class PromptsWindow(QDialog):
         self.backup_file = WWSettingsManager.get_project_path(file="prompts.bak.json")
 
         # Default categories
-        self.default_categories = ["Workshop", "Summary", "Prose", "Rewrite"]
         self.prompts_data = {}
 
         self.current_prompt_item = None
@@ -303,97 +255,26 @@ class PromptsWindow(QDialog):
 
     def load_prompts(self):
         """Load prompts and ensure defaults exist."""
-        loaded = False
-        if not os.path.exists(self.prompts_file):
-            oldpath = os.path.join(os.getcwd(), "prompts.json") # backward compatibility
-            if os.path.exists(oldpath):
-                os.rename(oldpath, self.prompts_file)
-        if os.path.exists(self.prompts_file):
-            try:
-                with open(self.prompts_file, "r", encoding="utf-8") as f:
-                    self.prompts_data = json.load(f)
-                loaded = True
-            except Exception as e:
-                QMessageBox.warning(
-                    self, "Error", f"Error loading prompts file: {e}")
-
-        if not loaded and os.path.exists(self.backup_file):
-            try:
-                with open(self.backup_file, "r", encoding="utf-8") as f:
-                    self.prompts_data = json.load(f)
-                loaded = True
-                QMessageBox.information(
-                    self, "Backup Loaded", "Loaded prompts from backup file.")
-            except Exception as e:
-                QMessageBox.warning(
-                    self, "Error", f"Error loading backup prompts file: {e}")
-
-        if not loaded:
-            self.prompts_data = {}
-
-        # Ensure categories exist
-        for cat in self.default_categories:
-            if cat not in self.prompts_data:
-                self.prompts_data[cat] = []
-
-        # Load project options for defaults
-        options = load_project_options(self.project_name)
-        pov = options.get("pov", "First Person")
-        pov_char = options.get("pov_character", "the main character")
-        tense = options.get("tense", "Past Tense")
-
-        # Default prompt texts
-        default_prompts = {
-            "Workshop": "I need your help with my project. Please provide creative brainstorming and ideas.",
-            "Summary": "Provide a concise summary of the project that retains all relevant information and is optimized for token count.",
-            "Prose": f"You are collaborating with the author to write a scene. Write the scene in {{pov}} point of view, from the perspective of {{pov_character}}, and in {{tense}}.",
-            "Rewrite": "Rewrite the passage for clarity."
-        }
-
-        # Get default provider config
-        default_config = self.llm_configs[self.active_config] if self.llm_configs else {
-            "name": "Default",
-            "provider": "Local",
-            "model": "Local Model"
-        }
+        default_categories = get_prompt_categories()
+        self.prompts_data = load_prompts(None)
 
         # Ensure default prompts exist
-        for cat in self.default_categories:
-            if not self.prompts_data[cat]:
-                self.prompts_data[cat].append({
-                    "name": f"Default {cat} Prompt",
-                    "text": default_prompts.get(cat, ""),
-                    "default": True,
-                    "provider": default_config["provider"],
-                    "model": default_config.get("model", "Local Model"),
-                    "max_tokens": 2000,
-                    "temperature": 0.7
-                })
-            else:
-                # Update existing prompts with new fields
-                for prompt in self.prompts_data[cat]:
-                    if "provider" not in prompt:
-                        prompt["provider"] = default_config["provider"]
-                    if "model" not in prompt:
-                        prompt["model"] = default_config.get("model", "Local Model")
-                    if "max_tokens" not in prompt:
-                        prompt["max_tokens"] = 2000
-                    if "temperature" not in prompt:
-                        prompt["temperature"] = 0.7
-
+        for cat in default_categories:
+            if not cat in self.prompts_data:
+                self.prompts_data.update({cat: [get_default_prompt(cat)]})
         self.refresh_tree()
 
     def refresh_tree(self):
         """Rebuild the tree widget from prompts_data."""
         self.tree.clear()
-        for category in self.default_categories:
+        for category in self.prompts_data:
             cat_item = QTreeWidgetItem(self.tree, [category])
             cat_item.setData(0, Qt.UserRole, {"type": "category", "name": category})
-            for prompt in self.prompts_data.get(category, []):
+            for prompt in self.prompts_data[category]:
                 child = QTreeWidgetItem(cat_item, [prompt.get("name", "Unnamed")])
                 tooltip = (
-                    f"Provider: {prompt.get('provider', 'Local')}\n"
-                    f"Model: {prompt.get('model', 'Local Model')}\n"
+                    f"Provider: {prompt.get('provider', 'Default')}\n"
+                    f"Model: {prompt.get('model', 'Default Model')}\n"
                     f"Max Tokens: {prompt.get('max_tokens', 2000)}\n"
                     f"Temperature: {prompt.get('temperature', 0.7)}\n"
                     f"Text: {prompt.get('text', '')}"
@@ -409,8 +290,8 @@ class PromptsWindow(QDialog):
                     "name": prompt.get("name", "Unnamed"),
                     "text": prompt.get("text", ""),
                     "default": prompt.get("default", False),
-                    "provider": prompt.get("provider", "Local"),
-                    "model": prompt.get("model", "Local Model"),
+                    "provider": prompt.get("provider", "Default"),
+                    "model": prompt.get("model", "Default Model"),
                     "max_tokens": prompt.get("max_tokens", 2000),
                     "temperature": prompt.get("temperature", 0.7)
                 })
@@ -428,8 +309,8 @@ class PromptsWindow(QDialog):
             self.editor.setPlainText(data.get("text", ""))
 
             # Set provider and model values as before
-            provider = data.get("provider", "Local")
-            model = data.get("model", "Local Model")
+            provider = data.get("provider", "Default")
+            model = data.get("model", "Default")
             for i in range(self.provider_combo.count()):
                 if self.provider_combo.itemData(i) == provider:
                     self.provider_combo.setCurrentIndex(i)
@@ -490,7 +371,7 @@ class PromptsWindow(QDialog):
                 provider_index = self.provider_combo.currentIndex()
                 provider_config = self.provider_combo.itemData(provider_index)
                 if isinstance(provider_config, dict):
-                    data["provider"] = provider_config.get("provider", "Local")
+                    data["provider"] = provider_config.get("provider", "Default")
                 else:
                     data["provider"] = provider_config
 
@@ -636,6 +517,8 @@ class PromptsWindow(QDialog):
             "temperature": 0.7
         })
         category_item.setExpanded(True)
+        self.tree.setCurrentItem(child)
+        self.on_item_clicked(child, 0)
 
     def save_prompt(self, prompt_item):
         """Save the current prompt's changes to prompts_data and file."""

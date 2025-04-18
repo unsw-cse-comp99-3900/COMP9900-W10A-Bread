@@ -1,28 +1,10 @@
 # rewrite_feature.py
-import os
-import json
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QComboBox,
     QPushButton, QMessageBox
 )
-from PyQt5.QtCore import Qt
+from muse.prompt_utils import load_prompts
 from settings.llm_worker import LLMWorker
-from settings.settings_manager import WWSettingsManager
-
-def get_rewrite_prompts(project_name):
-    """
-    Load the 'Rewrite' prompts for the given project from its prompts JSON file.
-    The file is assumed to be named as: prompts_<projectname_no_spaces>.json
-    """
-    prompts_file = WWSettingsManager.get_project_path(file="prompts.json")
-    if os.path.exists(prompts_file):
-        try:
-            with open(prompts_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return data.get("Rewrite", [])
-        except Exception as e:
-            print("Error loading rewrite prompts:", e)
-    return []
 
 class RewriteDialog(QDialog):
     """
@@ -41,6 +23,7 @@ class RewriteDialog(QDialog):
         self.project_name = project_name
         self.original_text = original_text
         self.rewritten_text = ""
+        self.worker = None
         self.setWindowTitle("Rewrite Selected Text")
         self.init_ui()
     
@@ -59,7 +42,7 @@ class RewriteDialog(QDialog):
         prompt_label = QLabel("Select Rewrite Prompt:")
         prompt_layout.addWidget(prompt_label)
         self.prompt_combo = QComboBox()
-        self.prompts = get_rewrite_prompts(self.project_name)
+        self.prompts = load_prompts("Rewrite")
         if not self.prompts:
             QMessageBox.warning(self, "Rewrite", "No rewrite prompts found.")
         else:
@@ -127,6 +110,7 @@ class RewriteDialog(QDialog):
             self.worker = LLMWorker(final_prompt, overrides)
             self.worker.data_received.connect(self.update_text)
             self.worker.finished.connect(self.on_finished)
+            self.worker.finished.connect(self.cleanup_worker)  # Schedule thread deletion
             self.worker.start()
         except Exception as e:
             QMessageBox.warning(self, "Rewrite", f"Error sending prompt to LLM: {e}")
@@ -144,42 +128,15 @@ class RewriteDialog(QDialog):
             return
         self.accept()  # The caller can then retrieve self.rewritten_text.
 
-def show_rewrite_button(parent, project_name, original_text, selection_rect, on_rewrite_applied):
-    """
-    Create and display a floating 'Rewrite' button near the selected text.
+    def cleanup_worker(self):
+        if self.worker and self.worker.isRunning():
+            self.worker.wait()  # Wait for the thread to fully stop
+        if self.worker:
+            try:
+                self.worker.data_received.disconnect()
+                self.worker.finished.disconnect()
+            except TypeError:
+                pass  # Signals may already be disconnected
+            self.worker.deleteLater()  # Schedule deletion
+            self.worker = None  # Clear reference
 
-    Parameters:
-      - parent: The parent widget (typically the text editor).
-      - project_name: Name of the current project.
-      - original_text: The text that was selected for rewriting.
-      - selection_rect: A QRect indicating the bounding area of the selection, relative to the parent.
-      - on_rewrite_applied: Callback function to call with the rewritten text once applied.
-    """
-    from PyQt5.QtWidgets import QPushButton
-    from PyQt5.QtCore import QPoint
-
-    # Create the floating button.
-    rewrite_button = QPushButton("Rewrite", parent)
-    rewrite_button.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool)
-    rewrite_button.setStyleSheet("background-color: lightyellow; border: 1px solid gray;")
-    
-    # Determine the button's size hint.
-    button_width = rewrite_button.sizeHint().width()
-    button_height = rewrite_button.sizeHint().height()
-    
-    # Position the button near the top-right of the selection rectangle.
-    x = selection_rect.right() - button_width
-    y = selection_rect.top() - button_height if selection_rect.top() - button_height > 0 else selection_rect.bottom()
-    rewrite_button.move(x, y)
-    rewrite_button.show()
-
-    def on_button_clicked():
-        # Open the rewrite dialog when the button is clicked.
-        dialog = RewriteDialog(project_name, original_text, parent)
-        if dialog.exec_() == QDialog.Accepted:
-            # Call the callback with the rewritten text if the user applied the change.
-            on_rewrite_applied(dialog.rewritten_text)
-        rewrite_button.hide()
-
-    rewrite_button.clicked.connect(on_button_clicked)
-    return rewrite_button

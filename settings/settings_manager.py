@@ -2,7 +2,7 @@ import json
 import os, re
 import copy
 import logging
-from typing import Any, Dict, Optional, List, Union
+from typing import Any, Dict, Optional, Union
 from pathlib import Path
 
 # Configure logging

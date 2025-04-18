@@ -6,21 +6,19 @@ import whisper
 import json
 import os
 import re
-import glob
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit,
-    QPushButton, QMessageBox, QInputDialog, QTreeWidget, QTreeWidgetItem,
-    QSplitter, QWidget, QScrollArea, QLabel, QApplication, QListWidget, QListWidgetItem, QMenu, QComboBox
+    QDialog, QVBoxLayout, QHBoxLayout, QTextEdit,
+    QPushButton, QMessageBox, QInputDialog,
+    QSplitter, QWidget, QLabel, QApplication, QListWidget, QListWidgetItem, QMenu, QComboBox
 )
-from PyQt5.QtCore import Qt, QPoint, QThread, pyqtSignal, QTime, QTimer
+from PyQt5.QtCore import Qt, QPoint, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QIcon, QCursor, QPixmap  # Added QCursor and QPixmap for cursor manipulation
-import muse.prompts
+import muse.prompt_utils
 from settings.llm_api_aggregator import WWApiAggregator
 from settings.autosave_manager import load_latest_autosave
 from .conversation_history_manager import estimate_conversation_tokens, summarize_conversation
 from .embedding_manager import EmbeddingIndex
-from project_window.context_panel import ContextPanel
-from compendium.compendium_manager import CompendiumManager
+from compendium.context_panel import ContextPanel
 
 TOKEN_LIMIT = 2000
 
@@ -128,7 +126,7 @@ class WorkshopWindow(QDialog):
 
         # Workshop Prompt pulldown menu instead of a button.
         self.prompt_selector = QComboBox()
-        prompts = muse.prompts.get_workshop_prompts(self.project_name)
+        prompts = muse.prompt_utils.get_workshop_prompts(self.project_name)
         if prompts:
             for p in prompts:
                 name = p.get("name", "Unnamed")
@@ -259,7 +257,8 @@ class WorkshopWindow(QDialog):
             for chapter in act.get("chapters", []):
                 for scene in chapter.get("scenes", []):
                     if scene.get("name", "").lower() == scene_name.lower():
-                        content = load_latest_autosave(self.project_name, [act.get("name"), chapter.get("name"), scene.get("name")])
+                        hierarchy =  [act.get("name"), chapter.get("name"), scene.get("name")]
+                        content = load_latest_autosave(self.project_name, hierarchy, scene)
                         return content or f"[No content for scene {scene_name}]"
         print(f"DEBUG: No scene content found for: {scene_name}")
         return f"[No content for scene {scene_name}]"

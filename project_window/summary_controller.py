@@ -22,10 +22,10 @@ class SummaryController(QObject):
             return
 
         prompt = self.view.summary_prompt_panel.get_prompt()
-        overrides = self.view.summary_prompt_panel.get_overrides()
         if not prompt:
             self._show_warning("Selected prompt not found.")
             return
+        overrides = self.view.summary_prompt_panel.get_overrides()
 
         child_content = self.model.gather_child_content(current_item)
         if not child_content.strip():

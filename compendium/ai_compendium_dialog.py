@@ -324,50 +324,55 @@ class AICompendiumDialog(QDialog):
             return
         menu = QMenu(self)
         role = item.data(0, Qt.UserRole)
+        actions = {}
+
         if role == "entry":
             is_deleted = item.data(2, Qt.UserRole) == "Deleted"
             if is_deleted:
-                restore_action = menu.addAction("Restore")
+                actions["restore"] = menu.addAction("Restore")
             else:
-                delete_action = menu.addAction("Ignore Update")
-                rename_action = menu.addAction("Rename Entry")
-                move_to_action = menu.addAction("Move To...")
-                move_up_action = menu.addAction("Move Up")
-                move_down_action = menu.addAction("Move Down")
+                actions["delete"] = menu.addAction("Ignore Update")
+                actions["rename"] = menu.addAction("Rename Entry")
+                actions["move_to"] = menu.addAction("Move To...")
+                actions["move_up"] = menu.addAction("Move Up")
+                actions["move_down"] = menu.addAction("Move Down")
         elif role == "relationship":
             is_deleted = item.data(2, Qt.UserRole) == "Deleted"
             if is_deleted:
-                restore_action = menu.addAction("Restore Relationship")
+                actions["restore"] = menu.addAction("Restore Relationship")
             else:
-                delete_action = menu.addAction("Remove Relationship")
-                rename_action = menu.addAction("Rename Relationship")
+                actions["delete"] = menu.addAction("Remove Relationship")
+                actions["rename"] = menu.addAction("Rename Relationship")
         else:
             return
 
-        action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
-        if not action:
+        selected_action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
+        if not selected_action:
             return
 
-        if role == "entry":
-            if action == restore_action:
-                self.restore_entry(item)
-            elif action == delete_action:
-                self.delete_entry(item)
-            elif action == rename_action:
-                self.rename_entry(item)
-            elif action == move_to_action:
-                self.move_entry(item)
-            elif action == move_up_action:
-                self.move_item(item, "up")
-            elif action == move_down_action:
-                self.move_item(item, "down")
-        elif role == "relationship":
-            if action == restore_action:
-                self.restore_relationship(item)
-            elif action == delete_action:
-                self.delete_relationship(item)
-            elif action == rename_action:
-                self.rename_relationship(item)
+        for action_id, action in actions.items():
+            if selected_action == action:
+                if role == "entry":
+                    if action_id == "restore":
+                        self.restore_entry(item)
+                    elif action_id == "delete":
+                        self.delete_entry(item)
+                    elif action_id == "rename":
+                        self.rename_entry(item)
+                    elif action_id == "move_to":
+                        self.move_entry(item)
+                    elif action_id == "move_up":
+                        self.move_item(item, "up")
+                    elif action_id == "move_down":
+                        self.move_item(item, "down")
+                elif role == "relationship":
+                    if action_id == "restore":
+                        self.restore_relationship(item)
+                    elif action_id == "delete":
+                        self.delete_relationship(item)
+                    elif action_id == "rename":
+                        self.rename_relationship(item)
+                break
 
     def delete_entry(self, item):
         font = item.font(0)

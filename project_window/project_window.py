@@ -358,13 +358,11 @@ class ProjectWindow(QMainWindow):
             QMessageBox.warning(self, "LLM Prompt", "Please enter some action beats before sending.")
             return
         
-        overrides = self.bottom_stack.prose_prompt_panel.get_overrides()
         prose_config = self.bottom_stack.prose_prompt_panel.get_prompt()
-
-        overrides.update({
-            "max_tokens": prose_config.get("max_tokens"),
-            "temperature": prose_config.get("temperature")
-        })
+        if not prose_config:
+            QMessageBox.warning(self, "LLM Prompt", "Please select a prompt.")
+            return
+        overrides = self.bottom_stack.prose_prompt_panel.get_overrides()
         
         additional_vars = {
             "pov": self.model.settings["global_pov"] or "Third Person",
@@ -454,13 +452,6 @@ class ProjectWindow(QMainWindow):
         self.retry_with_summary(truncated)
 
     def update_text(self, text):
-        # Format Markdown-style bold and italic text as HTML.
-        formatted_text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)  # Bold
-        formatted_text = re.sub(r"\*(.*?)\*", r"<i>\1</i>", formatted_text)  # Italic
-        
-        # Replace newlines with <br> to preserve paragraph breaks in HTML.
-        formatted_text = formatted_text.replace("\n", "<br>")
-        
         cursor = self.bottom_stack.preview_text.textCursor()
         cursor.movePosition(QTextCursor.End)  # Move cursor to the end
         self.bottom_stack.preview_text.setTextCursor(cursor)
@@ -491,20 +482,17 @@ class ProjectWindow(QMainWindow):
         self.bottom_stack.send_button.setEnabled(True)
         self.bottom_stack.preview_text.setReadOnly(False)
 
-        if not self.bottom_stack.preview_text.toPlainText().strip():
+        raw_text = self.bottom_stack.preview_text.toPlainText()
+        if not raw_text.strip():
             QMessageBox.warning(self, "LLM Response", "The LLM did not return any text. Possible token limit reached or an error occurred.")
             return
 
         # Format Markdown-style bold and italic text as HTML.
-        raw_text = self.bottom_stack.preview_text.toPlainText()
         formatted_text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", raw_text)  # Bold
         formatted_text = re.sub(r"\*(.*?)\*", r"<i>\1</i>", formatted_text)  # Italic
-        
-        # Replace newlines with <br> to preserve paragraph breaks in HTML.
         formatted_text = formatted_text.replace("\n", "<br>")
 
-        # Set the formatted text in the preview text area.
-        self.bottom_stack.preview_text.setHtml(f"<p>{formatted_text}</p>")
+        self.bottom_stack.preview_text.setHtml(formatted_text)
 
         logging.debug(f"Active threads: {threading.enumerate()}")
 
@@ -517,40 +505,34 @@ class ProjectWindow(QMainWindow):
 
     def apply_preview(self):
         """Appends the LLM's output to the scene editor."""
-        preview = self.bottom_stack.preview_text.toHtml().strip()
-        if not preview:
-            QMessageBox.warning(self, "Apply Preview", "No preview text to apply.")
-            return
+        try:
+            preview = self.bottom_stack.preview_text.toHtml().strip()
+            if not preview:
+                QMessageBox.warning(self, "Apply Preview", "No preview text to apply.")
+                return
 
-        # Include the prompt block if the checkbox is checked
-        prompt_block = ""
-        if self.bottom_stack.include_prompt_checkbox.isChecked():
-            prompt = self.bottom_stack.prompt_input.toPlainText().strip()
-            if prompt:
-                prompt_block = f"\n{'_' * 10}\n{prompt}\n{'_' * 10}\n"
+            # Include the prompt block if the checkbox is checked
+            prompt_block = None
+            if self.bottom_stack.include_prompt_checkbox.isChecked():
+                prompt = self.bottom_stack.prompt_input.toPlainText().strip()
+                if prompt:
+                    prompt_block = f"\n{'_' * 10}\n{prompt}\n{'_' * 10}\n"
 
-        # Format Markdown-style bold and italic text as HTML
-        formatted_preview = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", preview)  # Bold
-        formatted_preview = re.sub(r"\*(.*?)\*", r"<i>\1</i>", formatted_preview)  # Italic
+            # Append the formatted text and prompt block to the scene editor
+            cursor = self.scene_editor.editor.textCursor()
+            cursor.movePosition(QTextCursor.End)  # Move cursor to the end of the current text
+            if prompt_block:
+                cursor.insertText(prompt_block)
+            cursor.insertHtml(preview)
+            self.scene_editor.editor.moveCursor(QTextCursor.End)  # Ensure the cursor is at the end
 
-        # Replace newlines with <br> to preserve paragraph breaks in HTML
-        formatted_preview = formatted_preview.replace("\n", "<br>")
+            # Clear the preview text area after applying
+            self.bottom_stack.preview_text.clear()
+            self.unsaved_preview = False
+            self.model.unsaved_changes = True
+        except Exception as e:
+            QMessageBox.warning(self, "Apply Preview", f"Error: {e}")
         
-        # Combine the prompt block and formatted preview
-        combined_content = f"{prompt_block}<p>{formatted_preview}</p>"
-
-        # Append the formatted text and prompt block to the scene editor
-        cursor = self.scene_editor.editor.textCursor()
-        cursor.movePosition(QTextCursor.End)  # Move cursor to the end of the current text
-        self.scene_editor.editor.setTextCursor(cursor)
-        self.scene_editor.editor.insertHtml(combined_content)  # Append the prompt block and preview text
-        self.scene_editor.editor.insertHtml("<br>")  # Add a blank line for spacing
-        self.scene_editor.editor.moveCursor(QTextCursor.End)  # Ensure the cursor is at the end
-
-        # Clear the preview text area after applying
-        self.bottom_stack.preview_text.clear()
-        self.model.unsaved_changes = True
-        self.unsaved_preview = False
 
     def save_summary(self):
         current_item = self.project_tree.tree.currentItem()

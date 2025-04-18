@@ -51,7 +51,10 @@ class PromptPanel(QGroupBox):
     def get_overrides(self):
         return {
             "provider": self.provider_combo.currentText(),
-            "model": self.model_combo.currentText()
+            "model": self.model_combo.currentText(),
+            "max_tokens": self.prompt.get("max_tokens"),
+            "temperature": self.prompt.get("temperature")
+
         }
     
     def _populate_prompt_combo(self):

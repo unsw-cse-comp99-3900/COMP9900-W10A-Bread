@@ -126,7 +126,7 @@ class WorkshopWindow(QDialog):
 
         # Workshop Prompt pulldown menu instead of a button.
         self.prompt_selector = QComboBox()
-        prompts = muse.prompt_utils.get_workshop_prompts(self.project_name)
+        prompts = muse.prompt_utils.get_workshop_prompts()
         if prompts:
             for p in prompts:
                 name = p.get("name", "Unnamed")
@@ -590,6 +590,8 @@ class TranscriptionWorker(QThread):
 
     def run(self):
         try:
+            # Temporary workaround for OpenMP conflict
+            os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
             model = whisper.load_model(self.model_name)
             result = model.transcribe(self.file_path, language=self.language)
             self.finished.emit(result["text"])

@@ -1,12 +1,11 @@
-import os
-import json
-import re
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QSplitter, QTreeWidget, QTreeWidgetItem, QTextEdit
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
 from compendium.compendium_manager import CompendiumManager
-from settings.settings_manager import WWSettingsManager
+from compendium.enhanced_compendium import EnhancedCompendiumWindow
 
 class ContextPanel(QWidget):
+    # Optional signal if ContextPanel itself updates the compendium in the future
+    compendium_updated = pyqtSignal(str)  # str is the project_name
     """
     A panel that lets the user choose extra context for the prose prompt.
     It now displays two panels side-by-side:
@@ -26,9 +25,13 @@ class ContextPanel(QWidget):
         if hasattr(self.controller, "model") and self.controller.model:
             self.controller.model.structureChanged.connect(self.on_structure_changed)
 
+        # Connect to EnhancedCompendiumWindow signal
+        self.connect_to_compendium_signal()
+
     def init_ui(self):
         # Use a horizontal layout to take advantage of the unused horizontal space.
         layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
         # QSplitter provides adjustable space between panels.
         splitter = QSplitter(Qt.Horizontal, self)
         layout.addWidget(splitter)
@@ -112,6 +115,7 @@ class ContextPanel(QWidget):
 
     def build_compendium_tree(self):
         """Build a tree from the compendium data."""
+        selected_item_info = self.get_selected_item_info()
         self.compendium_tree.clear()
         data = self.compendium_manager.load_data()
 
@@ -138,6 +142,54 @@ class ContextPanel(QWidget):
                     0, Qt.UserRole, {"type": "compendium", "category": cat_name, "label": entry_name}
                 )
         self.compendium_tree.expandAll()
+        self.restore_selection(selected_item_info)
+
+    def get_selected_item_info(self):
+        """Capture details of the currently selected item."""
+        current_item = self.compendium_tree.currentItem()
+        if not current_item:
+            return None
+        item_type = current_item.data(0, Qt.UserRole)
+        item_name = current_item.text(0)
+        if item_type == "entry":
+            parent_item = current_item.parent()
+            parent_name = parent_item.text(0) if parent_item else None
+            return {"type": "entry", "name": item_name, "category": parent_name}
+        return {"type": "category", "name": item_name}
+
+    def restore_selection(self, selected_item_info):
+        """Attempt to reselect the previously selected item."""
+        if not selected_item_info:
+            return
+        item_type = selected_item_info["type"]
+        item_name = selected_item_info["name"]
+
+        if item_type == "category":
+            for i in range(self.compendium_tree.topLevelItemCount()):
+                cat_item = self.compendium_tree.topLevelItem(i)
+                if cat_item.text(0) == item_name and cat_item.data(0, Qt.UserRole) == "category":
+                    self.compendium_tree.setCurrentItem(cat_item)
+                    return
+        elif item_type == "entry":
+            category_name = selected_item_info["category"]
+            for i in range(self.compendium_tree.topLevelItemCount()):
+                cat_item = self.compendium_tree.topLevelItem(i)
+                if category_name and cat_item.text(0) != category_name:
+                    continue
+                for j in range(cat_item.childCount()):
+                    entry_item = cat_item.child(j)
+                    if entry_item.text(0) == item_name and entry_item.data(0, Qt.UserRole) == "entry":
+                        self.compendium_tree.setCurrentItem(entry_item)
+                        return
+                # If exact entry not found, select first entry or category
+                if category_name and cat_item.text(0) == category_name:
+                    if cat_item.childCount() > 0:
+                        self.compendium_tree.setCurrentItem(cat_item.child(0))
+                    else:
+                        self.compendium_tree.setCurrentItem(cat_item)
+                    return
+        self.compendium_tree.clearSelection()
+
 
     def propagate_check_state(self, item, column):
         """
@@ -212,8 +264,9 @@ class ContextPanel(QWidget):
     def _load_content(self, data_type, data, hierarchy):
         """Helper method to load content consistently for summaries and scenes."""
         if data_type == "summary":
-            content = self.controller.model.load_summary(hierarchy)
-            return content
+            uuid_val = data.get("uuid")
+            if uuid_val:
+                return self.controller.model.load_summary(uuid=uuid_val)
         elif data_type == "scene":
             # Use existing autosave loading logic
             return self.controller.model.load_autosave(hierarchy) or data.get("content")
@@ -300,3 +353,23 @@ class ContextPanel(QWidget):
             font = summary_item.font(0)
             font.setBold(True)
             summary_item.setFont(0, font)
+
+
+    def connect_to_compendium_signal(self):
+        """Connect to the EnhancedCompendiumWindow's compendium_updated signal."""
+        # Traverse up to ProjectWindow to find EnhancedCompendiumWindow
+        current_parent = self.parent()
+        while current_parent:
+            if hasattr(current_parent, 'enhanced_window') and isinstance(current_parent.enhanced_window, EnhancedCompendiumWindow):
+                current_parent.enhanced_window.compendium_updated.connect(self.update_compendium_tree)
+                break
+            current_parent = current_parent.parent()
+        
+        # If not found (e.g., EnhancedCompendiumWindow not open yet), we'll try again later
+        # Alternatively, we could connect when EnhancedCompendiumWindow is opened (see below)
+    
+    @pyqtSlot(str)
+    def update_compendium_tree(self, project_name):
+        """Update the compendium tree if the project name matches."""
+        if project_name == self.project_name and self.isVisible():
+            self.build_compendium_tree()

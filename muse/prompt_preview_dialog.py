@@ -7,7 +7,7 @@ import muse.prompt_handler as prompt_handler
 import tiktoken
 
 class PromptPreviewDialog(QDialog):
-    def __init__(self, prompt_config, user_input, additional_vars, current_scene_text, extra_context, parent=None):
+    def __init__(self, prompt_config, user_input, additional_vars, current_scene_text, extra_context, controller, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Prompt Preview")
         self.resize(600, 400)
@@ -18,6 +18,7 @@ class PromptPreviewDialog(QDialog):
         self.extra_context = extra_context
         self.font_size = 12  # Default font size in points
         self.final_prompt_text = ""  # Store final prompt text for token counting
+        self.controller = controller
         self.init_ui()
         self.read_settings()
         self.update_token_count()
@@ -36,12 +37,12 @@ class PromptPreviewDialog(QDialog):
         # Buttons and zoom controls
         button_layout = QHBoxLayout()
         self.zoom_in_button = QPushButton()
-        self.zoom_in_button.setIcon(self.parent().get_tinted_icon("assets/icons/zoom-in.svg", self.parent().icon_tint))
+        self.zoom_in_button.setIcon(self.controller.get_tinted_icon("assets/icons/zoom-in.svg", self.controller.icon_tint))
         self.zoom_in_button.setToolTip("Zoom In (Cmd+=)")
         self.zoom_in_button.clicked.connect(self.zoom_in)
 
         self.zoom_out_button = QPushButton()
-        self.zoom_out_button.setIcon(self.parent().get_tinted_icon("assets/icons/zoom-out.svg", self.parent().icon_tint))
+        self.zoom_out_button.setIcon(self.controller.get_tinted_icon("assets/icons/zoom-out.svg", self.controller.icon_tint))
         self.zoom_out_button.setToolTip("Zoom Out (Cmd+-)")
         self.zoom_out_button.clicked.connect(self.zoom_out)
         self.ok_button = QPushButton("OK")

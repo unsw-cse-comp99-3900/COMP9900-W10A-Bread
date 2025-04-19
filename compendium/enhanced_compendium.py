@@ -6,7 +6,7 @@ from datetime import datetime
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QToolBar, QSplitter, QTreeWidget, QTextEdit, QVBoxLayout, QHBoxLayout, QLabel, 
                              QLineEdit, QComboBox, QPushButton, QListWidget, QTabWidget, QFileDialog, QMessageBox, QTreeWidgetItem,
                              QScrollArea, QFormLayout, QGroupBox, QInputDialog, QMenu, QDialog, QColorDialog, QSizePolicy, QListWidgetItem)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal, QSettings
 from PyQt5.QtGui import QPixmap, QColor, QBrush
 
 DEBUG = False
@@ -15,11 +15,14 @@ DEBUG = False
 # ENHANCED COMPENDIUM CLASS #
 #############################
 class EnhancedCompendiumWindow(QMainWindow):
+    # Define a signal that includes the project name
+    compendium_updated = pyqtSignal(str)  # str is the project_name
+
     def __init__(self, project_name="default", parent=None):
         super().__init__(parent)
-        self.ignore_item_change = False
         self.dirty = False
         self.project_name = project_name
+        self.controller = parent
 
         # 1) Create a QToolBar at the top
         self.toolbar = self.create_toolbar()
@@ -53,15 +56,47 @@ class EnhancedCompendiumWindow(QMainWindow):
         self.setWindowTitle(f"Enhanced Compendium - {self.project_name}")
         self.resize(900, 700)
 
-        # 8) Finally, populate the project combo and connect its signal
+        # 8) Populate the project combo and connect its signal
         self.populate_project_combo()
+
+        # 9) Read saved settings
+        self.read_settings()
     
+    def read_settings(self):
+        """Read window and splitter settings from QSettings."""
+        settings = QSettings("MyCompany", "WritingwayProject")
+        geometry = settings.value("compendium_geometry")
+        if geometry:
+            self.restoreGeometry(geometry)
+        window_state = settings.value("compendium_windowState")
+        if window_state:
+            self.restoreState(window_state)
+        splitter_state = settings.value("compendium_mainSplitterState")
+        if splitter_state:
+            self.main_splitter.restoreState(splitter_state)
+
+    def write_settings(self):
+        """Write window and splitter settings to QSettings."""
+        settings = QSettings("MyCompany", "WritingwayProject")
+        settings.setValue("compendium_geometry", self.saveGeometry())
+        settings.setValue("compendium_windowState", self.saveState())
+        settings.setValue("compendium_mainSplitterState", self.main_splitter.saveState())
+
+    def closeEvent(self, event):
+        """Handle window close event to save settings and any unsaved changes."""
+        if self.dirty and hasattr(self, 'current_entry') and hasattr(self, 'current_entry_item'):
+            self.save_current_entry()
+        self.write_settings()
+        event.accept()
+        # Emit the compendium_updated signal
+        self.compendium_updated.emit(self.project_name)
+
     def mark_dirty(self):
         self.dirty = True
-        self.save_button.setEnabled(True)
     
     def create_toolbar(self):
         toolbar = QToolBar("Project Toolbar", self)
+        toolbar.setObjectName("EnhToolBar_Main")
         label = QLabel("<b>Project:</b>")
         toolbar.addWidget(label)
         self.project_combo = QComboBox()
@@ -71,7 +106,7 @@ class EnhancedCompendiumWindow(QMainWindow):
         toolbar.addWidget(spacer)
         return toolbar
     
-    def populate_project_combo(self):
+    def populate_project_combo(self, project_name = None):
         """Populate the project pulldown with subdirectories in .\Projects."""
         projects_path = os.path.join(os.getcwd(), "Projects")
         if not os.path.exists(projects_path):
@@ -79,6 +114,11 @@ class EnhancedCompendiumWindow(QMainWindow):
         # Get all project folders
         projects = [d for d in os.listdir(projects_path) if os.path.isdir(os.path.join(projects_path, d))]
         
+        if project_name:
+            self.project_name = project_name
+        else:
+            project_name = self.project_name
+
         # If there are other projects and "default" is among them, remove it.
         if projects and len(projects) > 1 and "default" in projects:
             projects.remove("default")
@@ -88,9 +128,10 @@ class EnhancedCompendiumWindow(QMainWindow):
         self.project_combo.clear()
         
         if projects:
+            projects.sort()
             self.project_combo.addItems(projects)
             # If self.project_name isn’t in the list, use the first project from the folder.
-            index = self.project_combo.findText(self.sanitize(self.project_name))
+            index = self.project_combo.findText(self.sanitize(project_name))
             if index < 0:
                 self.project_combo.setCurrentIndex(0)
                 self.project_name = self.project_combo.currentText()
@@ -108,11 +149,25 @@ class EnhancedCompendiumWindow(QMainWindow):
     
     def on_project_combo_changed(self, new_project):
         """Update the project and reload the compendium when a different project is selected."""
+        self.change_project(new_project)
+        self.select_first_entry()
+
+    def select_first_entry(self):
+        """Select the first non-category entry in the tree."""
+        for i in range(self.tree.topLevelItemCount()):
+            cat_item = self.tree.topLevelItem(i)
+            if cat_item.childCount() > 0:
+                entry_item = cat_item.child(0)
+                if entry_item.data(0, Qt.UserRole) == "entry":
+                    self.tree.setCurrentItem(entry_item)
+                    return
+    
+    def change_project(self, new_project):
         self.project_name = new_project
         self.setWindowTitle(f"Enhanced Compendium - {self.project_name}")
         self.setup_compendium_file()
         self.populate_compendium()
-    
+
     def setup_compendium_file(self):
         """Set up the compendium file path for the selected project."""
         project_dir = os.path.join(os.getcwd(), "Projects", self.sanitize(self.project_name))
@@ -148,7 +203,6 @@ class EnhancedCompendiumWindow(QMainWindow):
         header_layout.addWidget(self.entry_name_label)
         header_layout.addStretch()
         self.save_button = QPushButton("Save Changes")
-        self.save_button.setEnabled(False)
         header_layout.addWidget(self.save_button)
         center_layout.addWidget(self.header_widget)
         
@@ -324,6 +378,7 @@ class EnhancedCompendiumWindow(QMainWindow):
         self.save_button.clicked.connect(self.save_current_entry)
         self.add_tag_button.clicked.connect(self.add_tag)
         self.tag_input.returnPressed.connect(self.add_tag)
+        self.editor.textChanged.connect(self.mark_dirty)
         self.details_editor.textChanged.connect(lambda: self.mark_dirty())
         self.tags_list.customContextMenuRequested.connect(self.show_tags_context_menu)
         self.add_rel_button.clicked.connect(self.add_relationship)
@@ -616,7 +671,6 @@ class EnhancedCompendiumWindow(QMainWindow):
         entry_item.setData(1, Qt.UserRole, self.editor.toPlainText())
         self.save_extended_data()
         self.save_compendium_to_file()
-        self.save_button.setEnabled(False)
         self.dirty = False
     
     def save_current_entry(self):
@@ -626,7 +680,6 @@ class EnhancedCompendiumWindow(QMainWindow):
         self.current_entry_item.setData(1, Qt.UserRole, self.editor.toPlainText())
         self.save_extended_data()
         self.save_compendium_to_file()
-        self.save_button.setEnabled(False)
         self.dirty = False
     
     def save_extended_data(self):
@@ -681,6 +734,9 @@ class EnhancedCompendiumWindow(QMainWindow):
                 json.dump(data, f, indent=2)
             if DEBUG:
                 print("Saved compendium data to", self.compendium_file)
+            
+            # Emit signal with project name
+            self.compendium_updated.emit(self.project_name)
         except Exception as e:
             if DEBUG:
                 print("Error saving compendium data:", e)
@@ -700,6 +756,7 @@ class EnhancedCompendiumWindow(QMainWindow):
             entry_item.setData(0, Qt.UserRole, "entry")
             entry_item.setData(1, Qt.UserRole, "")
             category_item.setExpanded(True)
+            self.tree.setCurrentItem(entry_item)
             self.save_compendium_to_file()
     
     def delete_category(self, category_item):
@@ -785,35 +842,29 @@ class EnhancedCompendiumWindow(QMainWindow):
                 self.save_compendium_to_file()
     
     def on_item_changed(self, current, previous):
-        if self.ignore_item_change:
-            self.ignore_item_change = False
-            return
+        # Save changes to the previous entry if it exists and is dirty
+        if previous is not None and previous.data(0, Qt.UserRole) == "entry" and self.dirty:
+            self.save_entry(previous)
 
         if current is None:
             self.clear_entry_ui()
             return
+
         item_type = current.data(0, Qt.UserRole)
         if item_type == "entry":
-            if previous is not None and previous.data(0, Qt.UserRole) == "entry" and self.dirty:
-                save = QMessageBox.question(self, "Save Changes",
-                    "Do you want to save changes to the current entry?",
-                    QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-                if save == QMessageBox.Yes:
-                    self.save_entry(previous)
-                elif save == QMessageBox.Cancel:
-                    self.ignore_item_change = True
-                    self.tree.setCurrentItem(previous)
-                    return
             entry_name = current.text(0)
             self.load_entry(entry_name, current)
         else:
             self.clear_entry_ui()
     
     def load_entry(self, entry_name, entry_item):
+        # Save changes to the current entry if it exists and is dirty
+        if hasattr(self, 'current_entry') and hasattr(self, 'current_entry_item') and self.dirty:
+            self.save_current_entry()
+
         self.current_entry = entry_name
         self.current_entry_item = entry_item
         self.entry_name_label.setText(entry_name)
-        self.save_button.setEnabled(False)
         self.editor.blockSignals(True)
         content = entry_item.data(1, Qt.UserRole)
         self.editor.setPlainText(content)
@@ -858,7 +909,6 @@ class EnhancedCompendiumWindow(QMainWindow):
         self.tags_list.clear()
         self.relationships_list.clear()
         self.clear_images()
-        self.save_button.setEnabled(False)
         self.dirty = False
         self.tabs.hide()
         if hasattr(self, 'current_entry'):
@@ -872,6 +922,15 @@ class EnhancedCompendiumWindow(QMainWindow):
             if child.widget():
                 child.widget().deleteLater()
     
+    def open_with_entry(self, project_name, entry_name):
+        """ make visible and raise window, then show the entry."""
+        self.populate_project_combo(project_name)
+        self.change_project(project_name)
+        self.show()
+        self.raise_()
+        if entry_name:
+            self.find_and_select_entry(entry_name)
+
     def find_and_select_entry(self, entry_name):
         """Search the tree and select an entry by name."""
         for i in range(self.tree.topLevelItemCount()):

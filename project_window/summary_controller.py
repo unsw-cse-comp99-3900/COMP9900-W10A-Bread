@@ -21,16 +21,11 @@ class SummaryController(QObject):
         if not self._validate_selection(current_item):
             return
 
-        prompt_name = self.view.summary_prompt_dropdown.currentText()
-        model_name = self.view.summary_model_combo.currentText()
-        if prompt_name == "Select Summary Prompt":
-            self._show_warning("Please select a summary prompt.")
-            return
-
-        prompt = self.model.get_prompt_by_name(prompt_name)
+        prompt = self.view.summary_prompt_panel.get_prompt()
         if not prompt:
             self._show_warning("Selected prompt not found.")
             return
+        overrides = self.view.summary_prompt_panel.get_overrides()
 
         child_content = self.model.gather_child_content(current_item)
         if not child_content.strip():
@@ -38,7 +33,6 @@ class SummaryController(QObject):
             return
 
         plain_text = self.model.optimize_text(child_content)
-        overrides = {"model": model_name}  # Pull model from dropdown
         self.view.scene_editor.editor.clear()
         self.status_updated.emit("Generating summary, please wait...")
         self.service.generate_summary(prompt, plain_text, overrides)
@@ -46,18 +40,14 @@ class SummaryController(QObject):
 
     def preview_summary(self):
         """Handle preview button click to show the final prompt."""
-        current_item = self.project_tree.tree.currentItem()
-        if not self._validate_selection(current_item):
-            return
-
-        prompt_name = self.view.summary_prompt_dropdown.currentText()
-        if prompt_name == "Select Summary Prompt":
+        prompt = self.view.summary_prompt_panel.get_prompt()
+        prompt_name = prompt.get("name", None)
+        if not prompt_name or prompt_name == "Select Summary Prompt":
             self._show_warning("Please select a summary prompt.")
             return
 
-        prompt = self.model.get_prompt_by_name(prompt_name)
-        if not prompt:
-            self._show_warning("Selected prompt not found.")
+        current_item = self.project_tree.tree.currentItem()
+        if not self._validate_selection(current_item):
             return
 
         child_content = self.model.gather_child_content(current_item)
@@ -66,7 +56,7 @@ class SummaryController(QObject):
             return
 
         plain_text = self.model.optimize_text(child_content)
-        final_prompt = self.model.build_final_prompt(prompt, plain_text)
+#        final_prompt = self.model.build_final_prompt(prompt, plain_text)
 
         # Show the preview dialog
         dialog = PromptPreviewDialog(
@@ -75,7 +65,7 @@ class SummaryController(QObject):
             additional_vars=None,  # No additional vars needed here
             current_scene_text=plain_text,
             extra_context=None,
-            parent=self.view.controller
+            controller=self.view.controller
         )
         dialog.exec_()
 

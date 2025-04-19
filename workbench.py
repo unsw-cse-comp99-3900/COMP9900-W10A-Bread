@@ -12,6 +12,7 @@ from project_window.project_window import ProjectWindow
 from settings.preferences import SettingsDialog
 from settings.settings_manager import WWSettingsManager
 from project_window import project_settings_manager
+from compendium.enhanced_compendium import EnhancedCompendiumWindow
 
 # Define the file used for storing project data.
 PROJECTS_FILE = "projects.json"
@@ -328,6 +329,7 @@ class ProjectCoverWidget(QWidget):
     def __init__(self, project, parent=None):
         super().__init__(parent)
         self.project = project
+
         self.init_ui()
 
     def init_ui(self):
@@ -355,6 +357,9 @@ class WorkbenchWindow(QMainWindow):
         self.resize(640, 720)
         self.init_ui()
         self.apply_fixed_stylesheet()
+        self.enhanced_compendium = EnhancedCompendiumWindow()
+        self.enhanced_compendium.hide()
+
         self.last_opened_project = None
 
     def init_ui(self):
@@ -627,7 +632,7 @@ class WorkbenchWindow(QMainWindow):
         self.last_opened_project = project_name
         PROJECTS_DATA[LAST_DISPLAYED_KEY] = project_name
         save_projects(PROJECTS_DATA)
-        self.project_window = ProjectWindow(project_name)
+        self.project_window = ProjectWindow(project_name, self.enhanced_compendium)
         self.project_window.show()
 
     def new_project(self):

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from PyQt5.QtWidgets import QToolBar, QAction, QWidget, QVBoxLayout
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QColor
+from PyQt5.QtGui import QColor
 
 class GlobalToolbar(QWidget):
     """Global actions toolbar at the top of the window."""
@@ -10,6 +9,7 @@ class GlobalToolbar(QWidget):
         self.controller = controller  # Reference to ProjectWindow for callbacks
         self.tint_color = tint_color
         self.toolbar = QToolBar("Global Actions")
+        self.toolbar.setObjectName("GlobalActionsToolBar")
         self.init_ui()
 
     def init_ui(self):

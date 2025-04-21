@@ -23,3 +23,6 @@ whisper
 openai-whisper
 pydub
 moviepy
+internetarchive
+PyMuPDF
+pillow

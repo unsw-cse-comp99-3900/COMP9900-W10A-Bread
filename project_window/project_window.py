@@ -28,9 +28,25 @@ from workshop.workshop import WorkshopWindow
 from util.text_analysis_gui import TextAnalysisApp
 from util.wikidata_dialog import WikidataDialog
 from util.whisper_app import WhisperApp
+from util.ia_window import IAWindow
 from muse.prompts_window import PromptsWindow
 from .token_limit_dialog import TokenLimitDialog
 import muse.prompt_handler as prompt_handler
+
+# Set the path to PyQt5 plugins
+import PyQt5
+pyqt_dir = os.path.dirname(PyQt5.__file__)
+possible_paths = [
+    os.path.join(pyqt_dir, "Qt5", "plugins", "platforms"),
+    os.path.join(pyqt_dir, "Qt", "plugins", "platforms")
+]
+plugin_path = ""
+for path in possible_paths:
+    if os.path.exists(path) and os.listdir(path):
+        plugin_path = path
+        break
+if plugin_path:
+    os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = plugin_path
 
 
 class ProjectWindow(QMainWindow):
@@ -652,6 +668,11 @@ class ProjectWindow(QMainWindow):
     def open_whisper_app(self):
         self.whisper_app = WhisperApp(self)
         self.whisper_app.show()
+        
+    def open_ia_window(self):
+        """Open the Internet Archive window."""
+        self.ia_window = IAWindow()
+        self.ia_window.show()
 
     def analysis_save_callback(self, updated_text):
         self.scene_editor.editor.setPlainText(updated_text)

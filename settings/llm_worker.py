@@ -28,7 +28,7 @@ class LLMWorker(QThread):
                     logging.debug("LLMWorker: Token limit error detected")
                     return
                 if not chunk or not isinstance(chunk, str):
-                    logging.warning(f"Invalid chunk received: '{chunk}'")
+                    logging.debug(f"Invalid chunk received: '{chunk}'")
                     continue
                 logging.debug(f"Emitting chunk: '{chunk[:50]}'")  # Log first 50 chars of chunk
                 self.data_received.emit(chunk)

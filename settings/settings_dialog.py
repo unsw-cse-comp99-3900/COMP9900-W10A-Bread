@@ -1,343 +1,20 @@
 import sys
 import json
 import copy
-import os, urllib
-from PyQt5.QtWidgets import (QApplication, QWidget, QTabWidget, QVBoxLayout,
-                             QCheckBox, QComboBox, QLabel, QLineEdit,
-                             QPushButton, QFormLayout, QColorDialog,
-                             QSizePolicy, QHBoxLayout, QSpinBox, QDialog,
+import os
+from PyQt5.QtWidgets import (QApplication, QDialog, QTabWidget, QVBoxLayout,
+                             QCheckBox, QComboBox, QLabel, QPushButton,
+                             QFormLayout, QColorDialog, QHBoxLayout, QSpinBox,
                              QMessageBox, QListWidget, QListWidgetItem,
-                             QScrollArea, QFrame, QRadioButton, QGroupBox,
-                             QDialogButtonBox)
-from PyQt5.QtGui import QIcon, QPalette, QColor, QIntValidator, QFont
-from PyQt5.QtCore import Qt, pyqtSignal
+                             QGroupBox, QWidget)
+from PyQt5.QtGui import QIcon, QPalette, QColor, QFont
+from PyQt5.QtCore import Qt, pyqtSignal, QSettings
 
+from .ui_constants import UI_LABELS, LANGUAGES
 from .theme_manager import ThemeManager
 from .llm_api_aggregator import WWApiAggregator
 from .settings_manager import WWSettingsManager
-
-# Placeholder for language-dependent labels.  Replace with actual loading
-# from a file.
-UI_LABELS = {
-    "en": {
-        "general_tab": "General",
-        "fast_tts": "Fast Text to Speech",
-        "enable_autosave": "Enable Auto-Save",
-        "show_random_quote": "Show Random Quotes",
-        "language": "Language",
-        "appearance_tab": "Appearance",
-        "theme": "Theme",
-        "background_color": "Background Color",
-        "text_size": "Text Size",
-        "provider_tab": "Providers",
-        "provider": "Provider",
-        "endpoint_url": "Endpoint URL",
-        "model": "Model",
-        "api_key": "API Key",
-        "timeout": "Timeout (seconds)",
-        "test": "Test",
-        "save": "Save",
-        "close": "Close",
-        "discard": "Discard",
-        "cancel": "Cancel",
-        "delete": "Delete",
-        "choose": "Choose a provider...",
-        "name": "Name",
-        "default_provider": "Default Provider",
-        "reveal": "Reveal",
-        "hide": "Hide",
-        "api_key_required": "API Key Required",
-        "test_successful": "Connection successful!",
-        "test_failed": "Connection failed: {}",
-        "delete_confirmation": "Are you sure you want to delete the selected provider?",
-        "delete_title": "Confirm Deletion",
-        "new_provider": "New Provider",
-        "edit_provider": "Edit Provider",
-        "providers_list": "Configured Providers",
-        "leave_empty": "Leave empty for default",
-        "refresh_models": "Refresh Model List",
-        "edit": "Edit",
-        "provider_details": "Provider Details",
-        "add": "Add",
-        "update": "Update",
-        "sample": "Sample Text",
-        "save_successful": "Settings saved successfully.",
-        "unsaved_warning": "You have unsaved changes. Do you want to save them before closing?",
-        "endpoint_help_tooltip": "https://example.com/v1",
-        "endpoint_help_title": "Endpoint URL Help",
-        "endpoint_help_message": "Override URL for provider\n\nOnly use if you have a proxy server or a Custom provider.\nLeave empty for default URL.\n\nEx: 'https://localhost:1234/v1'"
-    },
-    # Add other languages as needed
-}
-
-# Placeholder for available languages
-LANGUAGES = ["en", "de", "es", "fr", "pt", "pl", "ru", "ja", "zh", "ko"]
-
-class ProviderDialog(QDialog):
-    def __init__(self, parent=None, provider_name=None, provider_data=None, providers=None, labels=None, is_default=False):
-        super().__init__(parent)
-        self.provider_name = provider_name
-        self.provider_data = provider_data
-        self.providers = providers or []
-        self.labels = labels
-        self.is_default = is_default
-        self.is_edit_mode = provider_name is not None
-        
-        if self.is_edit_mode:
-            self.setWindowTitle(self.labels["edit_provider"])
-        else:
-            self.setWindowTitle(self.labels["new_provider"])
-            
-        self.resize(500, 400)
-        self.init_ui()
-        
-    def init_ui(self):
-        layout = QVBoxLayout()
-        
-        # Provider Details Group
-        group_box = QGroupBox(self.labels["provider_details"])
-        form_layout = QFormLayout()
-        
-
-        # Provider Type
-        self.provider_label = QLabel(self.labels["provider"])
-        self.provider_combobox = QComboBox()
-        self.provider_combobox.addItems(self.providers)
-        self.provider_combobox.currentIndexChanged.connect(self.provider_selected)
-        form_layout.addRow(self.provider_label, self.provider_combobox)
-
-        # Provider Name
-        self.name_label = QLabel(self.labels["name"])
-        self.name_input = QLineEdit()
-        self.name_input.setMinimumWidth(230)
-        form_layout.addRow(self.name_label, self.name_input)
-                
-        # Endpoint URL
-        self.endpoint_url_label = QLabel(self.labels["endpoint_url"])
-        self.endpoint_url_input = QLineEdit()
-        self.endpoint_url_input.setToolTip(self.labels["leave_empty"])
-        self.endpoint_url_input.setMinimumWidth(300)
-        self.endpoint_help_button = QPushButton()
-        self.endpoint_help_button.setIcon(QIcon("assets/icons/help-circle.svg"))
-        self.endpoint_help_button.setToolTip(self.labels["endpoint_help_tooltip"])
-        self.endpoint_help_button.clicked.connect(lambda: QMessageBox.information(self, self.labels["endpoint_help_title"], self.labels["endpoint_help_message"]))
-        endpoint_layout = QHBoxLayout()
-        endpoint_layout.addWidget(self.endpoint_url_input)
-        endpoint_layout.addWidget(self.endpoint_help_button)
-        form_layout.addRow(self.endpoint_url_label, endpoint_layout)
-        
-        # Model
-        self.model_label = QLabel(self.labels["model"])
-        self.refresh_button = QPushButton()  # Refresh symbol
-        self.refresh_button.setIcon(QIcon("assets/icons/rotate-cw.svg"))
-        self.refresh_button.setToolTip(self.labels["refresh_models"])
- #       self.refresh_button.setMaximumWidth(30)
-        self.refresh_button.clicked.connect(self.refresh_models)
-        self.model_combobox = QComboBox()
-        self.model_combobox.setMinimumWidth(250)
-        self.model_combobox.setEditable(True)
-
-        model_layout = QHBoxLayout()
-        model_layout.addWidget(self.model_combobox)
-        model_layout.addWidget(self.refresh_button)
-        form_layout.addRow(self.model_label, model_layout)
-        
-        # API Key
-        self.api_key_label = QLabel(self.labels["api_key"])
-        self.api_key_input = QLineEdit()
-        self.api_key_input.setMinimumWidth(200)
-        self.api_key_input.setEchoMode(QLineEdit.Password)
-        self.reveal_button = QPushButton(self.labels["reveal"])
-        self.reveal_button.setCheckable(True)
-        self.reveal_button.toggled.connect(self.toggle_reveal_api_key)
-        
-        api_key_layout = QHBoxLayout()
-        api_key_layout.addWidget(self.api_key_input)
-        api_key_layout.addWidget(self.reveal_button)
-        form_layout.addRow(self.api_key_label, api_key_layout)
-        
-        # Timeout
-        self.timeout_label = QLabel(self.labels["timeout"])
-        self.timeout_input = QLineEdit()
-        self.timeout_input.setValidator(QIntValidator(30, 600))
-        self.timeout_input.setMaximumWidth(40)
-        form_layout.addRow(self.timeout_label, self.timeout_input)
-        
-        # Default Provider Checkbox
-        self.default_checkbox = QCheckBox(self.labels["default_provider"])
-        self.default_checkbox.setChecked(self.is_default)
-        form_layout.addRow("", self.default_checkbox)
-        
-        # Test Connection Button
-        self.test_button = QPushButton(self.labels["test"])
-        self.test_button.clicked.connect(self.test_provider_connection)
-        form_layout.addRow("", self.test_button)
-        
-        group_box.setLayout(form_layout)
-        layout.addWidget(group_box)
-        
-        # Dialog Buttons
-        self.button_box = QDialogButtonBox()
-        if self.is_edit_mode:
-            self.button_box.addButton(self.labels["update"], QDialogButtonBox.AcceptRole)
-        else:
-            self.button_box.addButton(self.labels["add"], QDialogButtonBox.AcceptRole)
-        self.button_box.addButton(self.labels["close"], QDialogButtonBox.RejectRole)
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        
-        layout.addWidget(self.button_box)
-        self.setLayout(layout)
-
-        self.timeout_input.setText(str(30))  # Default timeout value
-
-
-        # Load data if editing
-        if self.is_edit_mode and self.provider_data:
-            self.name_input.setText(self.provider_name)
-            self.name_input.setEnabled(False)  # Don't allow name change in edit mode
-            
-            provider_type = self.provider_data.get("provider", "")
-            index = self.provider_combobox.findText(provider_type)
-            if index >= 0:
-                self.provider_combobox.setCurrentIndex(index)
-            
-            self.endpoint_url_input.setText(self.provider_data.get("endpoint", "Default"))
-            self.api_key_input.setText(self.provider_data.get("api_key", ""))
-            self.timeout_input.setText(str(self.provider_data.get("timeout", 30)))
-
-            
-            # Populate and select model
-            self.populate_model_combobox(provider_type)
-            model = self.provider_data.get("model", "")
-            index = self.model_combobox.findText(model)
-            if index >= 0:
-                self.model_combobox.setCurrentIndex(index)
-            else:
-                self.model_combobox.setEditText(model)
-    
-    def provider_selected(self, index):
-        provider_name = self.provider_combobox.itemText(index)
-
-        self.populate_model_combobox(provider_name)
-        
-        # If custom, enable the name field unless in edit mode
-        if provider_name == "Custom" and not self.is_edit_mode:
-            self.name_input.setEnabled(True)
-        elif not self.is_edit_mode:
-            self.name_input.setText(provider_name)
-            self.name_input.setEnabled(False)
-    
-    def refresh_models(self):
-        provider_name = self.provider_combobox.currentText()
-        self.populate_model_combobox(provider_name, True)
-
-    def populate_model_combobox(self, provider_name, refresh = False):
-        """Populate model dropdown based on provider type"""
-        try:
-            models = self.get_models_for_provider(provider_name, refresh)
-        except Exception as e:
-            if refresh:
-                error_message = urllib.parse.unquote(str(e))
-                QMessageBox.warning(self, "Error", f"Error fetching models: {error_message}")
-            models = ["Error"]
-        self.model_combobox.clear()
-        self.model_combobox.addItems(models)
-    
-    def get_models_for_provider(self, provider_name, refresh = False):
-        provider = WWApiAggregator.aggregator.create_provider(provider_name, {
-            "api_key": self.api_key_input.text(),
-            "endpoint": self.endpoint_url_input.text()
-        })
-        if provider is None:
-            return ["Provider not found"]
-        if provider.model_requires_api_key and not self.api_key_input.text():
-            return [self.labels["api_key_required"]]
-        return provider.get_available_models(refresh)
-    
-    def toggle_reveal_api_key(self, checked):
-        if checked:
-            self.api_key_input.setEchoMode(QLineEdit.Normal)
-            self.reveal_button.setText(self.labels["hide"])
-        else:
-            self.api_key_input.setEchoMode(QLineEdit.Password)
-            self.reveal_button.setText(self.labels["reveal"])
-    
-    def test_provider_connection(self):
-        """Test the provider connection"""
-        try:
-            timeout = int(self.timeout_input.text())
-        except ValueError:
-            timeout = 30
-
-        provider_name = self.provider_combobox.currentText()
-        endpoint = self.endpoint_url_input.text()
-        model = self.model_combobox.currentText()
-        api_key = self.api_key_input.text()
-        overrides = {
-            "provider": provider_name,
-            "model": model,
-        }
-        if endpoint not in ("", "Default"):
-            overrides["endpoint"] = endpoint
-        if api_key != '':
-            overrides["api_key"] = api_key
-                
-        try:
-            provider = WWApiAggregator.aggregator.create_provider(provider_name)
-            if provider.test_connection(overrides):
-                QMessageBox.information(self, "Test Result", self.labels["test_successful"])
-            else:
-                QMessageBox.warning(self, "Test Result", "Connection failed.")
-        except Exception as e:
-            QMessageBox.warning(self, "Test Result", self.labels["test_failed"].format(e))
-    
-    def get_provider_data(self):
-        """Return the provider data entered by the user"""
-        if self.provider_combobox.currentText() == "Custom":
-            provider_name = self.name_input.text().strip()
-        else:
-            provider_name = self.name_input.text().strip() or self.provider_combobox.currentText()
-        
-        try:
-            timeout = int(self.timeout_input.text())
-        except ValueError:
-            timeout = 30
-        
-        return {
-            "name": provider_name,
-            "provider": self.provider_combobox.currentText(),
-            "endpoint": self.endpoint_url_input.text(),
-            "model": self.model_combobox.currentText(),
-            "api_key": self.api_key_input.text(),
-            "timeout": timeout,
-            "is_default": self.default_checkbox.isChecked()
-        }
-
-    def update_labels(self, labels):
-        """Update all UI labels based on the selected language."""
-        self.labels = labels
-        self.setWindowTitle(self.labels["edit_provider"] if self.is_edit_mode else self.labels["new_provider"])
-        self.provider_label.setText(self.labels["provider"])
-        self.name_label.setText(self.labels["name"])
-        self.endpoint_url_label.setText(self.labels["endpoint_url"])
-        self.endpoint_help_button.setToolTip(self.labels["endpoint_help_tooltip"])
-        self.endpoint_help_button.clicked.disconnect()
-        self.endpoint_help_button.clicked.connect(lambda: QMessageBox.information(self, self.labels["endpoint_help_title"], self.labels["endpoint_help_message"]))
-        self.model_label.setText(self.labels["model"])
-        self.refresh_button.setToolTip(self.labels["refresh_models"])
-        self.api_key_label.setText(self.labels["api_key"])
-        self.reveal_button.setText(self.labels["reveal"] if self.api_key_input.echoMode() == QLineEdit.Password else self.labels["hide"])
-        self.timeout_label.setText(self.labels["timeout"])
-        self.default_checkbox.setText(self.labels["default_provider"])
-        self.test_button.setText(self.labels["test"])
-        self.button_box.clear()
-        if self.is_edit_mode:
-            self.button_box.addButton(self.labels["update"], QDialogButtonBox.AcceptRole)
-        else:
-            self.button_box.addButton(self.labels["add"], QDialogButtonBox.AcceptRole)
-        self.button_box.addButton(self.labels["close"], QDialogButtonBox.RejectRole)
-
+from .provider_dialog import ProviderDialog
 
 class SettingsDialog(QDialog):
     settings_saved = pyqtSignal()
@@ -345,14 +22,13 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Preferences")
         self.resize(500, 500)
-        self.setWindowIcon(QIcon("icon.png"))  # Replace with your icon file
+        self.setWindowIcon(QIcon("icon.png"))
 
         self.general_settings = WWSettingsManager.get_general_settings()
         self.appearance_settings = WWSettingsManager.get_appearance_settings()
         self.llm_configs = WWSettingsManager.get_llm_configs()
         self.default_provider = WWSettingsManager.get_active_llm_name()
         
-        # Store a deep copy of the original llm_configs for comparison
         self.original_llm_configs = copy.deepcopy(self.llm_configs)
 
         self.ui_labels = UI_LABELS
@@ -372,8 +48,9 @@ class SettingsDialog(QDialog):
 
         self.init_ui()
         self.load_values_from_settings()
+        self.read_settings()
 
-        self.unsaved_changes = False  # Track unsaved changes
+        self.unsaved_changes = False
 
     def init_ui(self):
         self.tabs = QTabWidget()
@@ -415,7 +92,6 @@ class SettingsDialog(QDialog):
         self.enable_autosave_checkbox.stateChanged.connect(self.mark_unsaved_changes)
         layout.addRow(self.enable_autosave_checkbox)
         
-        # New: Checkbox for random quotes
         self.show_quote_checkbox = QCheckBox(self.labels["show_random_quote"])
         self.show_quote_checkbox.stateChanged.connect(self.mark_unsaved_changes)
         layout.addRow(self.show_quote_checkbox)
@@ -444,7 +120,7 @@ class SettingsDialog(QDialog):
         self.background_color_button.clicked.connect(self.choose_background_color)
         self.background_color_label = QLabel()
         self.background_color_label.setAutoFillBackground(True)
-        self.set_background_color_label(self.appearance_settings["background_color"])  # Initialize color label
+        self.set_background_color_label(self.appearance_settings["background_color"])
         hbox = QHBoxLayout()
         hbox.addWidget(self.background_color_button)
         hbox.addWidget(self.background_color_label)
@@ -457,7 +133,6 @@ class SettingsDialog(QDialog):
         self.text_size_label = QLabel(self.labels["text_size"])
         layout.addRow(self.text_size_label, self.text_size_spinbox)
 
-        # Create a group box for the sample text
         self.sample_group_box = QGroupBox()
         sample_layout = QHBoxLayout()
         sample_layout.setAlignment(Qt.AlignCenter)
@@ -471,17 +146,14 @@ class SettingsDialog(QDialog):
     def init_provider_tab(self):
         layout = QVBoxLayout()
         
-        # Group box for provider list
         self.providers_group = QGroupBox(self.labels["providers_list"])
         providers_layout = QVBoxLayout()
         
-        # List widget for providers
         self.providers_list = QListWidget()
         self.providers_list.setMinimumHeight(200)
         self.providers_list.itemClicked.connect(self.provider_item_clicked)
         providers_layout.addWidget(self.providers_list)
         
-        # Buttons for provider management
         buttons_layout = QHBoxLayout()
         self.new_provider_button = QPushButton(self.labels["new_provider"])
         self.new_provider_button.clicked.connect(self.add_new_provider)
@@ -500,7 +172,6 @@ class SettingsDialog(QDialog):
         
         self.provider_tab.setLayout(layout)
         
-        # Initially disable buttons that require selection
         self.edit_provider_button.setEnabled(False)
         self.delete_provider_button.setEnabled(False)
 
@@ -525,7 +196,6 @@ class SettingsDialog(QDialog):
         """Handle provider item selection"""
         self.edit_provider_button.setEnabled(True)
         
-        # Only allow deletion of custom providers
         provider_data = item.data(Qt.UserRole)
         provider_name = provider_data["name"]
         is_default_provider = provider_data["is_default"]
@@ -535,14 +205,14 @@ class SettingsDialog(QDialog):
     def add_new_provider(self):
         """Open dialog to add a new provider"""
         default_providers = WWApiAggregator.get_llm_providers()
-        dialog = ProviderDialog(
+        self.provider_dialog = ProviderDialog(
             parent=self,
             providers=default_providers,
             labels=self.labels
         )
         
-        if dialog.exec_():
-            provider_data = dialog.get_provider_data()
+        if self.provider_dialog.exec_():
+            provider_data = self.provider_dialog.get_provider_data()
             provider_name = provider_data["name"]
             
             if not provider_name:
@@ -553,7 +223,6 @@ class SettingsDialog(QDialog):
                 QMessageBox.warning(self, "Warning", f"Provider '{provider_name}' already exists.")
                 return
                 
-            # Add the new provider
             self.llm_configs[provider_name] = {
                 "provider": provider_data["provider"],
                 "endpoint": provider_data["endpoint"] == "Default" and provider_data["endpoint"] or "",
@@ -562,11 +231,9 @@ class SettingsDialog(QDialog):
                 "timeout": provider_data["timeout"]
             }
             
-            # Set as default if specified
             if provider_data["is_default"]:
                 self.default_provider = provider_name
                 
-            # Refresh the list
             self.populate_providers_list()
             self.mark_unsaved_changes()
 
@@ -584,7 +251,7 @@ class SettingsDialog(QDialog):
         default_providers = WWApiAggregator.get_llm_providers()
         is_default = provider_name == self.default_provider
         
-        dialog = ProviderDialog(
+        self.provider_dialog = ProviderDialog(
             parent=self,
             provider_name=provider_name,
             provider_data=self.llm_configs[provider_name],
@@ -593,10 +260,9 @@ class SettingsDialog(QDialog):
             is_default=is_default
         )
         
-        if dialog.exec_():
-            updated_data = dialog.get_provider_data()
+        if self.provider_dialog.exec_():
+            updated_data = self.provider_dialog.get_provider_data()
             
-            # Update provider data
             self.llm_configs[provider_name] = {
                 "provider": updated_data["provider"],
                 "endpoint": updated_data["endpoint"],
@@ -605,13 +271,11 @@ class SettingsDialog(QDialog):
                 "timeout": updated_data["timeout"]
             }
             
-            # Update default provider if needed
             if updated_data["is_default"]:
                 self.default_provider = provider_name
             elif self.default_provider == provider_name and not updated_data["is_default"]:
                 self.default_provider = ""
                 
-            # Refresh the list
             self.populate_providers_list()
             self.mark_unsaved_changes()
 
@@ -620,7 +284,7 @@ class SettingsDialog(QDialog):
         palette = self.background_color_label.palette()
         palette.setColor(QPalette.Window, QColor(color_code))
         self.background_color_label.setPalette(palette)
-        self.background_color_label.setText(color_code)  # Display the color code.
+        self.background_color_label.setText(color_code)
         self.background_color_label.update()
 
     def delete_provider(self):
@@ -631,7 +295,6 @@ class SettingsDialog(QDialog):
         provider_data = self.providers_list.currentItem().data(Qt.UserRole)
         provider_name = provider_data["name"]
         
-        # Check if provider is a default one
         if provider_data["is_default"]:
             QMessageBox.warning(self, "Warning", f"{provider_name} cannot be deleted as it is the default provider.")
             return
@@ -645,15 +308,12 @@ class SettingsDialog(QDialog):
         )
         
         if reply == QMessageBox.Yes:
-            # Remove from config
             if provider_name in self.llm_configs:
                 del self.llm_configs[provider_name]
                 
-            # Remove as default if it was default
             if self.default_provider == provider_name:
                 self.default_provider = ""
                 
-            # Update UI
             self.populate_providers_list()
             self.edit_provider_button.setEnabled(False)
             self.delete_provider_button.setEnabled(False)
@@ -670,7 +330,7 @@ class SettingsDialog(QDialog):
     def language_changed(self, index):
         language = LANGUAGES[index]
         self.general_settings["language"] = language
-        self.labels = self.ui_labels.get(language, self.ui_labels[language])
+        self.labels = self.ui_labels.get(language, self.ui_labels["en"])
         self.update_ui_labels()
         self.mark_unsaved_changes()
 
@@ -695,14 +355,10 @@ class SettingsDialog(QDialog):
         self.edit_provider_button.setText(self.labels["edit"])
         self.delete_provider_button.setText(self.labels["delete"])
         
-        # Update provider dialog labels if it is open
         if hasattr(self, 'provider_dialog') and self.provider_dialog.isVisible():
             self.provider_dialog.update_labels(self.labels)
         
-        # Re-populate provider list to update default provider label
         self.populate_providers_list()
-
-        
 
     def load_values_from_settings(self):
         """Loads the settings values into the UI elements."""
@@ -718,7 +374,6 @@ class SettingsDialog(QDialog):
         self.text_size_spinbox.setValue(self.appearance_settings["text_size"])
         self.set_background_color_label(self.appearance_settings["background_color"])
 
-        # Populate provider list
         self.populate_providers_list()
         
         self.show_quote_checkbox.setChecked(self.general_settings.get("show_random_quote", False))
@@ -732,14 +387,12 @@ class SettingsDialog(QDialog):
         self.appearance_settings["theme"] = self.theme_combobox.currentText()
         self.appearance_settings["text_size"] = self.text_size_spinbox.value()
 
-        # Detect deleted llm_configs
         deleted_configs = set(self.original_llm_configs.keys()) - set(self.llm_configs.keys())
         for provider_name in deleted_configs:
             success = WWSettingsManager.delete_llm_config(provider_name)
             if not success:
                 QMessageBox.warning(self, "Warning", f"Failed to delete config {provider_name} from settings.json.")
 
-        # Save updated settings
         success = (
             WWSettingsManager.update_general_settings(self.general_settings) and
             WWSettingsManager.update_appearance_settings(self.appearance_settings) and
@@ -747,10 +400,9 @@ class SettingsDialog(QDialog):
         )
 
         if success:
-            # Update original_llm_configs to match the newly saved state
             self.original_llm_configs = copy.deepcopy(self.llm_configs)
             QMessageBox.information(self, "Save Result", self.labels["save_successful"])
-            self.unsaved_changes = False  # Reset unsaved changes flag
+            self.unsaved_changes = False
             self.settings_saved.emit()
         else:
             QMessageBox.warning(self, "Warning", "Failed to save settings.")
@@ -778,7 +430,6 @@ class SettingsDialog(QDialog):
             elif msg_box.clickedButton() == discard_button:
                 self.close()
             else:
-                # Cancel, do nothing
                 return
         else:
             self.close()
@@ -794,6 +445,23 @@ class SettingsDialog(QDialog):
         font.setPointSize(value)
         QApplication.instance().setFont(font)
         self.sample_text_label.setFont(font)
+
+    def read_settings(self):
+        """Restore window geometry and tab state."""
+        settings = QSettings("MyCompany", "WritingwayProject")
+        self.restoreGeometry(settings.value("SettingsDialog/geometry", self.saveGeometry()))
+        self.tabs.setCurrentIndex(int(settings.value("SettingsDialog/tab_index", 0)))
+
+    def write_settings(self):
+        """Save window geometry and tab state."""
+        settings = QSettings("MyCompany", "WritingwayProject")
+        settings.setValue("SettingsDialog/geometry", self.saveGeometry())
+        settings.setValue("SettingsDialog/tab_index", self.tabs.currentIndex())
+
+    def closeEvent(self, event):
+        """Save settings when closing the dialog."""
+        self.write_settings()
+        super().closeEvent(event)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

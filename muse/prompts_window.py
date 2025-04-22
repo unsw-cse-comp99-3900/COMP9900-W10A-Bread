@@ -10,6 +10,7 @@ from PyQt5.QtGui import QIcon
 from .prompt_utils import get_prompt_categories, load_prompts, get_default_prompt
 from settings.llm_api_aggregator import WWApiAggregator
 from settings.settings_manager import WWSettingsManager
+from settings.provider_info_dialog import ProviderInfoDialog
 
 class PromptsWindow(QDialog):
     def __init__(self, project_name, parent=None):
@@ -77,10 +78,19 @@ class PromptsWindow(QDialog):
 
         # Provider selector
         provider_layout = QVBoxLayout()
+        provider_header = QHBoxLayout()
         self.provider_label = QLabel("Provider:")
+        provider_info_button = QPushButton()
+        provider_info_button.setIcon(QIcon("assets/icons/info.svg"))
+        provider_info_button.setToolTip("Show Model Details")
+        provider_info_button.clicked.connect(self.show_provider_info)
+        provider_header.addWidget(self.provider_label)
+        provider_header.addWidget(provider_info_button)
+        provider_header.addStretch()
+
         self.provider_combo = QComboBox()
         self.provider_combo.setMinimumWidth(200)
-        provider_layout.addWidget(self.provider_label)
+        provider_layout.addLayout(provider_header)
         provider_layout.addWidget(self.provider_combo)
         model_group.addLayout(provider_layout)
 
@@ -679,6 +689,10 @@ class PromptsWindow(QDialog):
             self.tree.setCurrentItem(new_child)
             self.on_item_clicked(new_child, 0)
             QMessageBox.information(self, "Replicated", "Prompt replicated. You can now edit the new prompt.")
+
+    def show_provider_info(self):
+        dialog = ProviderInfoDialog(self)
+        dialog.exec_()
 
 # For testing standalone
 if __name__ == "__main__":

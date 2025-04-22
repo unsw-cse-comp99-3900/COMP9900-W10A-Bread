@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from project_window.project_window import ProjectWindow
-from settings.preferences import SettingsDialog
+from settings.settings_dialog import SettingsDialog
 from settings.settings_manager import WWSettingsManager
 from project_window import project_settings_manager
 from compendium.enhanced_compendium import EnhancedCompendiumWindow

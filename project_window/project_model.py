@@ -89,9 +89,12 @@ class ProjectModel(QObject):
         # Backup original structure.json
         file_path = get_structure_file_path(self.project_name)
         backup_path = file_path + ".backup"
+
+        if os.path.exists(backup_path):
+            os.remove(backup_path) # Windows won't rename if backup file exists
+
         if os.path.exists(file_path):
             os.rename(file_path, backup_path)
-
 
         acts = self.structure.get("acts", [])        
         # Perform migration
@@ -101,7 +104,6 @@ class ProjectModel(QObject):
         # Save updated structure
         if os.path.exists(backup_path):
             self.save_structure()
-#            os.remove(backup_path)  # Remove backup if successful
 
     def load_scene_content(self, hierarchy):
         """Load content, prioritizing HTML, falling back to structure (for legacy)."""

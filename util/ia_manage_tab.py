@@ -192,7 +192,7 @@ class ManageTab(QWidget):
                 self.upload_file_paths = [str(path) for path in Path(folder_path).rglob('*') if path.is_file()]
                 self.selected_files_label.setText(f"Selected {len(self.upload_file_paths)} files from folder: {folder_path}")
         else:
-            file_paths, _ = QFileDialog.getOpenFileNames(self, "Choose Files")
+            file_paths, unused = QFileDialog.getOpenFileNames(self, "Choose Files")
             if file_paths:
                 self.upload_file_paths = file_paths
                 self.selected_files_label.setText(f"Selected {len(file_paths)} files")

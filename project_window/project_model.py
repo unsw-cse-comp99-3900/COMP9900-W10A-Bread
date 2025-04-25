@@ -27,9 +27,9 @@ class ProjectModel(QObject):
         """Load project settings with defaults."""
         settings = psm.load_project_settings(self.project_name)
         return {
-            "global_pov": settings.get("global_pov", "Third Person Limited"),
-            "global_pov_character": settings.get("global_pov_character", "Character"),
-            "global_tense": settings.get("global_tense", "Present Tense")
+            "global_pov": settings.get("global_pov", _("Third Person Limited")),
+            "global_pov_character": settings.get("global_pov_character", _("Character")),
+            "global_tense": settings.get("global_tense", _("Present Tense"))
         }
 
     def save_settings(self):
@@ -204,9 +204,9 @@ class ProjectModel(QObject):
             str: The summary content, or None if not found or failed to load.
         """
         if uuid and hierarchy:
-            raise ValueError("Provide either uuid or hierarchy, not both")
+            raise ValueError(_("Provide either uuid or hierarchy, not both"))
         if not uuid and not hierarchy:
-            raise ValueError("Either uuid or hierarchy must be provided")
+            raise ValueError(_("Either uuid or hierarchy must be provided"))
     
         node = None
         if uuid:
@@ -248,13 +248,13 @@ class ProjectModel(QObject):
     
     def add_act(self, act_name):
         if self._check_duplicate_name(self.structure.get("acts", []), act_name):
-            self.errorOccurred.emit(f"An Act named '{act_name}' already exists. Please choose a unique name.")
+            self.errorOccurred.emit(_("An Act named '{}' already exists. Please choose a unique name.").format(act_name))
             return
         
         new_act = {
             "uuid": str(uuid.uuid4()),
             "name": act_name,
-            "summary": f"This is the summary for {act_name}.",
+            "summary": _("This is the summary for {}.").format(act_name),
             "chapters": []
         }
         self.structure.setdefault("acts", []).append(new_act)
@@ -265,12 +265,12 @@ class ProjectModel(QObject):
         for act in self.structure.get("acts", []):
             if act.get("name") == act_name:
                 if self._check_duplicate_name(act.get("chapters", []), chapter_name):
-                    self.errorOccurred.emit(f"A Chapter named '{chapter_name}' already exists in Act '{act_name}'. Please choose a unique name.")
+                    self.errorOccurred.emit(_("A Chapter named '{}' already exists in Act '{}'. Please choose a unique name.").format(chapter_name, act_name))
                     return
                 new_chapter = {
                     "uuid": str(uuid.uuid4()),
                     "name": chapter_name,
-                    "summary": f"This is the summary for {chapter_name}.",
+                    "summary": _("This is the summary for {}.").format(chapter_name),
                     "scenes": []
                 }
                 act.setdefault("chapters", []).append(new_chapter)
@@ -284,7 +284,7 @@ class ProjectModel(QObject):
                 for chapter in act.get("chapters", []):
                     if chapter.get("name") == chapter_name:
                         if self._check_duplicate_name(chapter.get("scenes", []), scene_name):
-                            self.errorOccurred.emit(f"A Scene named '{scene_name}' already exists in Chapter '{chapter_name}' of Act '{act_name}'. Please choose a unique name.")
+                            self.errorOccurred.emit(_("A Scene named '{}' already exists in Chapter '{}' of Act '{}'. Please choose a unique name.").format(scene_name, chapter_name, act_name))
                             return
                         new_scene = {
                             "uuid": str(uuid.uuid4()),
@@ -305,7 +305,7 @@ class ProjectModel(QObject):
         if self._check_duplicate_name(parent_nodes, new_name, exclude_uuid=uuid_val):
             level_name = "Act" if len(hierarchy) == 1 else "Chapter" if len(hierarchy) == 2 else "Scene"
             parent_context = " in " + " -> ".join(hierarchy[:-1]) if len(hierarchy) > 1 else ""
-            self.errorOccurred.emit(f"A {level_name} named '{new_name}' already exists{parent_context}. Please choose a unique name.")
+            self.errorOccurred.emit(_("A {} named '{}' already exists {}. Please choose a unique name.").format(level_name, new_name, parent_context))
             return
         old_hierarchy = hierarchy.copy()
         node["name"] = new_name

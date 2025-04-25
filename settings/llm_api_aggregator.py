@@ -275,7 +275,7 @@ class GeminiProvider(LLMProviderBase):
         if not self.llm_instance:
             self.llm_instance = ChatGoogleGenerativeAI(
                 google_api_key=overrides.get("api_key", self.get_api_key()),
-#                api_endpoint=overrides.get("endpoint", self.get_base_url()), # Unsupported by Google API
+#                base_url=overrides.get("endpoint", self.get_base_url()), # Unsupported by Google API
                 model=overrides.get("model", self.get_current_model() or "gemini-2.0-flash"),
                 temperature=overrides.get("temperature", self.config.get("temperature", DEFAULT_TEMPERATURE)),
                 max_output_tokens=overrides.get("max_tokens", self.config.get("max_tokens", DEFAULT_MAX_TOKENS)),

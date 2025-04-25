@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Configure logging
 logging.basicConfig(
-    level=logging.WARN,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler()]
 )

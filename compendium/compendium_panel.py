@@ -64,7 +64,7 @@ class CompendiumPanel(QWidget):
         
         # Left side: Tree for categories and entries.
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabel("Compendium")
+        self.tree.setHeaderLabel(_("Compendium"))
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.show_tree_context_menu)
         self.tree.currentItemChanged.connect(self.on_item_changed)
@@ -72,7 +72,7 @@ class CompendiumPanel(QWidget):
         # Right side: Editor for the selected entry.
         # The editor is now set to read-only so that this panel serves only as a reference.
         self.editor = QTextEdit()
-        self.editor.setPlaceholderText("Select a compendium entry to view.")
+        self.editor.setPlaceholderText(_("Select a compendium entry to view."))
         self.editor.setReadOnly(True)
         
         # Set up the layout.
@@ -222,8 +222,8 @@ class CompendiumPanel(QWidget):
     def show_tree_context_menu(self, pos: QPoint):
         """Display a simplified context menu with only the option to open the enhanced compendium."""
         menu = QMenu(self)
-        action_open = menu.addAction("Open Enhanced Compendium")
-        action_analyze = menu.addAction("Analyze Scene with AI")
+        action_open = menu.addAction(_("Open Enhanced Compendium"))
+        action_analyze = menu.addAction(_("Analyze Scene with AI"))
         action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
 
         if action == action_open:
@@ -247,7 +247,7 @@ class CompendiumPanel(QWidget):
         # Get the scene editor content from the parent window
         scene_editor = self.project_window.scene_editor.editor
         if not scene_editor or not scene_editor.toPlainText():
-            QMessageBox.warning(self, "Warning", "No scene content available to analyze.")
+            QMessageBox.warning(self, _("Warning"), _("No scene content available to analyze."))
             return
 
         scene_content = scene_editor.toPlainText()
@@ -322,14 +322,14 @@ Return only the JSON result without additional commentary. The JSON should maint
             # Attempt to repair incomplete JSON
             repaired_response = self.repair_incomplete_json(cleaned_response)
             if repaired_response is None:
-                QMessageBox.warning(self, "Error", "AI returned invalid JSON that could not be repaired.")
+                QMessageBox.warning(self, _("Error"), _("AI returned invalid JSON that could not be repaired."))
                 return
             
             # Validate JSON response
             try:
                 ai_compendium = json.loads(repaired_response)
             except json.JSONDecodeError:
-                QMessageBox.warning(self, "Error", "AI returned invalid JSON format.")
+                QMessageBox.warning(self, _("Error"), _("AI returned invalid JSON format."))
                 return
 
             # Show the dialog with AI results
@@ -338,7 +338,7 @@ Return only the JSON result without additional commentary. The JSON should maint
                 self.save_ai_analysis(dialog.get_compendium_data())
 
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to analyze scene: {str(e)}")
+            QMessageBox.warning(self, _("Error"), _("Failed to analyze scene: {}").format(str(e)))
 
     def preprocess_json_string(self, raw_string):
         """Remove Markdown code block markers and extraneous whitespace from the string."""
@@ -363,9 +363,9 @@ Return only the JSON result without additional commentary. The JSON should maint
             open_brackets = repaired.count('[') - repaired.count(']')
             
             # Add missing closing braces and brackets
-            for _ in range(open_braces):
+            for unusued in range(open_braces):
                 repaired += '}'
-            for _ in range(open_brackets):
+            for unused in range(open_brackets):
                 repaired += ']'
             
             try:
@@ -436,10 +436,10 @@ Return only the JSON result without additional commentary. The JSON should maint
             # Emit signal to notify EnhancedCompendiumWindow
             self.compendium_updated.emit(self.project_name)
             
-            QMessageBox.information(self, "Success", "Compendium updated successfully.")
+            QMessageBox.information(self, _("Success"), _("Compendium updated successfully."))
 
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to save compendium: {str(e)}")
+            QMessageBox.warning(self, _("Error"), _("Failed to save compendium: {}").format(str(e)))
 
 
     def connect_to_compendium_signal(self):

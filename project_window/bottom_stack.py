@@ -49,14 +49,14 @@ class BottomStack(QWidget):
 
         self.summary_preview_button = QPushButton()
         self.summary_preview_button.setIcon(self.controller.get_tinted_icon("assets/icons/eye.svg", self.tint_color))
-        self.summary_preview_button.setToolTip("Preview the final prompt")
+        self.summary_preview_button.setToolTip(_("Preview the final prompt"))
         self.summary_preview_button.clicked.connect(self.summary_controller.preview_summary)
         layout.addWidget(self.summary_preview_button)
 
         layout.addStretch()
-        self.create_summary_button = QPushButton("Create Summary")
+        self.create_summary_button = QPushButton(_("Create Summary"))
         self.create_summary_button.clicked.connect(self.summary_controller.create_summary)
-        self.save_summary_button = QPushButton("Save Summary")
+        self.save_summary_button = QPushButton(_("Save Summary"))
         self.save_summary_button.clicked.connect(self.controller.save_summary)
         layout.addWidget(self.create_summary_button)
         layout.addWidget(self.save_summary_button)
@@ -72,14 +72,14 @@ class BottomStack(QWidget):
         # Preview Area
         self.preview_text = QTextEdit()
         self.preview_text.setReadOnly(True)
-        self.preview_text.setPlaceholderText("LLM output preview will appear here...")
+        self.preview_text.setPlaceholderText(_("LLM output preview will appear here..."))
         preview_buttons = QHBoxLayout()
         self.apply_button = QPushButton()
         self.apply_button.setIcon(self.controller.get_tinted_icon("assets/icons/save.svg", self.tint_color))
-        self.apply_button.setToolTip("Appends the LLM's output to your current scene")
+        self.apply_button.setToolTip(_("Appends the LLM's output to your current scene"))
         self.apply_button.clicked.connect(self.controller.apply_preview)
-        self.include_prompt_checkbox = QCheckBox("Include Action Beats")
-        self.include_prompt_checkbox.setToolTip("Include the text from the Action Beats field in the scene text")
+        self.include_prompt_checkbox = QCheckBox(_("Include Action Beats"))
+        self.include_prompt_checkbox.setToolTip(_("Include the text from the Action Beats field in the scene text"))
         self.include_prompt_checkbox.setChecked(True)
         preview_buttons.addWidget(self.apply_button)
         preview_buttons.addWidget(self.include_prompt_checkbox)
@@ -92,7 +92,7 @@ class BottomStack(QWidget):
         left_layout = QVBoxLayout(left_container)
         left_layout.setContentsMargins(0, 0, 0, 0)
         self.prompt_input = PlainTextEdit()
-        self.prompt_input.setPlaceholderText("Enter your action beats here...")
+        self.prompt_input.setPlaceholderText(_("Enter your action beats here..."))
         self.prompt_input.setFixedHeight(100)
         self.prompt_input.textChanged.connect(self.controller.on_prompt_input_text_changed)
         left_layout.addWidget(self.prompt_input)
@@ -106,25 +106,25 @@ class BottomStack(QWidget):
 
         self.preview_button = QPushButton()
         self.preview_button.setIcon(self.controller.get_tinted_icon("assets/icons/eye.svg", self.tint_color))
-        self.preview_button.setToolTip("Preview the final prompt")
+        self.preview_button.setToolTip(_("Preview the final prompt"))
         self.preview_button.clicked.connect(self.preview_prompt)
         buttons_layout.addWidget(self.preview_button)
 
         self.send_button = QPushButton()
         self.send_button.setIcon(self.controller.get_tinted_icon("assets/icons/send.svg", self.tint_color))
-        self.send_button.setToolTip("Sends the action beats to the LLM")
+        self.send_button.setToolTip(_("Sends the action beats to the LLM"))
         self.send_button.clicked.connect(self.controller.send_prompt)
         buttons_layout.addWidget(self.send_button)
 
         self.stop_button = QPushButton()
         self.stop_button.setIcon(self.controller.get_tinted_icon("assets/icons/x-octagon.svg", self.tint_color))
-        self.stop_button.setToolTip("Stop the LLM processing")
+        self.stop_button.setToolTip(_("Stop the LLM processing"))
         self.stop_button.clicked.connect(self.controller.stop_llm)
         buttons_layout.addWidget(self.stop_button)
 
         self.context_toggle_button = QPushButton()
         self.context_toggle_button.setIcon(self.controller.get_tinted_icon("assets/icons/book.svg", self.tint_color))
-        self.context_toggle_button.setToolTip("Toggle context panel")
+        self.context_toggle_button.setToolTip(_("Toggle context panel"))
         self.context_toggle_button.setCheckable(True)
         self.context_toggle_button.clicked.connect(self.toggle_context_panel)
         buttons_layout.addWidget(self.context_toggle_button)
@@ -137,9 +137,9 @@ class BottomStack(QWidget):
         # Tell combo boxes to expand to the same size
         pulldown_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
 
-        self.pov_combo = self.add_combo(pulldown_layout, "POV", ["First Person", "Third Person Limited", "Omniscient", "Custom..."], self.controller.handle_pov_change)
-        self.pov_character_combo = self.add_combo(pulldown_layout, "POV Character", ["Alice", "Bob", "Charlie", "Custom..."], self.controller.handle_pov_character_change)
-        self.tense_combo = self.add_combo(pulldown_layout, "Tense", ["Past Tense", "Present Tense", "Custom..."], self.controller.handle_tense_change)
+        self.pov_combo = self.add_combo(pulldown_layout, _("POV"), [_("First Person"), _("Third Person Limited"), _("Omniscient"), _("Custom...")], self.controller.handle_pov_change)
+        self.pov_character_combo = self.add_combo(pulldown_layout, _("POV Character"), ["Alice", "Bob", "Charlie", _("Custom...")], self.controller.handle_pov_character_change)
+        self.tense_combo = self.add_combo(pulldown_layout, _("Tense"), [_("Past Tense"), _("Present Tense"), _("Custom...")], self.controller.handle_tense_change)
         buttons_layout.addWidget(pulldown_widget)
 
         left_layout.addLayout(buttons_layout)
@@ -177,11 +177,11 @@ class BottomStack(QWidget):
             "assets/icons/book-open.svg" if self.context_panel.isVisible() else "assets/icons/book.svg", tint_color))
         # Update combo tooltips if needed
         if self.pov_combo:
-            self.pov_combo.setToolTip(f"POV: {self.model.settings.get('global_pov', 'Third Person')}")
+            self.pov_combo.setToolTip(_("POV: {}").format(self.model.settings.get('global_pov', 'Third Person')))
         if self.pov_character_combo:
-            self.pov_character_combo.setToolTip(f"POV Character: {self.model.settings.get('global_pov_character', 'Character')}")
+            self.pov_character_combo.setToolTip(_("POV Character: {}").format(self.model.settings.get('global_pov_character', 'Character')))
         if self.tense_combo:
-            self.tense_combo.setToolTip(f"Tense: {self.model.settings.get('global_tense', 'Present Tense')}")
+            self.tense_combo.setToolTip(_("Tense: {}").format(self.model.settings.get('global_tense', 'Present Tense')))
 
     def _update_status(self, message):
         self.controller.statusBar().showMessage(message, 5000)
@@ -199,9 +199,9 @@ class BottomStack(QWidget):
 
     def preview_prompt(self):
         additional_vars = {
-            "pov": self.model.settings["global_pov"] or "Third Person",
-            "pov_character": self.model.settings["global_pov_character"] or "Character",
-            "tense": self.model.settings["global_tense"] or "Present Tense",
+            "pov": self.model.settings["global_pov"] or _("Third Person"),
+            "pov_character": self.model.settings["global_pov_character"] or _("Character"),
+            "tense": self.model.settings["global_tense"] or _("Present Tense"),
         }
 
         prompt_config = self.prose_prompt_panel.get_prompt()

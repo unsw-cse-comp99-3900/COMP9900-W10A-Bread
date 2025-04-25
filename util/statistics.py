@@ -1423,7 +1423,7 @@ class StatisticsDialog(QDialog):
         # Get export path
         from PyQt5.QtWidgets import QFileDialog, QMessageBox
         
-        file_path, _ = QFileDialog.getSaveFileName(
+        file_path, unused = QFileDialog.getSaveFileName(
             self, "Export Statistics Report", "", "HTML Files (*.html)"
         )
         

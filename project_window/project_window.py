@@ -31,6 +31,7 @@ from util.whisper_app import WhisperApp
 from util.ia_window import IAWindow
 from muse.prompts_window import PromptsWindow
 from .token_limit_dialog import TokenLimitDialog
+from gettext import pgettext
 import muse.prompt_handler as prompt_handler
 
 # Set the path to PyQt5 plugins
@@ -70,7 +71,7 @@ class ProjectWindow(QMainWindow):
         self.global_toolbar.toolbar.show()
 
     def init_ui(self):
-        self.setWindowTitle(f"Project: {self.model.project_name}")
+        self.setWindowTitle(_("Project: {}").format(self.model.project_name))
         self.resize(900, 600)
 
         # Status Bar
@@ -109,8 +110,8 @@ class ProjectWindow(QMainWindow):
 
     def setup_status_bar(self):
         self.setStatusBar(self.statusBar())
-        self.word_count_label = QLabel("Words: 0")
-        self.last_save_label = QLabel("Last Saved: Never")
+        self.word_count_label = QLabel(_("Words: {}").format(0))
+        self.last_save_label = QLabel(_("Last Saved: {}").format("Never"))
         self.statusBar().addPermanentWidget(self.word_count_label)
         self.statusBar().addPermanentWidget(self.last_save_label)
 
@@ -233,7 +234,7 @@ class ProjectWindow(QMainWindow):
                 editor.setHtml(content)
             else:
                 editor.setPlainText(content)
-            editor.setPlaceholderText("Enter scene content...")
+            editor.setPlaceholderText(_("Enter scene content..."))
             self.bottom_stack.stack.setCurrentIndex(1)
         else:  # Summary
             content = self.model.load_summary(hierarchy)
@@ -241,7 +242,7 @@ class ProjectWindow(QMainWindow):
                 editor.setHtml(content)
             else:
                 editor.setPlainText(content)
-            editor.setPlaceholderText(f"Enter summary for {current.text(0)}...")
+            editor.setPlaceholderText(_("Enter summary for {}...").format(current.text(0)))
             self.bottom_stack.stack.setCurrentIndex(0)
         self.update_setting_tooltips()
         # Force update toolbar state after loading content
@@ -265,16 +266,16 @@ class ProjectWindow(QMainWindow):
     def manual_save_scene(self):
         current_item = self.project_tree.tree.currentItem()
         if not current_item or self.project_tree.get_item_level(current_item) < 2:
-            QMessageBox.warning(self, "Manual Save", "Please select a scene for manual save.")
+            QMessageBox.warning(self, _("Manual Save"), _("Please select a scene for manual save."))
             return
         content = self.scene_editor.editor.toHtml()
         if not content.strip():
-            QMessageBox.warning(self, "Manual Save", "There is no content to save.")
+            QMessageBox.warning(self, _("Manual Save"), _("There is no content to save."))
             return
         hierarchy = self.get_item_hierarchy(current_item)
         filepath = self.model.save_scene(hierarchy, content)
         if filepath:
-            self.update_save_status("Scene manually saved")
+            self.update_save_status(_("Scene manually saved"))
             self.model.unsaved_changes = False
 
     def autosave_scene(self, current_item=None):
@@ -288,13 +289,13 @@ class ProjectWindow(QMainWindow):
         hierarchy = self.get_item_hierarchy(current_item)
         filepath = self.model.save_scene(hierarchy, content, expected_project_name=self.model.project_name)
         if filepath:
-            self.update_save_status("Scene autosaved")
+            self.update_save_status(_("Scene autosaved"))
             self.model.unsaved_changes = False
 
 
     def update_save_status(self, message):
         now = time.strftime("%Y-%m-%d %H:%M:%S")
-        self.last_save_label.setText(f"Last Saved: {now}")
+        self.last_save_label.setText(_("Last Saved: {}").format(now))
         self.statusBar().showMessage(message, 3000)
 
     # This function is a placeholder for the autosave preview feature.
@@ -305,7 +306,7 @@ class ProjectWindow(QMainWindow):
     def on_oh_shit(self):
         current_item = self.project_tree.tree.currentItem()
         if not current_item or self.project_tree.get_item_level(current_item) < 2:
-            QMessageBox.warning(self, "Backup Versions", "Please select a scene to view backups.")
+            QMessageBox.warning(self, _("Backup Versions"), _("Please select a scene to view backups."))
             return
         backup_file_path = show_backup_dialog(self, self.model.project_name, current_item.text(0))
         if backup_file_path:
@@ -316,18 +317,29 @@ class ProjectWindow(QMainWindow):
                 editor.setHtml(content)
             else:
                 editor.setPlainText(content)
-            QMessageBox.information(self, "Backup Loaded", f"Backup loaded from:\n{backup_file_path}")
+            QMessageBox.information(self, _("Backup Loaded"), _("Backup loaded from:\n{}").format(backup_file_path))
 
     def handle_pov_change(self, index):
         value = self.bottom_stack.pov_combo.currentText()
-        if value == "Custom...":
-            custom, ok = QInputDialog.getText(self, "Custom POV", "Enter custom POV:", text=self.model.settings["global_pov"])
+        if value == _("Custom..."):
+            custom, ok = QInputDialog.getText(self, _("Custom POV"), _("Enter custom POV:"), text=self.model.settings["global_pov"])
             if ok and custom.strip():
                 value = custom.strip()
-                if self.bottom_stack.pov_combo.findText(value) == -1:
-                    self.bottom_stack.pov_combo.insertItem(0, value)
+                combo = self.bottom_stack.pov_combo
+                if combo.findText(value) == -1:
+                    combo.blockSignals(True)  # Block signals
+                    combo.insertItem(0, value)
+                    combo.setCurrentText(value)  # Set the new value
+                    combo.blockSignals(False)  # Unblock signals
+                else:
+                    combo.blockSignals(True)
+                    combo.setCurrentText(value)
+                    combo.blockSignals(False)
             else:
-                self.bottom_stack.pov_combo.setCurrentText(self.model.settings["global_pov"])
+                combo = self.bottom_stack.pov_combo
+                combo.blockSignals(True)
+                combo.setCurrentText(self.model.settings["global_pov"])
+                combo.blockSignals(False)
                 return
         self.model.settings["global_pov"] = value
         self.update_setting_tooltips()
@@ -335,14 +347,25 @@ class ProjectWindow(QMainWindow):
 
     def handle_pov_character_change(self, index):
         value = self.bottom_stack.pov_character_combo.currentText()
-        if value == "Custom...":
-            custom, ok = QInputDialog.getText(self, "Custom POV Character", "Enter custom POV Character:", text=self.model.settings["global_pov_character"])
+        if value == _("Custom..."):
+            custom, ok = QInputDialog.getText(self, _("Custom POV Character"), _("Enter custom POV Character:"), text=self.model.settings["global_pov_character"])
             if ok and custom.strip():
                 value = custom.strip()
-                if self.bottom_stack.pov_character_combo.findText(value) == -1:
-                    self.bottom_stack.pov_character_combo.insertItem(0, value)
+                combo = self.bottom_stack.pov_character_combo
+                if combo.findText(value) == -1:
+                    combo.blockSignals(True)  # Block signals
+                    combo.insertItem(0, value)
+                    combo.setCurrentText(value)  # Set the new value
+                    combo.blockSignals(False)  # Unblock signals
+                else:
+                    combo.blockSignals(True)
+                    combo.setCurrentText(value)
+                    combo.blockSignals(False)
             else:
-                self.bottom_stack.pov_character_combo.setCurrentText(self.model.settings["global_pov_character"])
+                combo = self.bottom_stack.pov_character_combo
+                combo.blockSignals(True)
+                combo.setCurrentText(self.model.settings["global_pov_character"])
+                combo.blockSignals(False)
                 return
         self.model.settings["global_pov_character"] = value
         self.update_setting_tooltips()
@@ -350,8 +373,8 @@ class ProjectWindow(QMainWindow):
 
     def handle_tense_change(self, index):
         value = self.bottom_stack.tense_combo.currentText()
-        if value == "Custom...":
-            custom, ok = QInputDialog.getText(self, "Custom Tense", "Enter custom Tense:", text=self.model.settings["global_tense"])
+        if value == _("Custom..."):
+            custom, ok = QInputDialog.getText(self, pgettext("verb_tense", "Custom Tense"), pgettext("verb_tense", "Enter custom Tense:"), text=self.model.settings["global_tense"])
             if ok and custom.strip():
                 value = custom.strip()
                 if self.bottom_stack.tense_combo.findText(value) == -1:
@@ -364,26 +387,26 @@ class ProjectWindow(QMainWindow):
         self.model.save_settings()
 
     def update_setting_tooltips(self):
-        self.bottom_stack.pov_combo.setToolTip(f"POV: {self.model.settings['global_pov']}")
-        self.bottom_stack.pov_character_combo.setToolTip(f"POV Character: {self.model.settings['global_pov_character']}")
-        self.bottom_stack.tense_combo.setToolTip(f"Tense: {self.model.settings['global_tense']}")
+        self.bottom_stack.pov_combo.setToolTip(_("POV: {}").format(self.model.settings['global_pov']))
+        self.bottom_stack.pov_character_combo.setToolTip(_("POV Character: {}").format(self.model.settings['global_pov_character']))
+        self.bottom_stack.tense_combo.setToolTip(pgettext("verb_tense", "Tense: {}").format(self.model.settings['global_tense']))
 
     def send_prompt(self):
         action_beats = self.bottom_stack.prompt_input.toPlainText().strip()
         if not action_beats:
-            QMessageBox.warning(self, "LLM Prompt", "Please enter some action beats before sending.")
+            QMessageBox.warning(self, _("LLM Prompt"), _("Please enter some action beats before sending."))
             return
         
         prose_config = self.bottom_stack.prose_prompt_panel.get_prompt()
         if not prose_config:
-            QMessageBox.warning(self, "LLM Prompt", "Please select a prompt.")
+            QMessageBox.warning(self, _("LLM Prompt"), _("Please select a prompt."))
             return
         overrides = self.bottom_stack.prose_prompt_panel.get_overrides()
         
         additional_vars = {
-            "pov": self.model.settings["global_pov"] or "Third Person",
-            "pov_character": self.model.settings["global_pov_character"] or "Character",
-            "tense": self.model.settings["global_tense"] or "Present Tense",
+            "pov": self.model.settings["global_pov"] or _("Third Person"),
+            "pov_character": self.model.settings["global_pov_character"] or _("Character"),
+            "tense": self.model.settings["global_tense"] or _("Present Tense"),
             # Add more ad-hoc tags here if needed, e.g., "assistant": "Grok"
         }
         
@@ -417,15 +440,15 @@ class ProjectWindow(QMainWindow):
             return
         
         # Step 2: Auto-generate summary
-        self.statusBar().showMessage("Generating summary to fit token limit…")
+        self.statusBar().showMessage(_("Generating summary to fit token limit…"))
         self.bottom_stack.summary_controller.create_summary()
         QTimer.singleShot(30000, lambda: self.retry_with_auto_summary())
 
     def retry_with_summary(self, summary):
         additional_vars = {
-            "pov": self.model.settings["global_pov"] or "Third Person",
-            "pov_character": self.model.settings["global_pov_character"] or "Character",
-            "tense": self.model.settings["global_tense"] or "Present Tense",
+            "pov": self.model.settings["global_pov"] or _("Third Person"),
+            "pov_character": self.model.settings["global_pov_character"] or _("Character"),
+            "tense": self.model.settings["global_tense"] or _("Present Tense"),
             # Add more ad-hoc tags here if needed, e.g., "assistant": "Grok"
         }
         action_beats = self.bottom_stack.prompt_input.toPlainText().strip()
@@ -448,7 +471,7 @@ class ProjectWindow(QMainWindow):
     def retry_with_auto_summary(self):
         summary = self.scene_editor.editor.toPlainText().strip()
         self.bottom_stack.preview_text.setPlainText(summary)  # Show for editing
-        self.statusBar().showMessage("Summary generated. Edit if needed, then resend.")
+        self.statusBar().showMessage(_("Summary generated. Edit if needed, then resend."))
         # User can hit "Send" again after tweaking
 
     def show_token_limit_dialog(self, error_msg):
@@ -492,7 +515,7 @@ class ProjectWindow(QMainWindow):
                 self.worker = None  # Clear reference
         except Exception as e:
             print(f"Error cleaning up LLMWorker: {e}")
-            QMessageBox.critical(self, "Thread Error", f"An error occurred while stopping the LLM thread: {e}")
+            QMessageBox.critical(self, _("Thread Error"), _("An error occurred while stopping the LLM thread: {}").format(str(e)))
 
     def on_finished(self):
         self.bottom_stack.send_button.setEnabled(True)
@@ -500,7 +523,7 @@ class ProjectWindow(QMainWindow):
 
         raw_text = self.bottom_stack.preview_text.toPlainText()
         if not raw_text.strip():
-            QMessageBox.warning(self, "LLM Response", "The LLM did not return any text. Possible token limit reached or an error occurred.")
+            QMessageBox.warning(self, _("LLM Response"), _("The LLM did not return any text. Possible token limit reached or an error occurred."))
             return
 
         # Format Markdown-style bold and italic text as HTML.
@@ -524,7 +547,7 @@ class ProjectWindow(QMainWindow):
         try:
             preview = self.bottom_stack.preview_text.toHtml().strip()
             if not preview:
-                QMessageBox.warning(self, "Apply Preview", "No preview text to apply.")
+                QMessageBox.warning(self, _("Apply Preview"), _("No preview text to apply."))
                 return
 
             # Include the prompt block if the checkbox is checked
@@ -547,23 +570,23 @@ class ProjectWindow(QMainWindow):
             self.unsaved_preview = False
             self.model.unsaved_changes = True
         except Exception as e:
-            QMessageBox.warning(self, "Apply Preview", f"Error: {e}")
+            QMessageBox.warning(self, _("Apply Preview"), _("Error: {}").format(str(e)))
         
 
     def save_summary(self):
         current_item = self.project_tree.tree.currentItem()
         if not current_item:
-            QMessageBox.warning(self, "Summary", "No Act or Chapter selected.")
+            QMessageBox.warning(self, _("Summary"), _("No Act or Chapter selected."))
             return
         summary_text = self.scene_editor.editor.toHtml()  # Use HTML to preserve formatting
         hierarchy = self.get_item_hierarchy(current_item)
         filepath = self.model.save_summary(hierarchy, summary_text)
         if filepath:
-            self.update_save_status("Summary saved successfully")
+            self.update_save_status(_("Summary saved successfully"))
             self.model.unsaved_changes = False
-            QMessageBox.information(self, "Summary", "Summary saved successfully.")
+            QMessageBox.information(self, _("Summary"), _("Summary saved successfully."))
         else:
-            QMessageBox.critical(self, "Summary", "Failed to save summary.")
+            QMessageBox.critical(self, _("Summary"), _("Failed to save summary."))
             
     def toggle_bold(self):
         cursor = self.scene_editor.editor.textCursor()
@@ -636,7 +659,7 @@ class ProjectWindow(QMainWindow):
             text = cursor.selectedText() if cursor.hasSelection() else self.scene_editor.editor.toPlainText()
             start_position = 0 if cursor.hasSelection() else cursor.position()
             if not text.strip():
-                QMessageBox.warning(self, "TTS Warning", "There is no text to read.")
+                QMessageBox.warning(self, _("TTS Warning"), _("There is no text to read."))
                 return
             self.tts_playing = True
             self.scene_editor.tts_action.setIcon(self.get_tinted_icon("assets/icons/stop-circle.svg"))
@@ -697,14 +720,14 @@ class ProjectWindow(QMainWindow):
         menu = self.scene_editor.editor.createStandardContextMenu()
         cursor = self.scene_editor.editor.textCursor()
         if cursor.hasSelection():
-            rewrite_action = menu.addAction("Rewrite")
+            rewrite_action = menu.addAction(_("Rewrite"))
             rewrite_action.triggered.connect(self.rewrite_selected_text)
         menu.exec_(self.scene_editor.editor.mapToGlobal(pos))
 
     def rewrite_selected_text(self):
         cursor = self.scene_editor.editor.textCursor()
         if not cursor.hasSelection():
-            QMessageBox.warning(self, "Rewrite", "No text selected to rewrite.")
+            QMessageBox.warning(self, _("Rewrite"), _("No text selected to rewrite."))
             return
         selected_text = cursor.selectedText()
         dialog = RewriteDialog(self.model.project_name, selected_text, self)
@@ -727,7 +750,7 @@ class ProjectWindow(QMainWindow):
                 print(f"Error loading characters from compendium: {e}")
         if not characters:
             characters = ["Alice", "Bob", "Charlie"]
-        characters.append("Custom...")
+        characters.append(_("Custom..."))
         self.bottom_stack.pov_character_combo.blockSignals(True)
         self.bottom_stack.pov_character_combo.clear()
         self.bottom_stack.pov_character_combo.addItems(characters)
@@ -741,16 +764,16 @@ class ProjectWindow(QMainWindow):
         if index >= 0:  # Previous POV character still exists
             combo.setCurrentIndex(index)
         else:  # Previous POV character was deleted
-            if combo.count() == 2 and combo.itemText(0) != "Custom...":  # Only one character + Custom...
+            if combo.count() == 2 and combo.itemText(0) != _("Custom..."):  # Only one character + Custom...
                 combo.setCurrentIndex(0)  # Select the only character
             elif combo.count() > 2:  # Multiple characters + Custom...
                 # Add and select a placeholder if it doesn't exist
-                placeholder = "-- Select Character --"
+                placeholder = _("-- Select Character --")
                 if combo.findText(placeholder) == -1:
                     combo.insertItem(0, placeholder)
                 combo.setCurrentIndex(0)
             else:  # No characters, only Custom...
-                combo.setCurrentIndex(combo.findText("Custom..."))
+                combo.setCurrentIndex(combo.findText(_("Custom...")))
 
     def update_icons(self):
         tint_str = ThemeManager.ICON_TINTS.get(self.current_theme, "black")
@@ -767,7 +790,7 @@ class ProjectWindow(QMainWindow):
 
     def on_editor_text_changed(self):
         text = self.scene_editor.editor.toPlainText()
-        self.word_count_label.setText(f"Words: {len(text.split())}")
+        self.word_count_label.setText(_("Words: {}").format(len(text.split())))
         self.model.unsaved_changes = True
 
     def on_preview_text_changed(self):

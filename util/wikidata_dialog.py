@@ -60,14 +60,14 @@ class HistoryDialog(QDialog):
     
     def populate_history_list(self):
         self.history_list.clear()
-        for query, _ in self.history:
+        for query, unused in self.history:
             item = QListWidgetItem(query)
             self.history_list.addItem(item)
     
     def filter_history(self):
         filter_text = self.search_field.text().lower()
         self.history_list.clear()
-        for query, _ in self.history:
+        for query, unused in self.history:
             if filter_text in query.lower():
                 item = QListWidgetItem(query)
                 self.history_list.addItem(item)
@@ -453,7 +453,7 @@ class WikidataDialog(QDialog):
         self.save_button.setEnabled(False)
                 
         # Add to persistent search history only if the query doesn't exist (case-insensitive)
-        if not any(q.lower() == query.lower() for q, _ in self.search_history):
+        if not any(q.lower() == query.lower() for q, unused in self.search_history):
             self.search_history.append((query, self.full_article_text))
             self.save_history()
         

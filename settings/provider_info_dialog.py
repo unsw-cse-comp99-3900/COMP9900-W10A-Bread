@@ -9,20 +9,18 @@ import json
 import re
 from typing import Dict, List
 
-from .ui_constants import UI_LABELS, LANGUAGES
 from .llm_api_aggregator import WWApiAggregator
 from .settings_manager import WWSettingsManager
 
 class ProviderInfoDialog(QDialog):
-    def __init__(self, parent=None, labels=UI_LABELS.get("en"), llm_configs=None):
+    def __init__(self, parent=None, llm_configs=None):
         super().__init__(parent)
-        self.labels = labels
         self.llm_configs = llm_configs or {}
         self.current_provider = None  # Track current provider
         self.current_group = "All"  # Track selected group
         self._updating_ui = False  # Reentrancy guard
         self.table_font_size = 12  # Initial font size for table content
-        self.setWindowTitle(self.labels["provider_info_title"])
+        self.setWindowTitle(_("Provider Information"))
         self.resize(1000, 600)
         self.init_ui()
         self.populate_providers()
@@ -33,7 +31,7 @@ class ProviderInfoDialog(QDialog):
         self.splitter = QSplitter(Qt.Horizontal)
 
         self.provider_tree = QTreeWidget()
-        self.provider_tree.setHeaderLabels([self.labels["provider"]])
+        self.provider_tree.setHeaderLabels([_("Provider")])
         self.provider_tree.itemSelectionChanged.connect(self.provider_selected)
         self.splitter.addWidget(self.provider_tree)
 
@@ -42,21 +40,21 @@ class ProviderInfoDialog(QDialog):
 
         # Filter and group selection
         filter_layout = QHBoxLayout()
-        filter_layout.addWidget(QLabel(self.labels["filter"]))
+        filter_layout.addWidget(QLabel(_("Filter")))
         self.filter_combobox = QComboBox()
         self.filter_combobox.addItems([
-            self.labels["filter_all"],
-            self.labels["filter_free"],
-            self.labels["filter_chat"],
-            self.labels["filter_research"],
-            self.labels["filter_instruction"]
+            _("All Models"),
+            _("Free Models"),
+            _("Chat Capabilities"),
+            _("Research Capabilities"),
+            _("Instruction Following")
         ])
         self.filter_combobox.currentIndexChanged.connect(self.filter_changed)
         filter_layout.addWidget(self.filter_combobox)
 
-        filter_layout.addWidget(QLabel("Group:"))
+        filter_layout.addWidget(QLabel(_("Group:")))
         self.group_combobox = QComboBox()
-        self.group_combobox.addItem("All")
+        self.group_combobox.addItem(_("All"))
         self.group_combobox.currentIndexChanged.connect(self.group_changed)
         self.group_combobox.setMinimumWidth(100)
         filter_layout.addWidget(self.group_combobox)
@@ -88,26 +86,26 @@ class ProviderInfoDialog(QDialog):
         button_layout = QHBoxLayout()
         self.collapse_button = QPushButton()
         self.collapse_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowUp))
-        self.collapse_button.setToolTip("Collapse all providers")
+        self.collapse_button.setToolTip(_("Collapse all providers"))
         self.collapse_button.clicked.connect(self.collapse_tree)
         button_layout.addWidget(self.collapse_button)
 
         # Zoom buttons
         self.zoom_in_button = QPushButton()
         self.zoom_in_button.setIcon(QIcon("assets/icons/zoom-in.svg"))
-        self.zoom_in_button.setToolTip("Zoom in table content (CMD++)")
+        self.zoom_in_button.setToolTip(_("Zoom in table content (CMD++)"))
         self.zoom_in_button.clicked.connect(self.zoom_in)
         button_layout.addWidget(self.zoom_in_button)
 
         self.zoom_out_button = QPushButton()
         self.zoom_out_button.setIcon(QIcon("assets/icons/zoom-out.svg"))
-        self.zoom_out_button.setToolTip("Zoom out table content (CMD+-)")
+        self.zoom_out_button.setToolTip(_("Zoom out table content (CMD+-)"))
         self.zoom_out_button.clicked.connect(self.zoom_out)
         button_layout.addWidget(self.zoom_out_button)
 
         self.reset_zoom_button = QPushButton()
         self.reset_zoom_button.setIcon(self.style().standardIcon(QStyle.SP_BrowserReload))
-        self.reset_zoom_button.setToolTip("Reset table content zoom")
+        self.reset_zoom_button.setToolTip(_("Reset table content zoom"))
         self.reset_zoom_button.clicked.connect(self.reset_zoom)
         button_layout.addWidget(self.reset_zoom_button)
 
@@ -185,7 +183,7 @@ class ProviderInfoDialog(QDialog):
         selected_items = self.provider_tree.selectedItems()
         if not selected_items:
             self.current_provider = None
-            self.current_group = "All"
+            self.current_group = _("All")
             self.update_ui()
             return
         selected_item = selected_items[0]
@@ -193,7 +191,7 @@ class ProviderInfoDialog(QDialog):
             provider_name = selected_item.text(0)
             if provider_name != self.current_provider:
                 self.current_provider = provider_name
-                self.current_group = "All"
+                self.current_group = _("All")
                 self.update_ui()
         else:  # Group selected
             self.current_provider = selected_item.parent().text(0)
@@ -265,14 +263,14 @@ class ProviderInfoDialog(QDialog):
                 self.group_combobox.addItem("All")
                 self.model_table.setRowCount(0)
                 self.model_table.setColumnCount(0)
-                QMessageBox.warning(self, "Error", self.labels["no_models"])
+                QMessageBox.warning(self, "Error", _("No models available or error fetching models."))
                 return
 
             if provider.model_requires_api_key and not config.get("api_key"):
                 api_key, ok = QInputDialog.getText(
                     self,
-                    "API Key Required",
-                    f"An API key is required for {provider_name}. Please enter it:",
+                    _("API Key Required"),
+                    _("An API key is required for ") + provider_name + _(". Please enter it:"),
                     echo=QLineEdit.Password
                 )
                 if ok and api_key:
@@ -291,7 +289,7 @@ class ProviderInfoDialog(QDialog):
                     self.group_combobox.addItem("All")
                     self.model_table.setRowCount(0)
                     self.model_table.setColumnCount(0)
-                    QMessageBox.warning(self, "Error", f"API key is required for {provider_name}.")
+                    QMessageBox.warning(self, "Error", _("API key is required for ") + provider_name)
                     return
 
             try:
@@ -301,7 +299,7 @@ class ProviderInfoDialog(QDialog):
                 self.group_combobox.addItem("All")
                 self.model_table.setRowCount(0)
                 self.model_table.setColumnCount(0)
-                QMessageBox.warning(self, "Error", f"Failed to fetch models for {provider_name}: {str(e)}")
+                QMessageBox.warning(self, "Error", _("Failed to fetch models for ") + provider_name + f": {str(e)}")
                 return
 
             # Group models
@@ -324,15 +322,15 @@ class ProviderInfoDialog(QDialog):
                     is_research = "research" in model.get("description", "").lower()
                     is_instruction = architecture.get("instruct_type") in ["alpaca", "zephyr", "general"]
 
-                    if filter_type == self.labels["filter_all"]:
+                    if filter_type == _("All Models"):
                         filtered.append(model)
-                    elif filter_type == self.labels["filter_free"] and is_free:
+                    elif filter_type == _("Free Models") and is_free:
                         filtered.append(model)
-                    elif filter_type == self.labels["filter_chat"] and is_chat:
+                    elif filter_type == _("Chat Capabilities") and is_chat:
                         filtered.append(model)
-                    elif filter_type == self.labels["filter_research"] and is_research:
+                    elif filter_type == _("Research Capabilities") and is_research:
                         filtered.append(model)
-                    elif filter_type == self.labels["filter_instruction"] and is_instruction:
+                    elif filter_type == _("Instruction Following") and is_instruction:
                         filtered.append(model)
 
                 if filtered:
@@ -428,15 +426,15 @@ class ProviderInfoDialog(QDialog):
 
     def update_labels(self, labels):
         self.labels = labels
-        self.setWindowTitle(self.labels["provider_info_title"])
-        self.provider_tree.setHeaderLabels([self.labels["provider"]])
+        self.setWindowTitle(_("Provider and Model Information"))
+        self.provider_tree.setHeaderLabels([_("Provider")])
         self.filter_combobox.clear()
         self.filter_combobox.addItems([
-            self.labels["filter_all"],
-            self.labels["filter_free"],
-            self.labels["filter_chat"],
-            self.labels["filter_research"],
-            self.labels["filter_instruction"]
+            _("All Models"),
+            _("Free Models"),
+            _("Chat Capabilities"),
+            _("Research Capabilities"),
+            _("Instruction Following")
         ])
         self.update_ui()
 

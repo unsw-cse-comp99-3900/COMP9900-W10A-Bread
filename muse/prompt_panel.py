@@ -1,5 +1,4 @@
-from PyQt5.QtWidgets import QFormLayout, QGroupBox, QComboBox, QSizePolicy
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QFormLayout, QGroupBox, QComboBox
 
 from .prompt_utils import load_prompts
 from settings.llm_api_aggregator import WWApiAggregator
@@ -21,7 +20,7 @@ class PromptPanel(QGroupBox):
         llm_settings_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         llm_settings_layout.setContentsMargins(0, 0, 0, 0)
 
-        tip = f"Select a {self.prompt_style} Prompt"
+        tip = _("Select a {} Prompt").format(self.prompt_style)
 
         self.prompt_combo = QComboBox()
         self.provider_combo = QComboBox()
@@ -94,7 +93,7 @@ class PromptPanel(QGroupBox):
                 else:
                     self.model_combo.setCurrentText(provider.get_current_model())
             except Exception as e:
-                self.model_combo.addItem("Default Model")
+                self.model_combo.addItem(_("Default Model"))
                 print(f"Error fetching models for {provider_name}: {e}")
         else:
-            self.model_combo.addItem("Default Model")
+            self.model_combo.addItem(_("Default Model"))

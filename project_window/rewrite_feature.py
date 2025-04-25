@@ -24,14 +24,14 @@ class RewriteDialog(QDialog):
         self.original_text = original_text
         self.rewritten_text = ""
         self.worker = None
-        self.setWindowTitle("Rewrite Selected Text")
+        self.setWindowTitle(_("Rewrite Selected Text"))
         self.init_ui()
     
     def init_ui(self):
         layout = QVBoxLayout(self)
         
         # Display original text.
-        orig_label = QLabel("Original Text:")
+        orig_label = QLabel(_("Original Text:"))
         layout.addWidget(orig_label)
         self.orig_edit = QTextEdit()
         self.orig_edit.setPlainText(self.original_text)
@@ -39,12 +39,12 @@ class RewriteDialog(QDialog):
         
         # Dropdown for selecting a rewrite prompt.
         prompt_layout = QHBoxLayout()
-        prompt_label = QLabel("Select Rewrite Prompt:")
+        prompt_label = QLabel(_("Select Rewrite Prompt:"))
         prompt_layout.addWidget(prompt_label)
         self.prompt_combo = QComboBox()
         self.prompts = load_prompts("Rewrite")
         if not self.prompts:
-            QMessageBox.warning(self, "Rewrite", "No rewrite prompts found.")
+            QMessageBox.warning(self, _("Rewrite"), _("No rewrite prompts found."))
         else:
             for p in self.prompts:
                 self.prompt_combo.addItem(p.get("name", "Unnamed"))
@@ -52,12 +52,12 @@ class RewriteDialog(QDialog):
         layout.addLayout(prompt_layout)
         
         # Button to generate the rewrite.
-        self.generate_button = QPushButton("Generate Rewrite")
+        self.generate_button = QPushButton(_("Generate Rewrite"))
         self.generate_button.clicked.connect(self.generate_rewrite)
         layout.addWidget(self.generate_button)
         
         # Display rewritten text.
-        new_label = QLabel("Rewritten Text:")
+        new_label = QLabel(_("Rewritten Text:"))
         layout.addWidget(new_label)
         self.new_edit = QTextEdit()
         self.new_edit.setReadOnly(True)
@@ -65,13 +65,13 @@ class RewriteDialog(QDialog):
         
         # Control buttons.
         button_layout = QHBoxLayout()
-        self.apply_button = QPushButton("Apply")
+        self.apply_button = QPushButton(_("Apply"))
         self.apply_button.clicked.connect(self.apply_rewrite)
         button_layout.addWidget(self.apply_button)
-        self.retry_button = QPushButton("Generate")
+        self.retry_button = QPushButton(_("Generate"))
         self.retry_button.clicked.connect(self.retry_rewrite)
         button_layout.addWidget(self.retry_button)
-        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button = QPushButton(_("Cancel"))
         self.cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(self.cancel_button)
         layout.addLayout(button_layout)
@@ -90,7 +90,7 @@ class RewriteDialog(QDialog):
         prompt_data = self.prompts[index]
         prompt_text = prompt_data.get("text", "")
         if not prompt_text:
-            QMessageBox.warning(self, "Rewrite", "Selected prompt has no text.")
+            QMessageBox.warning(self, _("Rewrite"), _("Selected prompt has no text."))
             return
         
         self.new_edit.clear()  # Clear previous rewritten text.
@@ -113,7 +113,7 @@ class RewriteDialog(QDialog):
             self.worker.finished.connect(self.cleanup_worker)  # Schedule thread deletion
             self.worker.start()
         except Exception as e:
-            QMessageBox.warning(self, "Rewrite", f"Error sending prompt to LLM: {e}")
+            QMessageBox.warning(self, _("Rewrite"), _("Error sending prompt to LLM: {}").format(str(e)))
             return
 
     
@@ -124,7 +124,7 @@ class RewriteDialog(QDialog):
     def apply_rewrite(self):
         self.rewritten_text = self.new_edit.toPlainText()
         if not self.rewritten_text:
-            QMessageBox.warning(self, "Rewrite", "No rewritten text to apply.")
+            QMessageBox.warning(self, _("Rewrite"), _("No rewritten text to apply."))
             return
         self.accept()  # The caller can then retrieve self.rewritten_text.
 

@@ -352,7 +352,7 @@ class DownloadedTab(QWidget):
             filters = self.downloaded_model.nameFilters()
             self.downloaded_tree.clearSelection()
 
-            for root, _, files in os.walk(root_path):
+            for root, unused, files in os.walk(root_path):
                 for file in files:
                     file_path = os.path.join(root, file)
                     if not filters or any(fnmatch.fnmatch(file, f) for f in filters):

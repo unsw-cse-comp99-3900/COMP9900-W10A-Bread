@@ -5,7 +5,7 @@ import shutil
 from datetime import datetime
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QToolBar, QSplitter, QTreeWidget, QTextEdit, QVBoxLayout, QHBoxLayout, QLabel, 
                              QLineEdit, QComboBox, QPushButton, QListWidget, QTabWidget, QFileDialog, QMessageBox, QTreeWidgetItem,
-                             QScrollArea, QFormLayout, QGroupBox, QInputDialog, QMenu, QDialog, QColorDialog, QSizePolicy, QListWidgetItem)
+                             QScrollArea, QFormLayout, QGroupBox, QInputDialog, QMenu, QColorDialog, QSizePolicy, QListWidgetItem)
 from PyQt5.QtCore import Qt, pyqtSignal, QSettings
 from PyQt5.QtGui import QPixmap, QColor, QBrush
 
@@ -53,7 +53,7 @@ class EnhancedCompendiumWindow(QMainWindow):
         self.connect_signals()
 
         # 7) Window title and size
-        self.setWindowTitle(f"Enhanced Compendium - {self.project_name}")
+        self.setWindowTitle(_("Enhanced Compendium - {}").format(self.project_name))
         self.resize(900, 700)
 
         # 8) Populate the project combo and connect its signal
@@ -95,9 +95,9 @@ class EnhancedCompendiumWindow(QMainWindow):
         self.dirty = True
     
     def create_toolbar(self):
-        toolbar = QToolBar("Project Toolbar", self)
+        toolbar = QToolBar(_("Project Toolbar"), self)
         toolbar.setObjectName("EnhToolBar_Main")
-        label = QLabel("<b>Project:</b>")
+        label = QLabel(_("<b>Project:</b>"))
         toolbar.addWidget(label)
         self.project_combo = QComboBox()
         toolbar.addWidget(self.project_combo)
@@ -145,7 +145,7 @@ class EnhancedCompendiumWindow(QMainWindow):
         
         self.project_combo.blockSignals(False)
         self.project_combo.currentTextChanged.connect(self.on_project_combo_changed)
-        self.setWindowTitle(f"Enhanced Compendium - {self.project_name}")
+        self.setWindowTitle(_("Enhanced Compendium - {}").format(self.project_name))
     
     def on_project_combo_changed(self, new_project):
         """Update the project and reload the compendium when a different project is selected."""
@@ -164,7 +164,7 @@ class EnhancedCompendiumWindow(QMainWindow):
     
     def change_project(self, new_project):
         self.project_name = new_project
-        self.setWindowTitle(f"Enhanced Compendium - {self.project_name}")
+        self.setWindowTitle(_("Enhanced Compendium - {}").format(self.project_name))
         self.setup_compendium_file()
         self.populate_compendium()
 
@@ -182,10 +182,10 @@ class EnhancedCompendiumWindow(QMainWindow):
         self.tree_widget = QWidget()
         tree_layout = QVBoxLayout(self.tree_widget)
         self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText("Search entries and tags...")
+        self.search_bar.setPlaceholderText(_("Search entries and tags..."))
         tree_layout.addWidget(self.search_bar)
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabel("Compendium")
+        self.tree.setHeaderLabel(_("Compendium"))
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         tree_layout.addWidget(self.tree)
         self.main_splitter.addWidget(self.tree_widget)
@@ -198,11 +198,11 @@ class EnhancedCompendiumWindow(QMainWindow):
         # Header
         self.header_widget = QWidget()
         header_layout = QHBoxLayout(self.header_widget)
-        self.entry_name_label = QLabel("No entry selected")
+        self.entry_name_label = QLabel(_("No entry selected"))
         self.entry_name_label.setStyleSheet("font-size: 16pt; font-weight: bold;")
         header_layout.addWidget(self.entry_name_label)
         header_layout.addStretch()
-        self.save_button = QPushButton("Save Changes")
+        self.save_button = QPushButton(_("Save Changes"))
         header_layout.addWidget(self.save_button)
         center_layout.addWidget(self.header_widget)
         
@@ -213,45 +213,45 @@ class EnhancedCompendiumWindow(QMainWindow):
         self.overview_tab = QWidget()
         overview_layout = QVBoxLayout(self.overview_tab)
         self.editor = QTextEdit()
-        self.editor.setPlaceholderText("This is the text the AI can see if you select this entry to be included in the prompt inside the context panel")
+        self.editor.setPlaceholderText(_("This is the text the AI can see if you select this entry to be included in the prompt inside the context panel"))
         overview_layout.addWidget(self.editor)
-        self.tabs.addTab(self.overview_tab, "Overview")
-        self.tabs.setTabToolTip(0, "this is the text the AI can see if you select this entry to be included in the prompt inside the context panel")
+        self.tabs.addTab(self.overview_tab, _("Overview"))
+        self.tabs.setTabToolTip(0, _("this is the text the AI can see if you select this entry to be included in the prompt inside the context panel"))
         
         # Details Tab – now a single text editor
         self.details_editor = QTextEdit()
-        self.details_editor.setPlaceholderText("Enter details about your entry here... (details about your entry the AI can't see - this info is only for you)")
-        self.tabs.addTab(self.details_editor, "Details")
-        self.tabs.setTabToolTip(1, "details about your entry the AI can't see - this info is only for you")
+        self.details_editor.setPlaceholderText(_("Enter details about your entry here... (details about your entry the AI can't see - this info is only for you)"))
+        self.tabs.addTab(self.details_editor, _("Details"))
+        self.tabs.setTabToolTip(1, _("details about your entry the AI can't see - this info is only for you"))
         
         # Relationships Tab
         self.relationships_tab = QWidget()
         relationships_layout = QVBoxLayout(self.relationships_tab)
-        add_rel_group = QGroupBox("Add Relationship")
+        add_rel_group = QGroupBox(_("Add Relationship"))
         add_rel_layout = QFormLayout(add_rel_group)
         self.rel_entry_combo = QComboBox()
         self.rel_type_combo = QComboBox()
-        self.rel_type_combo.addItems(["Friend", "Family", "Ally", "Enemy", "Acquaintance", "Other"])
+        self.rel_type_combo.addItems([_("Friend"), _("Family"), _("Ally"), _("Enemy"), _("Acquaintance"), _("Other")])
         self.rel_type_combo.setEditable(True)
-        self.add_rel_button = QPushButton("Add")
-        add_rel_layout.addRow("Related Entry:", self.rel_entry_combo)
-        add_rel_layout.addRow("Relationship Type:", self.rel_type_combo)
+        self.add_rel_button = QPushButton(_("Add"))
+        add_rel_layout.addRow(_("Related Entry:"), self.rel_entry_combo)
+        add_rel_layout.addRow(_("Relationship Type:"), self.rel_type_combo)
         add_rel_layout.addRow("", self.add_rel_button)
         relationships_layout.addWidget(add_rel_group)
         self.relationships_list = QTreeWidget()
-        self.relationships_list.setHeaderLabels(["Entry", "Relationship Type"])
+        self.relationships_list.setHeaderLabels([_("Entry"), _("Relationship Type")])
         self.relationships_list.setContextMenuPolicy(Qt.CustomContextMenu)
         relationships_layout.addWidget(self.relationships_list)
-        self.tabs.addTab(self.relationships_tab, "Relationships")
-        self.tabs.setTabToolTip(2, "details about relationships between entries, not visible to the AI")
+        self.tabs.addTab(self.relationships_tab, _("Relationships"))
+        self.tabs.setTabToolTip(2, _("details about relationships between entries, not visible to the AI"))
         
         # Images Tab
         self.images_tab = QWidget()
         images_layout = QVBoxLayout(self.images_tab)
         image_controls = QWidget()
         image_controls_layout = QHBoxLayout(image_controls)
-        self.add_image_button = QPushButton("Add Image")
-        self.remove_image_button = QPushButton("Remove Selected")
+        self.add_image_button = QPushButton(_("Add Image"))
+        self.remove_image_button = QPushButton(_("Remove Selected"))
         self.remove_image_button.setEnabled(False)
         image_controls_layout.addWidget(self.add_image_button)
         image_controls_layout.addWidget(self.remove_image_button)
@@ -263,8 +263,8 @@ class EnhancedCompendiumWindow(QMainWindow):
         self.image_layout = QVBoxLayout(self.image_container)
         self.image_scroll.setWidget(self.image_container)
         images_layout.addWidget(self.image_scroll)
-        self.tabs.addTab(self.images_tab, "Images")
-        self.tabs.setTabToolTip(3, "add images for your entries - not visible to the AI")
+        self.tabs.addTab(self.images_tab, _("Images"))
+        self.tabs.setTabToolTip(3, _("add images for your entries - not visible to the AI"))
         
         center_layout.addWidget(self.tabs)
         self.main_splitter.addWidget(self.center_widget)
@@ -274,15 +274,15 @@ class EnhancedCompendiumWindow(QMainWindow):
         self.right_widget = QWidget()
         right_layout = QVBoxLayout(self.right_widget)
         
-        tags_group = QGroupBox("Tags")
+        tags_group = QGroupBox(_("Tags"))
         tags_layout = QVBoxLayout(tags_group)
         tag_input_layout = QHBoxLayout()
         self.tag_input = QLineEdit()
-        self.tag_input.setPlaceholderText("Add new tag...")
+        self.tag_input.setPlaceholderText(_("Add new tag..."))
         tag_input_layout.addWidget(self.tag_input)
         self.add_tag_button = QPushButton("+")
         self.add_tag_button.setFixedWidth(30)
-        self.add_tag_button.setToolTip("add a tag to your entry")
+        self.add_tag_button.setToolTip(_("add a tag to your entry"))
         tag_input_layout.addWidget(self.add_tag_button)
         tags_layout.addLayout(tag_input_layout)
         self.tags_list = QListWidget()
@@ -321,7 +321,7 @@ class EnhancedCompendiumWindow(QMainWindow):
             except Exception as e:
                 if DEBUG:
                     print("Error creating default compendium file:", e)
-                QMessageBox.warning(self, "Error", f"Failed to create default compendium file: {str(e)}")
+                QMessageBox.warning(self, _("Error"), _("Failed to create default compendium file: {}").format(str(e)))
                 return
         
         try:
@@ -358,7 +358,7 @@ class EnhancedCompendiumWindow(QMainWindow):
         except Exception as e:
             if DEBUG:
                 print("Error loading compendium data:", e)
-            QMessageBox.warning(self, "Error", f"Failed to load compendium data: {str(e)}")
+            QMessageBox.warning(self, _("Error"), _("Failed to load compendium data: {}").format(str(e)))
     
     def update_relation_combo(self):
         """Populate the relationship combo box with available entries."""
@@ -392,18 +392,18 @@ class EnhancedCompendiumWindow(QMainWindow):
         item = self.tree.itemAt(pos)
         menu = QMenu(self)
         if item is None:
-            action_new_category = menu.addAction("New Category")
+            action_new_category = menu.addAction(_("New Category"))
             action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
             if action == action_new_category:
                 self.new_category()
             return
         item_type = item.data(0, Qt.UserRole)
         if item_type == "category":
-            action_new = menu.addAction("New Entry")
-            action_delete = menu.addAction("Delete Category")
-            action_rename = menu.addAction("Rename Category")
-            action_move_up = menu.addAction("Move Up")
-            action_move_down = menu.addAction("Move Down")
+            action_new = menu.addAction(_("New Entry"))
+            action_delete = menu.addAction(_("Delete Category"))
+            action_rename = menu.addAction(_("Rename Category"))
+            action_move_up = menu.addAction(_("Move Up"))
+            action_move_down = menu.addAction(_("Move Down"))
             action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
             if action == action_new:
                 self.new_entry(item)
@@ -416,12 +416,12 @@ class EnhancedCompendiumWindow(QMainWindow):
             elif action == action_move_down:
                 self.move_item(item, "down")
         elif item_type == "entry":
-            action_save = menu.addAction("Save Entry")
-            action_delete = menu.addAction("Delete Entry")
-            action_rename = menu.addAction("Rename Entry")
-            action_move_to = menu.addAction("Move To...")
-            action_move_up = menu.addAction("Move Up")
-            action_move_down = menu.addAction("Move Down")
+            action_save = menu.addAction(_("Save Entry"))
+            action_delete = menu.addAction(_("Delete Entry"))
+            action_rename = menu.addAction(_("Rename Entry"))
+            action_move_to = menu.addAction(_("Move To..."))
+            action_move_up = menu.addAction(_("Move Up"))
+            action_move_down = menu.addAction(_("Move Down"))
             action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
             if action == action_save:
                 self.save_entry(item)
@@ -441,9 +441,9 @@ class EnhancedCompendiumWindow(QMainWindow):
         item = self.tags_list.itemAt(pos)
         if item is not None:
             menu = QMenu(self)
-            action_remove = menu.addAction("Remove Tag")
-            action_move_up = menu.addAction("Move Up")
-            action_move_down = menu.addAction("Move Down")
+            action_remove = menu.addAction(_("Remove Tag"))
+            action_move_up = menu.addAction(_("Move Up"))
+            action_move_down = menu.addAction(_("Move Down"))
             action = menu.exec_(self.tags_list.viewport().mapToGlobal(pos))
             if action == action_remove:
                 self.tags_list.takeItem(self.tags_list.row(item))
@@ -469,7 +469,7 @@ class EnhancedCompendiumWindow(QMainWindow):
         item = self.relationships_list.itemAt(pos)
         if item is not None:
             menu = QMenu(self)
-            action_remove = menu.addAction("Remove Relationship")
+            action_remove = menu.addAction(_("Remove Relationship"))
             action = menu.exec_(self.relationships_list.viewport().mapToGlobal(pos))
             if action == action_remove:
                 self.relationships_list.takeTopLevelItem(self.relationships_list.indexOfTopLevelItem(item))
@@ -485,13 +485,13 @@ class EnhancedCompendiumWindow(QMainWindow):
         for i in range(self.tags_list.count()):
             if self.tags_list.item(i).text().lower() == tag_text.lower():
                 return
-        color = QColorDialog.getColor(QColor("black"), self, "Select Tag Color")
+        color = QColorDialog.getColor(QColor("black"), self, _("Select Tag Color"))
         if not color.isValid():
             return
         item = QListWidgetItem(tag_text)
         item.setData(Qt.UserRole, color.name())
         item.setForeground(QBrush(color))
-        item.setToolTip("right-click to move the tag within this list - this impacts the colour of your entry")
+        item.setToolTip(_("right-click to move the tag within this list - this impacts the colour of your entry"))
         self.tags_list.addItem(item)
         self.tag_input.clear()
         self.mark_dirty()
@@ -522,7 +522,7 @@ class EnhancedCompendiumWindow(QMainWindow):
         """Add an image to the current entry."""
         if not hasattr(self, 'current_entry'):
             return
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select Image", "", "Image Files (*.png *.jpg *.jpeg *.gif *.bmp)")
+        file_path, unused = QFileDialog.getOpenFileName(self, _("Select Image"), "", "Image Files (*.png *.jpg *.jpeg *.gif *.bmp)")
         if not file_path:
             return
         project_dir = os.path.dirname(self.compendium_file)
@@ -530,7 +530,7 @@ class EnhancedCompendiumWindow(QMainWindow):
         if not os.path.exists(images_dir):
             os.makedirs(images_dir)
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        _, ext = os.path.splitext(file_path)
+        unused, ext = os.path.splitext(file_path)
         sanitized_entry_name = self.sanitize(self.current_entry)
         new_filename = f"{sanitized_entry_name}_{timestamp}{ext}"
         new_path = os.path.join(images_dir, new_filename)
@@ -547,7 +547,7 @@ class EnhancedCompendiumWindow(QMainWindow):
         except Exception as e:
             if DEBUG:
                 print("Error copying image:", e)
-            QMessageBox.warning(self, "Error", f"Failed to copy image: {str(e)}")
+            QMessageBox.warning(self, _("Error"), _("Failed to copy image: {}").format(str(e)))
     
     def load_images(self, image_filenames):
         """Load images for the current entry."""
@@ -740,17 +740,17 @@ class EnhancedCompendiumWindow(QMainWindow):
         except Exception as e:
             if DEBUG:
                 print("Error saving compendium data:", e)
-            QMessageBox.warning(self, "Error", f"Failed to save compendium data: {str(e)}")
+            QMessageBox.warning(self, _("Error"), _("Failed to save compendium data: {}").format(str(e)))
     
     def new_category(self):
-        name, ok = QInputDialog.getText(self, "New Category", "Category name:")
+        name, ok = QInputDialog.getText(self, _("New Category"), _("Category name:"))
         if ok and name:
             cat_item = QTreeWidgetItem(self.tree, [name])
             cat_item.setData(0, Qt.UserRole, "category")
             self.save_compendium_to_file()
     
     def new_entry(self, category_item):
-        name, ok = QInputDialog.getText(self, "New Entry", "Entry name:")
+        name, ok = QInputDialog.getText(self, _("New Entry"), _("Entry name:"))
         if ok and name:
             entry_item = QTreeWidgetItem(category_item, [name])
             entry_item.setData(0, Qt.UserRole, "entry")
@@ -760,8 +760,8 @@ class EnhancedCompendiumWindow(QMainWindow):
             self.save_compendium_to_file()
     
     def delete_category(self, category_item):
-        confirm = QMessageBox.question(self, "Confirm Deletion",
-            f"Are you sure you want to delete the category '{category_item.text(0)}' and all its entries?",
+        confirm = QMessageBox.question(self, _("Confirm Deletion"),
+            _("Are you sure you want to delete the category '{}' and all its entries?").format(category_item.text(0)),
             QMessageBox.Yes | QMessageBox.No)
         if confirm == QMessageBox.Yes:
             for i in range(category_item.childCount()):
@@ -775,8 +775,8 @@ class EnhancedCompendiumWindow(QMainWindow):
     
     def delete_entry(self, entry_item):
         entry_name = entry_item.text(0)
-        confirm = QMessageBox.question(self, "Confirm Deletion",
-            f"Are you sure you want to delete the entry '{entry_name}'?",
+        confirm = QMessageBox.question(self, _("Confirm Deletion"),
+            _("Are you sure you want to delete the entry '{}'?").format(entry_name),
             QMessageBox.Yes | QMessageBox.No)
         if confirm == QMessageBox.Yes:
             if entry_name in self.compendium_data["extensions"]["entries"]:
@@ -790,7 +790,7 @@ class EnhancedCompendiumWindow(QMainWindow):
     
     def rename_item(self, item, item_type):
         current_text = item.text(0)
-        new_text, ok = QInputDialog.getText(self, f"Rename {item_type.capitalize()}", "New name:", text=current_text)
+        new_text, ok = QInputDialog.getText(self, _("Rename {}").format(item_type.capitalize()), _("New name:"), text=current_text)
         if ok and new_text:
             if item_type == "entry":
                 old_name = current_text
@@ -886,7 +886,7 @@ class EnhancedCompendiumWindow(QMainWindow):
                 item = QListWidgetItem(tag_name)
                 item.setData(Qt.UserRole, tag_color)
                 item.setForeground(QBrush(QColor(tag_color)))
-                item.setToolTip("right-click to move the tag within this list - this impacts the colour of your entry")
+                item.setToolTip(_("right-click to move the tag within this list - this impacts the colour of your entry"))
                 self.tags_list.addItem(item)
             self.relationships_list.clear()
             for rel in extended_data.get("relationships", []):
@@ -903,7 +903,7 @@ class EnhancedCompendiumWindow(QMainWindow):
         self.tabs.show()
     
     def clear_entry_ui(self):
-        self.entry_name_label.setText("No entry selected")
+        self.entry_name_label.setText(_("No entry selected"))
         self.editor.clear()
         self.details_editor.clear()
         self.tags_list.clear()

@@ -63,7 +63,7 @@ class DownloadWorker(QThread):
                 continue
 
         if failed:
-            failed_list = ", ".join(f for f, _ in failed)
+            failed_list = ", ".join(f for f, unused in failed)
             self.finished_signal.emit(False, f"Some files failed to download: {failed_list}")
         else:
             self.finished_signal.emit(True, "All files downloaded successfully")

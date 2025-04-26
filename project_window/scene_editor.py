@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QAction, QFontComboBox, QComboBox, QHBoxLayout, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QAction, QFontComboBox, QComboBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QTextCursor, QColor
 from .focus_mode import PlainTextEdit
@@ -15,7 +15,7 @@ class SceneEditor(QWidget):
 
     def init_ui(self):
         layout = QVBoxLayout(self)
-        self.toolbar = QToolBar("Editor Toolbar")
+        self.toolbar = QToolBar(_("Editor Toolbar"))
         self.toolbar.setObjectName("SceneEditorToolBar")
         self.editor = PlainTextEdit()
         self.setup_toolbar()
@@ -26,36 +26,36 @@ class SceneEditor(QWidget):
 
     def setup_toolbar(self):
         # Formatting Actions
-        self.bold_action = self.add_action("bold", "assets/icons/bold.svg", "Bold", self.controller.toggle_bold, checkable=True)
-        self.italic_action = self.add_action("italic", "assets/icons/italic.svg", "Italic", self.controller.toggle_italic, checkable=True)
-        self.underline_action = self.add_action("underline", "assets/icons/underline.svg", "Underline", self.controller.toggle_underline, checkable=True)
+        self.bold_action = self.add_action("bold", "assets/icons/bold.svg", _("Bold"), self.controller.toggle_bold, checkable=True)
+        self.italic_action = self.add_action("italic", "assets/icons/italic.svg", _("Italic"), self.controller.toggle_italic, checkable=True)
+        self.underline_action = self.add_action("underline", "assets/icons/underline.svg", _("Underline"), self.controller.toggle_underline, checkable=True)
         self.toolbar.addSeparator()
-        self.tts_action = self.add_action("tts", "assets/icons/play-circle.svg", "Play TTS (or Stop if playing)", self.controller.toggle_tts)
+        self.tts_action = self.add_action("tts", "assets/icons/play-circle.svg", _("Play TTS (or Stop if playing)"), self.controller.toggle_tts)
         self.toolbar.addSeparator()
-        self.align_left_action = self.add_action("align_left", "assets/icons/align-left.svg", "Align Left", self.controller.align_left)
-        self.align_center_action = self.add_action("align_center", "assets/icons/align-center.svg", "Center Align", self.controller.align_center)
-        self.align_right_action = self.add_action("align_right", "assets/icons/align-right.svg", "Align Right", self.controller.align_right)
+        self.align_left_action = self.add_action("align_left", "assets/icons/align-left.svg", _("Align Left"), self.controller.align_left)
+        self.align_center_action = self.add_action("align_center", "assets/icons/align-center.svg", _("Center Align"), self.controller.align_center)
+        self.align_right_action = self.add_action("align_right", "assets/icons/align-right.svg", _("Align Right"), self.controller.align_right)
 
         # Font Selection
         self.font_combo = QFontComboBox()
-        self.font_combo.setToolTip("Select a font")
+        self.font_combo.setToolTip(_("Select a font"))
         self.font_combo.currentFontChanged.connect(self.controller.update_font_family)
         self.toolbar.addWidget(self.font_combo)
         self.font_size_combo = QComboBox()
         self.font_size_combo.addItems([str(size) for size in [10, 12, 14, 16, 18, 20, 24, 28, 32]])
         self.font_size_combo.setCurrentText("12")
-        self.font_size_combo.setToolTip("Select font size")
+        self.font_size_combo.setToolTip(_("Select font size"))
         self.font_size_combo.currentIndexChanged.connect(lambda: self.controller.set_font_size(int(self.font_size_combo.currentText())))
         self.toolbar.addWidget(self.font_size_combo)
 
         # Scene-Specific Actions
         self.toolbar.addSeparator()
-        self.manual_save_action = self.add_action("manual_save", "assets/icons/save.svg", "Manual Save", self.controller.manual_save_scene)
-        self.oh_shit_action = self.add_action("oh_shit", "assets/icons/share.svg", "Show Backups", self.controller.on_oh_shit)
-        self.analysis_editor_action = self.add_action("analysis_editor", "assets/icons/feather.svg", "Open Analysis Editor", self.controller.open_analysis_editor)
-        self.whisper_app_action = self.add_action("whisper_app", "assets/icons/mic.svg", "Open Whisper", self.controller.open_whisper_app)
-        self.wikidata_dialog_action = self.add_action("wikidata_dialog", "assets/icons/wikidata.svg", "Open Wikipedia", self.controller.open_wikidata_search)
-        self.ia_window_action = self.add_action("ia_window", "assets/icons/arch.svg", "Open Internet Archive", self.controller.open_ia_window)
+        self.manual_save_action = self.add_action("manual_save", "assets/icons/save.svg", _("Manual Save"), self.controller.manual_save_scene)
+        self.oh_shit_action = self.add_action("oh_shit", "assets/icons/share.svg", _("Show Backups"), self.controller.on_oh_shit)
+        self.analysis_editor_action = self.add_action("analysis_editor", "assets/icons/feather.svg", _("Open Analysis Editor"), self.controller.open_analysis_editor)
+        self.whisper_app_action = self.add_action("whisper_app", "assets/icons/mic.svg", _("Open Whisper"), self.controller.open_whisper_app)
+        self.wikidata_dialog_action = self.add_action("wikidata_dialog", "assets/icons/wikidata.svg", _("Open Wikipedia"), self.controller.open_wikidata_search)
+        self.ia_window_action = self.add_action("ia_window", "assets/icons/arch.svg", _("Open Internet Archive"), self.controller.open_ia_window)
         self.toolbar.addSeparator()
 
     def add_action(self, name, icon_path, tooltip, callback, checkable=False):
@@ -68,7 +68,7 @@ class SceneEditor(QWidget):
         return action
 
     def setup_editor(self):
-        self.editor.setPlaceholderText("Select a node to edit its content...")
+        self.editor.setPlaceholderText(_("Select a node to edit its content..."))
         self.editor.setContextMenuPolicy(Qt.CustomContextMenu)
         self.editor.customContextMenuRequested.connect(self.controller.show_editor_context_menu)
         self.editor.setStyleSheet("border: 1px solid #ccc; padding: 2px;")

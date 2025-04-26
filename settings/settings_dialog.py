@@ -1,16 +1,17 @@
 import sys
-import json
 import copy
 import os
-from PyQt5.QtWidgets import (QApplication, QDialog, QTabWidget, QVBoxLayout,
-                             QCheckBox, QComboBox, QLabel, QPushButton,
-                             QFormLayout, QColorDialog, QHBoxLayout, QSpinBox,
-                             QMessageBox, QListWidget, QListWidgetItem,
-                             QGroupBox, QWidget)
+from PyQt5.QtWidgets import (
+    QApplication, QDialog, QTabWidget, QVBoxLayout,
+    QCheckBox, QComboBox, QLabel, QPushButton,
+    QFormLayout, QColorDialog, QHBoxLayout, QSpinBox,
+    QMessageBox, QListWidget, QListWidgetItem,
+    QGroupBox, QWidget
+)
 from PyQt5.QtGui import QIcon, QPalette, QColor, QFont
 from PyQt5.QtCore import Qt, pyqtSignal, QSettings
 
-from .ui_constants import UI_LABELS, LANGUAGES
+from .translation_manager import LANGUAGES
 from .theme_manager import ThemeManager
 from .llm_api_aggregator import WWApiAggregator
 from .settings_manager import WWSettingsManager
@@ -18,9 +19,10 @@ from .provider_dialog import ProviderDialog
 
 class SettingsDialog(QDialog):
     settings_saved = pyqtSignal()
-    def __init__(self, parent=None):
+    
+    def __init__(self, translation_manager, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Preferences")
+        self.setWindowTitle(_("Preferences"))
         self.resize(500, 500)
         self.setWindowIcon(QIcon("icon.png"))
 
@@ -28,23 +30,9 @@ class SettingsDialog(QDialog):
         self.appearance_settings = WWSettingsManager.get_appearance_settings()
         self.llm_configs = WWSettingsManager.get_llm_configs()
         self.default_provider = WWSettingsManager.get_active_llm_name()
+        self.translation_manager = translation_manager
         
         self.original_llm_configs = copy.deepcopy(self.llm_configs)
-
-        self.ui_labels = UI_LABELS
-        try:
-            filepath = os.path.join(os.getcwd(), "assets", "lang_settings.json")
-            if os.path.exists(filepath):
-                with open(filepath, "r", encoding="utf-8") as f:
-                    self.ui_labels = json.load(f)
-        except UnicodeDecodeError as e:
-            self.logger.error(f"Warn: Error reading unicode in language settings file: {e}")
-        except json.JSONDecodeError as e:
-            self.logger.error(f"Warn: Error parsing language settings file: {e}")
-        except Exception as e:
-            self.logger.error(f"Warn: Unexpected error: {e}")
-
-        self.labels = self.ui_labels.get(self.general_settings["language"], self.ui_labels["en"])
 
         self.init_ui()
         self.load_values_from_settings()
@@ -59,18 +47,18 @@ class SettingsDialog(QDialog):
         self.appearance_tab = QWidget()
         self.provider_tab = QWidget()
 
-        self.tabs.addTab(self.general_tab, self.labels["general_tab"])
-        self.tabs.addTab(self.appearance_tab, self.labels["appearance_tab"])
-        self.tabs.addTab(self.provider_tab, self.labels["provider_tab"])
+        self.tabs.addTab(self.general_tab, _("General"))
+        self.tabs.addTab(self.appearance_tab, _("Appearance"))
+        self.tabs.addTab(self.provider_tab, _("Providers"))
 
         self.init_general_tab()
         self.init_appearance_tab()
         self.init_provider_tab()
 
         self.button_box = QHBoxLayout()
-        self.save_button = QPushButton(self.labels["save"])
+        self.save_button = QPushButton(_("Save"))
         self.save_button.clicked.connect(self.save_settings_to_file)
-        self.cancel_button = QPushButton(self.labels["close"])
+        self.cancel_button = QPushButton(_("Close"))
         self.cancel_button.clicked.connect(self.check_unsaved_changes)
         self.button_box.addWidget(self.save_button)
         self.button_box.addWidget(self.cancel_button)
@@ -84,15 +72,15 @@ class SettingsDialog(QDialog):
     def init_general_tab(self):
         layout = QFormLayout()
 
-        self.fast_tts_checkbox = QCheckBox(self.labels["fast_tts"])
+        self.fast_tts_checkbox = QCheckBox(_("Fast Text to Speech"))
         self.fast_tts_checkbox.stateChanged.connect(self.mark_unsaved_changes)
         layout.addRow(self.fast_tts_checkbox)
 
-        self.enable_autosave_checkbox = QCheckBox(self.labels["enable_autosave"])
+        self.enable_autosave_checkbox = QCheckBox(_("Enable Auto-Save"))
         self.enable_autosave_checkbox.stateChanged.connect(self.mark_unsaved_changes)
         layout.addRow(self.enable_autosave_checkbox)
         
-        self.show_quote_checkbox = QCheckBox(self.labels["show_random_quote"])
+        self.show_quote_checkbox = QCheckBox(_("Show Random Quotes"))
         self.show_quote_checkbox.stateChanged.connect(self.mark_unsaved_changes)
         layout.addRow(self.show_quote_checkbox)
 
@@ -101,7 +89,7 @@ class SettingsDialog(QDialog):
         self.language_combobox.addItems(LANGUAGES)
         self.language_combobox.currentIndexChanged.connect(self.language_changed)
         self.language_combobox.currentIndexChanged.connect(self.mark_unsaved_changes)
-        self.language_label = QLabel(self.labels["language"])
+        self.language_label = QLabel(_("Language"))
         layout.addRow(self.language_label, self.language_combobox)
 
         self.general_tab.setLayout(layout)
@@ -113,10 +101,10 @@ class SettingsDialog(QDialog):
         self.theme_combobox.addItems(ThemeManager.list_themes())
         self.theme_combobox.currentIndexChanged.connect(self.change_theme)
         self.theme_combobox.currentIndexChanged.connect(self.mark_unsaved_changes)
-        self.theme_label = QLabel(self.labels["theme"])
+        self.theme_label = QLabel(_("Theme"))
         layout.addRow(self.theme_label, self.theme_combobox)
 
-        self.background_color_button = QPushButton(self.labels["background_color"])
+        self.background_color_button = QPushButton(_("Background Color"))
         self.background_color_button.clicked.connect(self.choose_background_color)
         self.background_color_label = QLabel()
         self.background_color_label.setAutoFillBackground(True)
@@ -130,13 +118,13 @@ class SettingsDialog(QDialog):
         self.text_size_spinbox.setRange(8, 24)
         self.text_size_spinbox.valueChanged.connect(self.update_font_size)
         self.text_size_spinbox.valueChanged.connect(self.mark_unsaved_changes)
-        self.text_size_label = QLabel(self.labels["text_size"])
+        self.text_size_label = QLabel(_("Text Size"))
         layout.addRow(self.text_size_label, self.text_size_spinbox)
 
         self.sample_group_box = QGroupBox()
         sample_layout = QHBoxLayout()
         sample_layout.setAlignment(Qt.AlignCenter)
-        self.sample_text_label = QLabel(self.labels["sample"])
+        self.sample_text_label = QLabel(_("Sample Text"))
         sample_layout.addWidget(self.sample_text_label)
         self.sample_group_box.setLayout(sample_layout)
         layout.addRow(self.sample_group_box)
@@ -146,7 +134,7 @@ class SettingsDialog(QDialog):
     def init_provider_tab(self):
         layout = QVBoxLayout()
         
-        self.providers_group = QGroupBox(self.labels["providers_list"])
+        self.providers_group = QGroupBox(_("Configured Providers"))
         providers_layout = QVBoxLayout()
         
         self.providers_list = QListWidget()
@@ -155,11 +143,11 @@ class SettingsDialog(QDialog):
         providers_layout.addWidget(self.providers_list)
         
         buttons_layout = QHBoxLayout()
-        self.new_provider_button = QPushButton(self.labels["new_provider"])
+        self.new_provider_button = QPushButton(_("New Provider"))
         self.new_provider_button.clicked.connect(self.add_new_provider)
-        self.edit_provider_button = QPushButton(self.labels["edit"])
+        self.edit_provider_button = QPushButton(_("Edit"))
         self.edit_provider_button.clicked.connect(self.edit_selected_provider)
-        self.delete_provider_button = QPushButton(self.labels["delete"])
+        self.delete_provider_button = QPushButton(_("Delete"))
         self.delete_provider_button.clicked.connect(self.delete_provider)
         
         buttons_layout.addWidget(self.new_provider_button)
@@ -186,7 +174,7 @@ class SettingsDialog(QDialog):
                 font.setBold(True)
                 item.setFont(font)
                 item.setData(Qt.UserRole, {"name": provider_name, "is_default": True})
-                item.setText(f"{provider_name} ({self.labels['default_provider']})")
+                item.setText(f"{provider_name} ({_('Default Provider')})")
             else:
                 item.setData(Qt.UserRole, {"name": provider_name, "is_default": False})
             
@@ -207,8 +195,7 @@ class SettingsDialog(QDialog):
         default_providers = WWApiAggregator.get_llm_providers()
         self.provider_dialog = ProviderDialog(
             parent=self,
-            providers=default_providers,
-            labels=self.labels
+            providers=default_providers
         )
         
         if self.provider_dialog.exec_():
@@ -216,11 +203,11 @@ class SettingsDialog(QDialog):
             provider_name = provider_data["name"]
             
             if not provider_name:
-                QMessageBox.warning(self, "Warning", "Provider name cannot be empty.")
+                QMessageBox.warning(self, _("Warning"), _("Provider name cannot be empty."))
                 return
                 
             if provider_name in self.llm_configs:
-                QMessageBox.warning(self, "Warning", f"Provider '{provider_name}' already exists.")
+                QMessageBox.warning(self, _("Warning"), _(f"Provider '{provider_name}' already exists."))
                 return
                 
             self.llm_configs[provider_name] = {
@@ -256,7 +243,6 @@ class SettingsDialog(QDialog):
             provider_name=provider_name,
             provider_data=self.llm_configs[provider_name],
             providers=default_providers,
-            labels=self.labels,
             is_default=is_default
         )
         
@@ -296,13 +282,13 @@ class SettingsDialog(QDialog):
         provider_name = provider_data["name"]
         
         if provider_data["is_default"]:
-            QMessageBox.warning(self, "Warning", f"{provider_name} cannot be deleted as it is the default provider.")
+            QMessageBox.warning(self, _("Warning"), _(f"{provider_name} cannot be deleted as it is the default provider."))
             return
             
         reply = QMessageBox.question(
             self, 
-            self.labels["delete_title"],
-            self.labels["delete_confirmation"],
+            _("Confirm Deletion"),
+            _("Are you sure you want to delete the selected provider?"),
             QMessageBox.Yes | QMessageBox.No, 
             QMessageBox.No
         )
@@ -330,33 +316,34 @@ class SettingsDialog(QDialog):
     def language_changed(self, index):
         language = LANGUAGES[index]
         self.general_settings["language"] = language
-        self.labels = self.ui_labels.get(language, self.ui_labels["en"])
+        self.translation_manager.set_language(language)
         self.update_ui_labels()
         self.mark_unsaved_changes()
 
     def update_ui_labels(self):
         """Updates all UI labels based on the selected language."""
-        self.tabs.setTabText(0, self.labels["general_tab"])
-        self.tabs.setTabText(1, self.labels["appearance_tab"])
-        self.tabs.setTabText(2, self.labels["provider_tab"])
-        self.fast_tts_checkbox.setText(self.labels["fast_tts"])
-        self.enable_autosave_checkbox.setText(self.labels["enable_autosave"])
-        self.show_quote_checkbox.setText(self.labels["show_random_quote"])
-        self.language_label.setText(self.labels["language"])
-        self.theme_label.setText(self.labels["theme"])
-        self.background_color_button.setText(self.labels["background_color"])
-        self.text_size_label.setText(self.labels["text_size"])
-        self.providers_group.setTitle(self.labels["providers_list"])
-        self.sample_text_label.setText(self.labels["sample"])
+        self.setWindowTitle(_("Preferences"))
+        self.tabs.setTabText(0, _("General"))
+        self.tabs.setTabText(1, _("Appearance"))
+        self.tabs.setTabText(2, _("Providers"))
+        self.fast_tts_checkbox.setText(_("Fast Text to Speech"))
+        self.enable_autosave_checkbox.setText(_("Enable Auto-Save"))
+        self.show_quote_checkbox.setText(_("Show Random Quotes"))
+        self.language_label.setText(_("Language"))
+        self.theme_label.setText(_("Theme"))
+        self.background_color_button.setText(_("Background Color"))
+        self.text_size_label.setText(_("Text Size"))
+        self.providers_group.setTitle(_("Configured Providers"))
+        self.sample_text_label.setText(_("Sample Text"))
         
-        self.save_button.setText(self.labels["save"])
-        self.cancel_button.setText(self.labels["close"])
-        self.new_provider_button.setText(self.labels["new_provider"])
-        self.edit_provider_button.setText(self.labels["edit"])
-        self.delete_provider_button.setText(self.labels["delete"])
+        self.save_button.setText(_("Save"))
+        self.cancel_button.setText(_("Close"))
+        self.new_provider_button.setText(_("New Provider"))
+        self.edit_provider_button.setText(_("Edit"))
+        self.delete_provider_button.setText(_("Delete"))
         
         if hasattr(self, 'provider_dialog') and self.provider_dialog.isVisible():
-            self.provider_dialog.update_labels(self.labels)
+            self.provider_dialog.update_labels()
         
         self.populate_providers_list()
 
@@ -391,7 +378,7 @@ class SettingsDialog(QDialog):
         for provider_name in deleted_configs:
             success = WWSettingsManager.delete_llm_config(provider_name)
             if not success:
-                QMessageBox.warning(self, "Warning", f"Failed to delete config {provider_name} from settings.json.")
+                QMessageBox.warning(self, _("Warning"), _(f"Failed to delete config {provider_name} from settings.json."))
 
         success = (
             WWSettingsManager.update_general_settings(self.general_settings) and
@@ -401,11 +388,11 @@ class SettingsDialog(QDialog):
 
         if success:
             self.original_llm_configs = copy.deepcopy(self.llm_configs)
-            QMessageBox.information(self, "Save Result", self.labels["save_successful"])
+            QMessageBox.information(self, _("Save Result"), _("Settings saved successfully."))
             self.unsaved_changes = False
             self.settings_saved.emit()
         else:
-            QMessageBox.warning(self, "Warning", "Failed to save settings.")
+            QMessageBox.warning(self, _("Warning"), _("Failed to save settings."))
 
     def mark_unsaved_changes(self):
         """Mark that there are unsaved changes."""
@@ -416,11 +403,11 @@ class SettingsDialog(QDialog):
         if self.unsaved_changes:
             msg_box = QMessageBox(self)
             msg_box.setIcon(QMessageBox.Warning)
-            msg_box.setWindowTitle(self.labels["unsaved_warning"])
-            msg_box.setText(self.labels["unsaved_warning"])
-            save_button = msg_box.addButton(self.labels["save"], QMessageBox.AcceptRole)
-            discard_button = msg_box.addButton(self.labels["discard"], QMessageBox.DestructiveRole)
-            cancel_button = msg_box.addButton(self.labels["cancel"], QMessageBox.RejectRole)
+            msg_box.setWindowTitle(_("Unsaved Changes"))
+            msg_box.setText(_("You have unsaved changes. Do you want to save them before closing?"))
+            save_button = msg_box.addButton(_("Save"), QMessageBox.AcceptRole)
+            discard_button = msg_box.addButton(_("Discard"), QMessageBox.DestructiveRole)
+            cancel_button = msg_box.addButton(_("Cancel"), QMessageBox.RejectRole)
             msg_box.setDefaultButton(cancel_button)
             msg_box.exec_()
 

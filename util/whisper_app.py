@@ -635,7 +635,7 @@ class WhisperApp(QMainWindow):
         else:
             dialog_title = "Select Audio File"
             file_filter = "Audio Files (*.mp3 *.wav *.flac)"
-        file_path, _ = QFileDialog.getOpenFileName(self, dialog_title, "", file_filter)
+        file_path, unused = QFileDialog.getOpenFileName(self, dialog_title, "", file_filter)
         if file_path:
             if file_path.lower().endswith(('.mp4', '.avi', '.mov')) and self.ffmpeg_installed:
                 self.log_text.append("Converting video to audio...")
@@ -810,7 +810,7 @@ class WhisperApp(QMainWindow):
     
     def save_transcription(self):
         """Save the transcription output to a text file."""
-        file_path, _ = QFileDialog.getSaveFileName(self, "Save Transcription", "", "Text Files (*.txt)")
+        file_path, unused = QFileDialog.getSaveFileName(self, "Save Transcription", "", "Text Files (*.txt)")
         if file_path:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(self.result_text.toPlainText())
@@ -821,7 +821,7 @@ class WhisperApp(QMainWindow):
         if not hasattr(self, 'transcription_audio_file') or not self.transcription_audio_file:
             QMessageBox.warning(self, "No Audio", "No audio file to save.")
             return
-        file_path, _ = QFileDialog.getSaveFileName(self, "Save Audio File", "", "WAV Files (*.wav)")
+        file_path, unused = QFileDialog.getSaveFileName(self, "Save Audio File", "", "WAV Files (*.wav)")
         if file_path:
             try:
                 shutil.copy(self.transcription_audio_file, file_path)

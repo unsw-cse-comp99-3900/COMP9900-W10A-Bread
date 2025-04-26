@@ -9,7 +9,7 @@ import tiktoken
 class PromptPreviewDialog(QDialog):
     def __init__(self, prompt_config, user_input, additional_vars, current_scene_text, extra_context, controller, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Prompt Preview")
+        self.setWindowTitle(_("Prompt Preview"))
         self.resize(600, 400)
         self.prompt_config = prompt_config
         self.user_input = user_input
@@ -38,14 +38,14 @@ class PromptPreviewDialog(QDialog):
         button_layout = QHBoxLayout()
         self.zoom_in_button = QPushButton()
         self.zoom_in_button.setIcon(self.controller.get_tinted_icon("assets/icons/zoom-in.svg", self.controller.icon_tint))
-        self.zoom_in_button.setToolTip("Zoom In (Cmd+=)")
+        self.zoom_in_button.setToolTip(_("Zoom In (Cmd+=)"))
         self.zoom_in_button.clicked.connect(self.zoom_in)
 
         self.zoom_out_button = QPushButton()
         self.zoom_out_button.setIcon(self.controller.get_tinted_icon("assets/icons/zoom-out.svg", self.controller.icon_tint))
-        self.zoom_out_button.setToolTip("Zoom Out (Cmd+-)")
+        self.zoom_out_button.setToolTip(_("Zoom Out (Cmd+-)"))
         self.zoom_out_button.clicked.connect(self.zoom_out)
-        self.ok_button = QPushButton("OK")
+        self.ok_button = QPushButton(_("OK"))
         self.ok_button.clicked.connect(self.ok_button_clicked)
 
         button_layout.addWidget(self.zoom_in_button)
@@ -53,7 +53,7 @@ class PromptPreviewDialog(QDialog):
 
 
         # Token count label (centered)
-        self.token_count_label = QLabel("Token Count: 0")
+        self.token_count_label = QLabel(_("Token Count: 0"))
         self.token_count_label.setFont(QFont("Arial", self.font_size))
         self.token_count_label.setAlignment(Qt.AlignCenter)  # Center the text
         button_layout.addStretch()  # Add stretch before to push label to center
@@ -169,9 +169,9 @@ class PromptPreviewDialog(QDialog):
             encoding = tiktoken.get_encoding("cl100k_base")  # Use a common encoding, e.g., for GPT models
             tokens = encoding.encode(self.final_prompt_text)
             token_count = len(tokens)
-            self.token_count_label.setText(f"Token Count: {token_count}")
+            self.token_count_label.setText(_("Token Count: {}").format(token_count))
         except Exception as e:
-            self.token_count_label.setText(f"Token Count: Error ({str(e)})")
+            self.token_count_label.setText(_("Token Count: Error ({})").format(str(e)))
 
     def read_settings(self):
         settings = QSettings("MyCompany", "WritingwayProject")

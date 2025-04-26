@@ -27,7 +27,7 @@ class AICompendiumDialog(QDialog):
         return {"categories": [], "extensions": {"entries": {}}}
 
     def init_ui(self):
-        self.setWindowTitle("AI Compendium Analysis")
+        self.setWindowTitle(_("AI Compendium Analysis"))
         self.resize(600, 400)
 
         layout = QVBoxLayout()
@@ -36,7 +36,7 @@ class AICompendiumDialog(QDialog):
 
         # Left side: Tree for categories, entries, and relationships
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabel("Name")
+        self.tree.setHeaderLabel(_("Name"))
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.show_tree_context_menu)
         self.tree.currentItemChanged.connect(self.on_item_changed)
@@ -47,19 +47,19 @@ class AICompendiumDialog(QDialog):
         editor_layout = QVBoxLayout(editor_widget)
 
         # Label and top editor: AI-generated content
-        self.new_label = QLabel("New")
+        self.new_label = QLabel(_("New"))
         self.new_label.setStyleSheet("font-weight: bold;")
         editor_layout.addWidget(self.new_label)
         self.editor = QTextEdit()
-        self.editor.setPlaceholderText("Select an entry or relationship to view or edit its details.")
+        self.editor.setPlaceholderText(_("Select an entry or relationship to view or edit its details."))
         editor_layout.addWidget(self.editor)
 
         # Label and bottom editor: Existing compendium entry
-        self.current_label = QLabel("Current")
+        self.current_label = QLabel(_("Current"))
         self.current_label.setStyleSheet("font-weight: bold;")
         editor_layout.addWidget(self.current_label)
         self.existing_editor = QTextEdit()
-        self.existing_editor.setPlaceholderText("Existing compendium entry will appear here.")
+        self.existing_editor.setPlaceholderText(_("Existing compendium entry will appear here."))
         self.existing_editor.setReadOnly(True)
         editor_layout.addWidget(self.existing_editor)
 
@@ -71,11 +71,11 @@ class AICompendiumDialog(QDialog):
 
         button_widget = QWidget()
         button_layout = QVBoxLayout(button_widget)
-        self.save_button = QPushButton("Save to Compendium")
+        self.save_button = QPushButton(_("Save to Compendium"))
         self.save_button.clicked.connect(self.save_and_close)
         button_layout.addWidget(self.save_button)
 
-        self.close_button = QPushButton("Close")
+        self.close_button = QPushButton(_("Close"))
         self.close_button.clicked.connect(self.reject)
         button_layout.addWidget(self.close_button)
 
@@ -117,7 +117,7 @@ class AICompendiumDialog(QDialog):
 
                 if entry_rels:
                     # Add relationships as child items
-                    rel_item = QTreeWidgetItem(entry_item, ["Relationships"])
+                    rel_item = QTreeWidgetItem(entry_item, [_("Relationships")])
                     rel_item.setData(0, Qt.UserRole, "relationships")
                     if entry_rels:
                         for rel in entry_rels:
@@ -165,7 +165,7 @@ class AICompendiumDialog(QDialog):
             if role == "entry":
                 editor_text = self.editor.toPlainText()
                 if editor_text.strip():
-                    parts = editor_text.split("\n\nRelationships:\n")
+                    parts = editor_text.split(_("\n\nRelationships:\n"))
                     if len(parts) > 1 and all(": " in line for line in parts[1].strip().split("\n") if line.startswith("- ")):
                         previous.setData(4, Qt.UserRole, editor_text)
             elif role == "relationship":
@@ -187,12 +187,12 @@ class AICompendiumDialog(QDialog):
                 self.editor.setPlainText(edited_text)
             else:
                 content = current.data(1, Qt.UserRole)
-                display_text = f"Content:\n{content}\n\nRelationships:\n"
+                display_text = _("Content:\n{}\n\nRelationships:\n").format(content)
                 rel_found = False
                 for rel_item in [current.child(k).child(l) 
                                 for k in range(current.childCount()) 
                                 for l in range(current.child(k).childCount()) 
-                                if current.child(k).text(0) == "Relationships"]:
+                                if current.child(k).text(0) == _("Relationships")]:
                     if rel_item.data(2, Qt.UserRole) == "Active":
                         rel_name = rel_item.text(0)
                         rel_type = rel_item.data(1, Qt.UserRole)
@@ -200,14 +200,14 @@ class AICompendiumDialog(QDialog):
                         display_text += f"- {rel_name}: {edited_type or rel_type}\n"
                         rel_found = True
                 if not rel_found:
-                    display_text += "None"
+                    display_text += _("None")
                 self.editor.setPlainText(display_text.strip())
 
             has_bold = False
             for rel_item in [current.child(k).child(l) 
                             for k in range(current.childCount()) 
                             for l in range(current.child(k).childCount()) 
-                            if current.child(k).text(0) == "Relationships"]:
+                            if current.child(k).text(0) == _("Relationships")]:
                 if rel_item.font(0).bold():
                     has_bold = True
                     break
@@ -226,19 +226,19 @@ class AICompendiumDialog(QDialog):
                     if existing_data:
                         break
                 if existing_data:
-                    existing_text = f"Content:\n{existing_data.get('content', '')}\n\nRelationships:\n"
+                    existing_text = _("Content:\n{}\n\nRelationships:\n").format(existing_data.get('content', ''))
                     rels = existing_data.get("relationships", [])
                     if rels:
                         for rel in rels:
                             existing_text += f"- {rel['name']}: {rel.get('type', 'Unknown')}\n"
                     else:
-                        existing_text += "None"
+                        existing_text += _("None")
                     self.existing_editor.setPlainText(existing_text.strip())
                 else:
-                    self.existing_editor.setPlainText("This entry does not exist in the compendium yet.")
+                    self.existing_editor.setPlainText(_("This entry does not exist in the compendium yet."))
 
         elif role == "relationships":
-            display_text = "Relationships:\n"
+            display_text = _("Relationships:\n")
             rel_found = False
             for i in range(current.childCount()):
                 rel_item = current.child(i)
@@ -249,7 +249,7 @@ class AICompendiumDialog(QDialog):
                     display_text += f"- {rel_name}: {edited_type or rel_type}\n"
                     rel_found = True
             if not rel_found:
-                display_text += "None"
+                display_text += _("None")
             self.editor.setPlainText(display_text.strip())
             self.editor.setReadOnly(True)
             # Show parent entry in existing editor
@@ -266,16 +266,16 @@ class AICompendiumDialog(QDialog):
                     if existing_data:
                         break
                 if existing_data:
-                    existing_text = f"Content:\n{existing_data.get('content', '')}\n\nRelationships:\n"
+                    existing_text = _("Content:\n{}\n\nRelationships:\n").format(existing_data.get('content', ''))
                     rels = existing_data.get("relationships", [])
                     if rels:
                         for rel in rels:
                             existing_text += f"- {rel['name']}: {rel.get('type', 'Unknown')}\n"
                     else:
-                        existing_text += "None"
+                        existing_text += _("None")
                     self.existing_editor.setPlainText(existing_text.strip())
                 else:
-                    self.existing_editor.setPlainText("This entry does not exist in the compendium yet.")
+                    self.existing_editor.setPlainText(_("This entry does not exist in the compendium yet."))
 
         elif role == "relationship":
             rel_name = current.text(0)
@@ -285,7 +285,7 @@ class AICompendiumDialog(QDialog):
                 self.editor.setPlainText(f"{rel_name}: {edited_type}")
             else:
                 self.editor.setPlainText(f"{rel_name}: {rel_type}")
-            self.editor.setPlaceholderText(f"Edit the relationship type for {rel_name} (e.g., '{rel_name}: Trusted Friend').")
+            self.editor.setPlaceholderText(_("Edit the relationship type for {} (e.g., '{}: Trusted Friend').").format(rel_name, rel_name))
             self.editor.setReadOnly(not current.font(0).bold())
             # Show parent entry in existing editor
             entry_item = current.parent().parent()
@@ -301,22 +301,22 @@ class AICompendiumDialog(QDialog):
                     if existing_data:
                         break
                 if existing_data:
-                    existing_text = f"Content:\n{existing_data.get('content', '')}\n\nRelationships:\n"
+                    existing_text = _("Content:\n{}\n\nRelationships:\n").format(existing_data.get('content', ''))
                     rels = existing_data.get("relationships", [])
                     if rels:
                         for rel in rels:
                             existing_text += f"- {rel['name']}: {rel.get('type', 'Unknown')}\n"
                     else:
-                        existing_text += "None"
+                        existing_text += _("None")
                     self.existing_editor.setPlainText(existing_text.strip())
                 else:
-                    self.existing_editor.setPlainText("This entry does not exist in the compendium yet.")
+                    self.existing_editor.setPlainText(_("This entry does not exist in the compendium yet."))
 
         else:
             self.editor.clear()
             self.existing_editor.clear()
             self.editor.setReadOnly(True)
-            self.editor.setPlaceholderText("Select an entry or relationship to view or edit its details.")
+            self.editor.setPlaceholderText(_("Select an entry or relationship to view or edit its details."))
 
     def show_tree_context_menu(self, pos):
         item = self.tree.itemAt(pos)
@@ -329,20 +329,20 @@ class AICompendiumDialog(QDialog):
         if role == "entry":
             is_deleted = item.data(2, Qt.UserRole) == "Deleted"
             if is_deleted:
-                actions["restore"] = menu.addAction("Restore")
+                actions["restore"] = menu.addAction(_("Restore"))
             else:
-                actions["delete"] = menu.addAction("Ignore Update")
-                actions["rename"] = menu.addAction("Rename Entry")
-                actions["move_to"] = menu.addAction("Move To...")
-                actions["move_up"] = menu.addAction("Move Up")
-                actions["move_down"] = menu.addAction("Move Down")
+                actions["delete"] = menu.addAction(_("Ignore Update"))
+                actions["rename"] = menu.addAction(_("Rename Entry"))
+                actions["move_to"] = menu.addAction(_("Move To..."))
+                actions["move_up"] = menu.addAction(_("Move Up"))
+                actions["move_down"] = menu.addAction(_("Move Down"))
         elif role == "relationship":
             is_deleted = item.data(2, Qt.UserRole) == "Deleted"
             if is_deleted:
-                actions["restore"] = menu.addAction("Restore Relationship")
+                actions["restore"] = menu.addAction(_("Restore Relationship"))
             else:
-                actions["delete"] = menu.addAction("Remove Relationship")
-                actions["rename"] = menu.addAction("Rename Relationship")
+                actions["delete"] = menu.addAction(_("Remove Relationship"))
+                actions["rename"] = menu.addAction(_("Rename Relationship"))
         else:
             return
 
@@ -418,7 +418,7 @@ class AICompendiumDialog(QDialog):
 
     def rename_entry(self, item):
         old_name = item.text(0)
-        new_name, ok = QInputDialog.getText(self, "Rename Entry", "New name:", text=old_name)
+        new_name, ok = QInputDialog.getText(self, _("Rename Entry"), _("New name:"), text=old_name)
         if ok and new_name:
             item.setText(0, new_name)
             if self.tree.currentItem() == item:
@@ -427,12 +427,12 @@ class AICompendiumDialog(QDialog):
                     self.editor.setPlainText(edited_text)
                 else:
                     content = item.data(1, Qt.UserRole)
-                    display_text = f"Content:\n{content}\n\nRelationships:\n"
+                    display_text = _("Content:\n{}\n\nRelationships:\n").format(content)
                     rel_found = False
                     for rel_item in [item.child(k).child(l) 
                                     for k in range(item.childCount()) 
                                     for l in range(item.child(k).childCount()) 
-                                    if item.child(k).text(0) == "Relationships"]:
+                                    if item.child(k).text(0) == _("Relationships")]:
                         if rel_item.data(2, Qt.UserRole) == "Active":
                             rel_name = rel_item.text(0)
                             rel_type = rel_item.data(1, Qt.UserRole)
@@ -440,18 +440,18 @@ class AICompendiumDialog(QDialog):
                             display_text += f"- {rel_name}: {edited_type or rel_type}\n"
                             rel_found = True
                     if not rel_found:
-                        display_text += "None"
+                        display_text += _("None")
                     self.editor.setPlainText(display_text.strip())
 
     def rename_relationship(self, item):
         old_name = item.text(0)
-        new_name, ok = QInputDialog.getText(self, "Rename Relationship", "New name:", text=old_name)
+        new_name, ok = QInputDialog.getText(self, _("Rename Relationship"), _("New name:"), text=old_name)
         if ok and new_name:
             item.setText(0, new_name)
             if self.tree.currentItem() == item:
                 edited_type = item.data(4, Qt.UserRole)
                 if edited_type is not None:
-                    _, type_part = edited_type.split(": ", 1) if ": " in edited_type else (None, edited_type)
+                    unused, type_part = edited_type.split(": ", 1) if ": " in edited_type else (None, edited_type)
                     self.editor.setPlainText(f"{new_name}: {type_part}")
                     item.setData(4, Qt.UserRole, f"{new_name}: {type_part}")
                 else:
@@ -461,7 +461,7 @@ class AICompendiumDialog(QDialog):
             entry_item = item.parent().parent()
             if entry_item.data(4, Qt.UserRole) is not None:
                 edited_text = entry_item.data(4, Qt.UserRole)
-                parts = edited_text.split("\n\nRelationships:\n")
+                parts = edited_text.split(_("\n\nRelationships:\n"))
                 if len(parts) > 1:
                     rel_lines = parts[1].strip().split("\n")
                     updated_lines = []
@@ -470,7 +470,7 @@ class AICompendiumDialog(QDialog):
                             updated_lines.append(f"- {new_name}:{line[len(old_name)+3:]}")
                         else:
                             updated_lines.append(line)
-                    entry_item.setData(4, Qt.UserRole, f"{parts[0]}\n\nRelationships:\n" + "\n".join(updated_lines))
+                    entry_item.setData(4, Qt.UserRole, _("{}\n\nRelationships:\n").format(parts[0]) + "\n".join(updated_lines))
 
     def move_item(self, item, direction):
         parent = item.parent()
@@ -516,16 +516,16 @@ class AICompendiumDialog(QDialog):
 
                         if edited_text is not None and self.tree.currentItem() == entry_item and not self.editor.isReadOnly():
                             editor_text = self.editor.toPlainText()
-                            if editor_text.strip() and "\n\nRelationships:\n" in editor_text:
-                                parts = editor_text.split("\n\nRelationships:\n")
+                            if editor_text.strip() and _("\n\nRelationships:\n") in editor_text:
+                                parts = editor_text.split(_("\n\nRelationships:\n"))
                                 if len(parts) > 1 and all(": " in line for line in parts[1].strip().split("\n") if line.startswith("- ")):
                                     edited_text = editor_text
                                 else:
                                     edited_text = None  # Revert to stored if invalid
 
                         if edited_text is not None:
-                            parts = edited_text.split("\n\nRelationships:\n")
-                            entry_content = parts[0].replace("Content:\n", "").strip()
+                            parts = edited_text.split(_("\n\nRelationships:\n"))
+                            entry_content = parts[0].replace(_("Content:\n"), "").strip()
                             relationships = []
                             if len(parts) > 1:
                                 rel_lines = parts[1].strip().split("\n")
@@ -536,12 +536,12 @@ class AICompendiumDialog(QDialog):
                                         for rel_item in [entry_item.child(k).child(l) 
                                                         for k in range(entry_item.childCount()) 
                                                         for l in range(entry_item.child(k).childCount()) 
-                                                        if entry_item.child(k).text(0) == "Relationships"]:
+                                                        if entry_item.child(k).text(0) == _("Relationships")]:
                                             if rel_item.text(0) == name:
                                                 rel_status = rel_item.data(2, Qt.UserRole)
                                                 edited_type = rel_item.data(4, Qt.UserRole)
                                                 if edited_type is not None and ": " in edited_type:
-                                                    _, rel_type = edited_type.split(": ", 1)
+                                                    unused, rel_type = edited_type.split(": ", 1)
                                                 break
                                         if rel_status == "Active":
                                             relationships.append({"name": name, "type": rel_type})
@@ -552,7 +552,7 @@ class AICompendiumDialog(QDialog):
                                 for rel_item in [entry_item.child(k).child(l) 
                                                 for k in range(entry_item.childCount()) 
                                                 for l in range(entry_item.child(k).childCount()) 
-                                                if entry_item.child(k).text(0) == "Relationships"]
+                                                if entry_item.child(k).text(0) == _("Relationships")]
                                 if rel_item.data(2, Qt.UserRole) == "Active"
                             ]
 
@@ -562,7 +562,7 @@ class AICompendiumDialog(QDialog):
                             rel_name = rel_item.text(0)
                             editor_text = self.editor.toPlainText()
                             if editor_text.strip() and ": " in editor_text:
-                                _, rel_type = editor_text.split(": ", 1)
+                                unused, rel_type = editor_text.split(": ", 1)
                                 for rel in relationships:
                                     if rel["name"] == rel_name:
                                         rel["type"] = rel_type
@@ -588,7 +588,7 @@ class AICompendiumDialog(QDialog):
             self.write_settings()
             self.accept()
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to save: {str(e)}")
+            QMessageBox.warning(self, _("Error"), _("Failed to save: {}").format(str(e)))
             return
 
     def reject(self):

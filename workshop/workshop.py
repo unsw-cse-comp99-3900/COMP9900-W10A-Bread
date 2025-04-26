@@ -25,7 +25,7 @@ TOKEN_LIMIT = 2000
 class WorkshopWindow(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Workshop")
+        self.setWindowTitle(_("Workshop"))
         # Allow the user to maximize the window by including the maximize hint.
         self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
         self.resize(1000, 600)
@@ -90,7 +90,7 @@ class WorkshopWindow(QDialog):
         self.conversation_list.itemClicked.connect(self.load_conversation_from_list)
         conversation_layout.addWidget(self.conversation_list)
 
-        new_chat_button = QPushButton("New Chat")
+        new_chat_button = QPushButton(_("New Chat"))
         new_chat_button.clicked.connect(self.new_conversation)
         conversation_layout.addWidget(new_chat_button)
 
@@ -112,7 +112,7 @@ class WorkshopWindow(QDialog):
         left_container = QWidget()
         left_layout = QVBoxLayout(left_container)
         self.chat_input = QTextEdit()
-        self.chat_input.setPlaceholderText("Type your message here...")
+        self.chat_input.setPlaceholderText(_("Type your message here..."))
         left_layout.addWidget(self.chat_input)
 
         # Buttons and Mode/Prompt Selector
@@ -133,7 +133,7 @@ class WorkshopWindow(QDialog):
                 # Store the entire prompt configuration as the associated data.
                 self.prompt_selector.addItem(name, p)
         else:
-            self.prompt_selector.addItem("No Workshop Prompts")
+            self.prompt_selector.addItem(_("No Workshop Prompts"))
             self.prompt_selector.setEnabled(False)
         self.prompt_selector.currentIndexChanged.connect(self.prompt_selection_changed)
         buttons_layout.addWidget(self.prompt_selector)
@@ -174,13 +174,13 @@ class WorkshopWindow(QDialog):
         audio_group_layout.addWidget(self.time_label)
         
         # Whisper model selection - only show installed models
-        audio_group_layout.addWidget(QLabel("Model:"))
+        audio_group_layout.addWidget(QLabel(_("Model:")))
         self.model_combo = QComboBox()
         self.model_combo.addItems(self.available_models)
         audio_group_layout.addWidget(self.model_combo)
         
         # Language selection with expanded language options
-        audio_group_layout.addWidget(QLabel("Language:"))
+        audio_group_layout.addWidget(QLabel(_("Language:")))
         self.language_combo = QComboBox()
         self.language_combo.addItems([
             "Auto", "English", "Polish", "Spanish", "French", "German", 
@@ -198,7 +198,7 @@ class WorkshopWindow(QDialog):
         self.recording_timer.timeout.connect(self.update_recording_time)
 
         # Model label
-        self.model_label = QLabel("Model: [None]")
+        self.model_label = QLabel(_("Model: [None]"))
         buttons_layout.addWidget(self.model_label)
         buttons_layout.addStretch()
 
@@ -230,7 +230,7 @@ class WorkshopWindow(QDialog):
 
     def mode_changed(self, index):
         mode = self.mode_selector.currentText()
-        print("Selected mode:", mode)
+        print(_("Selected mode:"), mode)
         self.current_mode = mode
 
     def toggle_context_panel(self):
@@ -286,7 +286,7 @@ class WorkshopWindow(QDialog):
         # Append message to chat log.
         self.chat_log.append("You: " + user_message)
         self.chat_input.clear()
-        self.chat_log.append("LLM: Generating response...")
+        self.chat_log.append(_("LLM: Generating response..."))
         QApplication.processEvents()
 
         # Maintain conversation history.
@@ -313,7 +313,7 @@ class WorkshopWindow(QDialog):
             if estimate_conversation_tokens(conversation_payload) > TOKEN_LIMIT:
                 summary = summarize_conversation(conversation_payload)
                 conversation_payload = [conversation_payload[0], {"role": "system", "content": summary}]
-                self.chat_log.append("LLM: [Conversation summarized to reduce token count.]")
+                self.chat_log.append(_("LLM: [Conversation summarized to reduce token count.]"))
 
             # Retrieve additional context using FAISS based on the user message.
             retrieved_context = self.embedding_index.query(user_message)
@@ -347,7 +347,7 @@ class WorkshopWindow(QDialog):
             # Add the user message to the embedding index for future context retrieval.
             self.embedding_index.add_text(user_message)
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to generate response: {e}")
+            QMessageBox.warning(self, _("Error"), _("Failed to generate response: {}").format(str(e)))
 
     def load_conversation_from_list(self, item: QListWidgetItem):
         selected_name = item.text()
@@ -374,8 +374,8 @@ class WorkshopWindow(QDialog):
         if item is None:
             return
         menu = QMenu()
-        rename_action = menu.addAction("Rename")
-        delete_action = menu.addAction("Delete")
+        rename_action = menu.addAction(_("Rename"))
+        delete_action = menu.addAction(_("Delete"))
         action = menu.exec_(self.conversation_list.mapToGlobal(pos))
         if action == rename_action:
             self.rename_conversation(item)
@@ -384,7 +384,7 @@ class WorkshopWindow(QDialog):
 
     def rename_conversation(self, item: QListWidgetItem):
         current_name = item.text()
-        new_name, ok = QInputDialog.getText(self, "Rename Conversation", "Enter new conversation name:", text=current_name)
+        new_name, ok = QInputDialog.getText(self, _("Rename Conversation"), _("Enter new conversation name:"), text=current_name)
         if ok and new_name.strip():
             new_name = new_name.strip()
             self.conversations[new_name] = self.conversations.pop(current_name)
@@ -395,7 +395,7 @@ class WorkshopWindow(QDialog):
 
     def delete_conversation(self, item: QListWidgetItem):
         conversation_name = item.text()
-        reply = QMessageBox.question(self, "Delete Conversation", f"Are you sure you want to delete '{conversation_name}'?",
+        reply = QMessageBox.question(self, _("Delete Conversation"), _("Are you sure you want to delete '{}'?").format(conversation_name),
                                      QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             row = self.conversation_list.row(item)
@@ -523,7 +523,7 @@ class WorkshopWindow(QDialog):
             else:
                 self.chat_input.setPlainText(text)
         else:
-            QMessageBox.warning(self, "Transcription Error", text)
+            QMessageBox.warning(self, _("Transcription Error"), text)
         
 class AudioRecorder(QThread):
     finished = pyqtSignal(str)

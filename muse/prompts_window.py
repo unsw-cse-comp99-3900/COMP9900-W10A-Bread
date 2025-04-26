@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QTextEdit, QPushButton, QHBoxLayout, QMenu, QInputDialog, QMessageBox,
     QLabel, QComboBox, QSpinBox, QDoubleSpinBox, QApplication
 )
-from PyQt5.QtCore import Qt, QItemSelectionModel
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from .prompt_utils import get_prompt_categories, load_prompts, get_default_prompt
 from settings.llm_api_aggregator import WWApiAggregator
@@ -16,7 +16,7 @@ class PromptsWindow(QDialog):
     def __init__(self, project_name, parent=None):
         super().__init__(parent)
         self.project_name = project_name
-        self.setWindowTitle("Prompts - " + project_name)
+        self.setWindowTitle(_("Prompts - ") + project_name)
         self.resize(800, 600)  # Made window larger
 
         # Define file names to use global prompts file
@@ -46,7 +46,7 @@ class PromptsWindow(QDialog):
         tree_layout = QVBoxLayout(tree_widget)
 
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabel("Prompts")
+        self.tree.setHeaderLabel(_("Prompts"))
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.on_tree_context_menu)
         self.tree.itemClicked.connect(self.on_item_clicked)
@@ -63,8 +63,8 @@ class PromptsWindow(QDialog):
         right_layout.addWidget(self.editor)
         
         # NEW: Replicate button for default prompts
-        self.replicate_button = QPushButton("Replicate")
-        self.replicate_button.setToolTip("This is a read-only default prompt. Create a copy to edit it.")
+        self.replicate_button = QPushButton(_("Replicate"))
+        self.replicate_button.setToolTip(_("This is a read-only default prompt. Create a copy to edit it."))
         self.replicate_button.clicked.connect(self.replicate_prompt)
         self.replicate_button.hide()  # Hide by default; only show for default prompts
         right_layout.addWidget(self.replicate_button)
@@ -79,10 +79,10 @@ class PromptsWindow(QDialog):
         # Provider selector
         provider_layout = QVBoxLayout()
         provider_header = QHBoxLayout()
-        self.provider_label = QLabel("Provider:")
+        self.provider_label = QLabel(_("Provider:"))
         provider_info_button = QPushButton()
         provider_info_button.setIcon(QIcon("assets/icons/info.svg"))
-        provider_info_button.setToolTip("Show Model Details")
+        provider_info_button.setToolTip(_("Show Model Details"))
         provider_info_button.clicked.connect(self.show_provider_info)
         provider_header.addWidget(self.provider_label)
         provider_header.addWidget(provider_info_button)
@@ -97,9 +97,9 @@ class PromptsWindow(QDialog):
         # Model selector with refresh button
         model_layout = QVBoxLayout()
         model_header = QHBoxLayout()
-        self.model_label = QLabel("Model:")
+        self.model_label = QLabel(_("Model:"))
         self.refresh_button = QPushButton("↻")  # Refresh symbol
-        self.refresh_button.setToolTip("Refresh model list")
+        self.refresh_button.setToolTip(_("Refresh model list"))
         self.refresh_button.setMaximumWidth(30)
         self.refresh_button.clicked.connect(self.refresh_models)
         model_header.addWidget(self.model_label)
@@ -122,7 +122,7 @@ class PromptsWindow(QDialog):
 
         # Max Tokens
         tokens_layout = QVBoxLayout()
-        self.max_tokens_label = QLabel("Max Tokens:")
+        self.max_tokens_label = QLabel(_("Max Tokens:"))
         self.max_tokens_spin = QSpinBox()
         self.max_tokens_spin.setRange(1, 32000)
         self.max_tokens_spin.setValue(2000)
@@ -132,7 +132,7 @@ class PromptsWindow(QDialog):
 
         # Temperature
         temp_layout = QVBoxLayout()
-        self.temp_label = QLabel("Temperature:")
+        self.temp_label = QLabel(_("Temperature:"))
         self.temp_spin = QDoubleSpinBox()
         self.temp_spin.setRange(0.0, 2.0)
         self.temp_spin.setSingleStep(0.1)
@@ -162,7 +162,7 @@ class PromptsWindow(QDialog):
 
         # Bottom: Save All button
         btn_layout = QHBoxLayout()
-        self.save_all_button = QPushButton("Save All")
+        self.save_all_button = QPushButton(_("Save All"))
         self.save_all_button.clicked.connect(self.save_prompts)
         btn_layout.addStretch()
         btn_layout.addWidget(self.save_all_button)
@@ -208,7 +208,7 @@ class PromptsWindow(QDialog):
 
         if not use_cache:
             self.model_combo.clear()
-            self.model_combo.addItem("Loading models...")
+            self.model_combo.addItem(_("Loading models..."))
             self.model_combo.setEnabled(False)
             self.refresh_button.setEnabled(False)
             QApplication.processEvents()
@@ -218,13 +218,13 @@ class PromptsWindow(QDialog):
             provider = WWApiAggregator.aggregator.get_provider(provider_name)
             self.on_models_updated(provider.get_available_models(not use_cache), None)
         except Exception as e:
-            self.on_models_updated([], f"Error fetching models: {e}")
+            self.on_models_updated([], _("Error fetching models: {}").format(str(e)))
 
     def on_models_updated(self, models, error_msg):
         """Handle updated model list from the fetcher."""
         self.model_combo.clear()
         self.model_combo.addItems(models)
-        self.model_combo.addItem("Custom...")
+        self.model_combo.addItem(_("Custom..."))
 
         self.model_combo.setEnabled(True)
         self.refresh_button.setEnabled(True)
@@ -245,10 +245,10 @@ class PromptsWindow(QDialog):
 
     def handle_custom_model(self, model_name):
         """Handle selection of custom model."""
-        if model_name == "Custom...":
+        if model_name == _("Custom..."):
             custom_model, ok = QInputDialog.getText(
-                self, "Custom Model",
-                "Enter the model identifier:"
+                self, _("Custom Model"),
+                _("Enter the model identifier:")
             )
             if ok and custom_model.strip():
                 # Temporarily block signals to prevent recursion
@@ -293,7 +293,7 @@ class PromptsWindow(QDialog):
                     # Set the warning icon on the left of the prompt name
                     icon_path = os.path.join("assets", "icons", "alert-triangle.svg")
                     child.setIcon(0, QIcon(icon_path))
-                    tooltip += "\nDefault prompt (read-only): LLM settings cannot be modified."
+                    tooltip += _("\nDefault prompt (read-only): LLM settings cannot be modified.")
                 child.setToolTip(0, tooltip)
                 child.setData(0, Qt.UserRole, {
                     "type": "prompt",
@@ -346,7 +346,7 @@ class PromptsWindow(QDialog):
                 self.model_combo.setEnabled(False)
                 self.max_tokens_spin.setEnabled(False)
                 self.temp_spin.setEnabled(False)
-                tooltip_msg = "Default prompts are read-only. LLM settings cannot be modified."
+                tooltip_msg = _("Default prompts are read-only. LLM settings cannot be modified.")
                 self.provider_combo.setToolTip(tooltip_msg)
                 self.model_combo.setToolTip(tooltip_msg)
                 self.max_tokens_spin.setToolTip(tooltip_msg)
@@ -411,7 +411,7 @@ class PromptsWindow(QDialog):
                 json.dump(self.prompts_data, f, indent=4)
             with open(self.backup_file, "w", encoding="utf-8") as f:
                 json.dump(self.prompts_data, f, indent=4)
-            QMessageBox.information(self, "Save All", "Prompts saved successfully.")
+            QMessageBox.information(self, _("Save All"), _("Prompts saved successfully."))
             
             # Refresh the tree. This will rebuild all items, so we must avoid holding on to any old references.
             self.refresh_tree()
@@ -421,7 +421,7 @@ class PromptsWindow(QDialog):
                 self.reselect_prompt_by_name(prompt_name)
 
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Error saving prompts: {e}")
+            QMessageBox.warning(self, _("Error"), _("Error saving prompts: {}").format(str(e)))
 
     def reselect_prompt_by_name(self, prompt_name):
         """
@@ -460,24 +460,24 @@ class PromptsWindow(QDialog):
         menu = QMenu()
 
         if data.get("type") == "category":
-            new_action = menu.addAction("New Prompt")
+            new_action = menu.addAction(_("New Prompt"))
             action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
             if action == new_action:
                 self.add_new_prompt(item)
         elif data.get("type") == "prompt":
             if data.get("default", False):
-                replicate_action = menu.addAction("Replicate")
-                info_action = menu.addAction("Default prompt (read-only)")
+                replicate_action = menu.addAction(_("Replicate"))
+                info_action = menu.addAction(_("Default prompt (read-only)"))
                 action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
                 if action == replicate_action:
                     self.replicate_prompt()
                 return
 
-            rename_action = menu.addAction("Rename")
-            move_up_action = menu.addAction("Move Up")
-            move_down_action = menu.addAction("Move Down")
-            delete_action = menu.addAction("Delete")
-            save_action = menu.addAction("Save")
+            rename_action = menu.addAction(_("Rename"))
+            move_up_action = menu.addAction(_("Move Up"))
+            move_down_action = menu.addAction(_("Move Down"))
+            delete_action = menu.addAction(_("Delete"))
+            save_action = menu.addAction(_("Save"))
 
             action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
             if action == rename_action:
@@ -495,7 +495,7 @@ class PromptsWindow(QDialog):
         """Add a new prompt to a category."""
         cat_data = category_item.data(0, Qt.UserRole)
         category_name = cat_data.get("name")
-        name, ok = QInputDialog.getText(self, "New Prompt", "Enter prompt name:")
+        name, ok = QInputDialog.getText(self, _("New Prompt"), _("Enter prompt name:"))
         if not ok or not name.strip():
             return
 
@@ -534,8 +534,8 @@ class PromptsWindow(QDialog):
         """Save the current prompt's changes to prompts_data and file."""
         data = prompt_item.data(0, Qt.UserRole)
         if data.get("type") != "prompt" or data.get("default", False):
-            QMessageBox.information(self, "Save Prompt",
-                                    "Cannot save: Either not a prompt or it is a default prompt (read-only).")
+            QMessageBox.information(self, _("Save Prompt"),
+                                    _("Cannot save: Either not a prompt or it is a default prompt (read-only)."))
             return
 
         # Update the prompt data with current UI values
@@ -578,7 +578,7 @@ class PromptsWindow(QDialog):
                 json.dump(self.prompts_data, f, indent=4)
             with open(self.backup_file, "w", encoding="utf-8") as f:
                 json.dump(self.prompts_data, f, indent=4)
-            QMessageBox.information(self, "Save Prompt", f"Prompt '{data['name']}' saved successfully.")
+            QMessageBox.information(self, _("Save Prompt"), _("Prompt '{}' saved successfully.").format(data['name']))
             
             # Refresh the tree to reflect changes
             self.refresh_tree()
@@ -587,19 +587,19 @@ class PromptsWindow(QDialog):
             self.reselect_prompt_by_name(data["name"])
 
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Error saving prompt: {e}")
+            QMessageBox.warning(self, _("Error"), _("Error saving prompt: {}").format(str(e)))
 
     def rename_prompt(self, prompt_item):
         """Rename a prompt."""
         data = prompt_item.data(0, Qt.UserRole)
         if data.get("default", False):
-            QMessageBox.information(self, "Rename Prompt",
-                                    "Default prompts cannot be renamed.")
+            QMessageBox.information(self, _("Rename Prompt"),
+                                    _("Default prompts cannot be renamed."))
             return
 
         current_name = data.get("name")
         new_name, ok = QInputDialog.getText(
-            self, "Rename Prompt", "Enter new prompt name:", text=current_name)
+            self, _("Rename Prompt"), _("Enter new prompt name:"), text=current_name)
         if ok and new_name.strip():
             new_name = new_name.strip()
             data["name"] = new_name
@@ -616,8 +616,8 @@ class PromptsWindow(QDialog):
         """Move a prompt up or down in its category."""
         data = prompt_item.data(0, Qt.UserRole)
         if data.get("default", False):
-            QMessageBox.information(self, "Move Prompt",
-                                    "Default prompts cannot be moved.")
+            QMessageBox.information(self, _("Move Prompt"),
+                                    _("Default prompts cannot be moved."))
             return
 
         parent = prompt_item.parent()
@@ -640,8 +640,8 @@ class PromptsWindow(QDialog):
         """Delete a prompt."""
         data = prompt_item.data(0, Qt.UserRole)
         if data.get("default", False):
-            QMessageBox.information(self, "Delete Prompt",
-                                    "Default prompts cannot be deleted.")
+            QMessageBox.information(self, _("Delete Prompt"),
+                                    _("Default prompts cannot be deleted."))
             return
 
         name = data.get("name")
@@ -650,7 +650,7 @@ class PromptsWindow(QDialog):
             return
 
         category = parent.text(0)
-        reply = QMessageBox.question(self, "Delete Prompt", f"Delete prompt '{name}'?",
+        reply = QMessageBox.question(self, _("Delete Prompt"), _("Delete prompt '{}'?").format(name),
                                      QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             prompts = self.prompts_data.get(category, [])
@@ -669,8 +669,8 @@ class PromptsWindow(QDialog):
         if not data or not data.get("default", False):
             return
         new_name, ok = QInputDialog.getText(
-            self, "Replicate Prompt",
-            "Enter name for the new prompt:",
+            self, _("Replicate Prompt"),
+            _("Enter name for the new prompt:"),
             text=data.get("name") + " Copy"
         )
         if not ok or not new_name.strip():
@@ -688,7 +688,7 @@ class PromptsWindow(QDialog):
             parent_item.setExpanded(True)
             self.tree.setCurrentItem(new_child)
             self.on_item_clicked(new_child, 0)
-            QMessageBox.information(self, "Replicated", "Prompt replicated. You can now edit the new prompt.")
+            QMessageBox.information(self, _("Replicated"), _("Prompt replicated. You can now edit the new prompt."))
 
     def show_provider_info(self):
         dialog = ProviderInfoDialog(self)

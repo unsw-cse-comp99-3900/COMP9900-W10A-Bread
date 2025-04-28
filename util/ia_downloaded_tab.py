@@ -1,7 +1,9 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QComboBox, QDateEdit, QCheckBox, QTreeView, QFileSystemModel, QMessageBox, QAbstractItemView, QMenu, QDialog, QScrollArea, QTextEdit, QShortcut
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QComboBox, QDateEdit, QCheckBox, QTreeView, QFileSystemModel, QMessageBox, QAbstractItemView, QMenu, QDialog, QScrollArea, QTextEdit, QShortcut, QHeaderView
 from PyQt5.QtCore import Qt, QItemSelectionModel, QUrl, QDate, QObject, pyqtSignal
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-from PyQt5.QtGui import QPixmap, QDesktopServices, QImage, QKeySequence
+from PyQt5.QtGui import QPixmap, QDesktopServices, QImage, QKeySequence, QTextDocument, QTextCursor, QIcon
+from workshop.rag_pdf import PdfRagApp
+from util.whisper_app import WhisperApp
 from pathlib import Path
 import os
 import datetime
@@ -145,6 +147,12 @@ class DownloadedTab(QWidget):
         self.downloaded_tree.setSortingEnabled(True)
         self.downloaded_tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.downloaded_tree.doubleClicked.connect(self.open_downloaded_file)
+        
+        # Set the Name column width to be wider than others
+        self.downloaded_tree.header().setStretchLastSection(False)
+        self.downloaded_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)  # Make Name column stretch
+        for i in range(1, self.downloaded_model.columnCount()):
+            self.downloaded_tree.header().setSectionResizeMode(i, QHeaderView.ResizeToContents)
 
         # Set up context menu for the tree view
         self.downloaded_tree.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -161,6 +169,25 @@ class DownloadedTab(QWidget):
         self.delete_selected_btn = QPushButton("Delete Selected")
         self.delete_selected_btn.clicked.connect(self.delete_selected_files)
 
+        # Tools buttons layout
+        tools_layout = QHBoxLayout()
+        
+        # PDF RAG Button
+        self.pdf_rag_btn = QPushButton()
+        self.pdf_rag_btn.setIcon(QIcon("assets/icons/file-text.svg"))
+        self.pdf_rag_btn.setToolTip("Document Analysis (PDF/Images)")
+        self.pdf_rag_btn.clicked.connect(self.open_pdf_rag_tool)
+        
+        # Whisper App Button
+        self.whisper_app_btn = QPushButton()
+        self.whisper_app_btn.setIcon(QIcon("assets/icons/mic.svg"))
+        self.whisper_app_btn.setToolTip("Open Whisper")
+        self.whisper_app_btn.clicked.connect(self.open_whisper_app)
+        
+        tools_layout.addWidget(self.pdf_rag_btn)
+        tools_layout.addWidget(self.whisper_app_btn)
+        tools_layout.addStretch()  # Add stretch to push buttons to the left
+        
         file_management_layout.addWidget(self.refresh_btn)
         file_management_layout.addWidget(self.select_all_files_btn)
         file_management_layout.addWidget(self.remove_empty_folders_btn)
@@ -174,12 +201,24 @@ class DownloadedTab(QWidget):
         layout.addWidget(QLabel("Downloaded Files:"))
         layout.addWidget(self.downloaded_tree)
         layout.addLayout(file_management_layout)
+        layout.addWidget(QLabel("Tools:"))
+        layout.addLayout(tools_layout)
 
         # Store the original filter state
         self.original_filter_state = {
             "name_filters": [],
             "name_filter_enabled": False
         }
+
+    def open_pdf_rag_tool(self):
+        """Open the PDF RAG processor as independent window"""
+        self.pdf_window = PdfRagApp()
+        self.pdf_window.show()
+
+    def open_whisper_app(self):
+        """Open the WhisperApp as independent window"""
+        self.whisper_app = WhisperApp()
+        self.whisper_app.show()
 
     def apply_file_filter(self):
         """Apply text filter to the file system model."""
@@ -481,7 +520,7 @@ class DownloadedTab(QWidget):
                 QMessageBox.critical(self, "Error", f"Failed to open file: {str(e)}")
 
     def show_text(self, data: bytes, filename: str):
-        """Display text content in a scrollable editor with improved formatting."""
+        """Display text content in a scrollable editor with improved formatting and search functionality."""
         try:
             text = data.decode('utf-8')
         except UnicodeDecodeError as e:
@@ -491,6 +530,35 @@ class DownloadedTab(QWidget):
         dlg = QDialog(self)
         dlg.setWindowTitle(f"Text Preview: {filename}")
         layout = QVBoxLayout(dlg)
+        
+        # Add integrated search bar (initially hidden)
+        search_container = QWidget()
+        search_layout = QHBoxLayout(search_container)
+        search_layout.setContentsMargins(0, 0, 0, 0)
+        
+        search_field = QLineEdit()
+        search_field.setPlaceholderText("Search text...")
+        search_layout.addWidget(search_field)
+        
+        case_sensitive = QCheckBox("Case sensitive")
+        search_layout.addWidget(case_sensitive)
+        
+        whole_words = QCheckBox("Whole words")
+        search_layout.addWidget(whole_words)
+        
+        prev_btn = QPushButton("Previous")
+        search_layout.addWidget(prev_btn)
+        
+        next_btn = QPushButton("Next")
+        search_layout.addWidget(next_btn)
+        
+        close_search_btn = QPushButton("×")
+        close_search_btn.setFixedSize(25, 25)
+        close_search_btn.setToolTip("Close search")
+        search_layout.addWidget(close_search_btn)
+        
+        search_container.setVisible(False)
+        layout.addWidget(search_container)
         
         # Create text editor
         editor = QTextEdit()
@@ -531,6 +599,80 @@ class DownloadedTab(QWidget):
         # Add keyboard shortcut for F11
         QShortcut(Qt.Key_F11, dlg).activated.connect(
             lambda: self.toggle_fullscreen(dlg, btn_fullscreen)
+        )
+        
+        # Function to toggle search bar visibility
+        def toggle_search_bar():
+            search_container.setVisible(not search_container.isVisible())
+            if search_container.isVisible():
+                search_field.setFocus()
+                search_field.selectAll()
+        
+        # Function to handle search
+        def find_text(direction=1):
+            search_text = search_field.text()
+            if not search_text:
+                return
+            
+            # Set search options
+            flags = QTextDocument.FindFlags()
+            if case_sensitive.isChecked():
+                flags |= QTextDocument.FindCaseSensitively
+            if whole_words.isChecked():
+                flags |= QTextDocument.FindWholeWords
+            if direction < 0:
+                flags |= QTextDocument.FindBackward
+            
+            # Perform search
+            cursor = editor.textCursor()
+            # If searching backwards, we need to move cursor to selection start
+            if direction < 0 and cursor.hasSelection():
+                position = cursor.selectionStart()
+                cursor.setPosition(position)
+                editor.setTextCursor(cursor)
+                
+            found = editor.find(search_text, flags)
+            
+            # If not found, try wrapping around
+            if not found:
+                # Save current cursor
+                temp_cursor = editor.textCursor()
+                # Move to beginning/end based on direction
+                cursor = editor.textCursor()
+                if direction > 0:
+                    cursor.movePosition(QTextCursor.Start)
+                else:
+                    cursor.movePosition(QTextCursor.End)
+                editor.setTextCursor(cursor)
+                
+                # Try search again
+                found = editor.find(search_text, flags)
+                
+                # If still not found, restore original cursor
+                if not found:
+                    editor.setTextCursor(temp_cursor)
+                    QMessageBox.information(dlg, "Search Result", f"No matches found for '{search_text}'")
+        
+        # Search connections
+        shortcut_find = QShortcut(QKeySequence("Ctrl+F"), dlg)
+        shortcut_find.activated.connect(toggle_search_bar)
+        
+        close_search_btn.clicked.connect(toggle_search_bar)
+        
+        search_field.returnPressed.connect(lambda: find_text(1))
+        next_btn.clicked.connect(lambda: find_text(1))
+        prev_btn.clicked.connect(lambda: find_text(-1))
+        
+        # Additional keyboard shortcuts for search
+        shortcut_find_next = QShortcut(QKeySequence("F3"), dlg)
+        shortcut_find_next.activated.connect(lambda: find_text(1))
+        
+        shortcut_find_prev = QShortcut(QKeySequence("Shift+F3"), dlg)
+        shortcut_find_prev.activated.connect(lambda: find_text(-1))
+        
+        shortcut_close_search = QShortcut(QKeySequence("Escape"), dlg)
+        shortcut_close_search.activated.connect(lambda: 
+            search_container.setVisible(False) if search_container.isVisible() else None
         )
         
         dlg.exec_()

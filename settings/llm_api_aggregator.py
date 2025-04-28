@@ -528,20 +528,6 @@ class LMStudioProvider(LLMProviderBase):
             )
         return self.llm_instance
 
-    def get_model_details(self, do_refresh: bool = False) -> List[Dict[str, Any]]:
-        """Returns detailed information about available LMStudio models."""
-        if do_refresh or self.cached_models is None:
-            self.cached_models = [
-                {
-                    "id": "local-model",
-                    "name": "Local Model",
-                    "description": "LMStudio local model",
-                    "context_length": 4096,
-                    "pricing": {"prompt": "0", "completion": "0", "request": "0"},
-                    "architecture": {"modality": "text->text", "instruct_type": "general"}
-                }
-            ]
-        return self.cached_models
 
 class CustomProvider(LLMProviderBase):
     """Custom LLM provider implementation for local network tools."""

@@ -558,20 +558,6 @@ class CustomProvider(LLMProviderBase):
             )
         return self.llm_instance
 
-    def get_model_details(self, do_refresh: bool = False) -> List[Dict[str, Any]]:
-        """Returns detailed information about available Custom models."""
-        if do_refresh or self.cached_models is None:
-            self.cached_models = [
-                {
-                    "id": "custom-model",
-                    "name": "Custom Model",
-                    "description": "Custom local model",
-                    "context_length": 4096,
-                    "pricing": {"prompt": "0", "completion": "0", "request": "0"},
-                    "architecture": {"modality": "text->text", "instruct_type": "general"}
-                }
-            ]
-        return self.cached_models
 
 class WW_Aggregator:
     """Main aggregator class for managing LLM providers."""

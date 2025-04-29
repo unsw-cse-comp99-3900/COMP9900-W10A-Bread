@@ -21,6 +21,7 @@ from .rewrite_feature import RewriteDialog
 from util.tts_manager import WW_TTSManager
 from compendium.compendium_panel import CompendiumPanel
 from settings.backup_manager import show_backup_dialog
+from settings.llm_api_aggregator import WWApiAggregator
 from settings.llm_worker import LLMWorker
 from settings.settings_manager import WWSettingsManager
 from settings.theme_manager import ThemeManager
@@ -125,6 +126,8 @@ class ProjectWindow(QMainWindow):
             self.update_pov_character_dropdown()
             if self.bottom_stack.pov_character_combo:
                 self.restore_pov_character(current_pov)
+                if self.bottom_stack.pov_character_combo.currentText() != current_pov:
+                    self.handle_pov_character_change()
 
     def get_tinted_icon(self, file_path, tint_color=None):
         """Generate a tinted icon from a file path."""
@@ -345,7 +348,7 @@ class ProjectWindow(QMainWindow):
         self.update_setting_tooltips()
         self.model.save_settings()
 
-    def handle_pov_character_change(self, index):
+    def handle_pov_character_change(self, index=0):
         value = self.bottom_stack.pov_character_combo.currentText()
         if value == _("Custom..."):
             custom, ok = QInputDialog.getText(self, _("Custom POV Character"), _("Enter custom POV Character:"), text=self.model.settings["global_pov_character"])
@@ -402,14 +405,7 @@ class ProjectWindow(QMainWindow):
             QMessageBox.warning(self, _("LLM Prompt"), _("Please select a prompt."))
             return
         overrides = self.bottom_stack.prose_prompt_panel.get_overrides()
-        
-        additional_vars = {
-            "pov": self.model.settings["global_pov"] or _("Third Person"),
-            "pov_character": self.model.settings["global_pov_character"] or _("Character"),
-            "tense": self.model.settings["global_tense"] or _("Present Tense"),
-            # Add more ad-hoc tags here if needed, e.g., "assistant": "Grok"
-        }
-        
+        additional_vars = self.bottom_stack.get_additional_vars()
         current_scene_text = self.scene_editor.editor.toPlainText().strip() if self.project_tree.tree.currentItem() and self.project_tree.get_item_level(self.project_tree.tree.currentItem()) >= 2 else None
         extra_context = self.bottom_stack.context_panel.get_selected_context_text()
         
@@ -497,24 +493,28 @@ class ProjectWindow(QMainWindow):
         self.bottom_stack.preview_text.insertPlainText(text)
 
     def cleanup_worker(self):
+        logging.debug(f"Starting cleanup_worker, worker: {id(self.worker) if self.worker else None}")
         try:
-            if self.worker and self.worker.isRunning():
-                self.worker.wait(5000)  # Wait for the thread to fully stop
-                if self.worker.isRunning():
-                    # Thread didn't stop in time; log and attempt to stop gracefully
-                    print("Warning: LLMWorker did not stop in time; forcing stop")
-                    self.worker.stop()
             if self.worker:
+                worker_id = id(self.worker)
+                if self.worker.isRunning():
+                    logging.debug(f"Stopping worker {worker_id}")
+                    self.worker.stop()
+                    self.worker.wait(5000)  # Wait up to 5 seconds for the thread to stop
+                    if self.worker.isRunning():
+                        logging.warning(f"Worker {worker_id} did not stop in time; skipping termination")
                 try:
+                    logging.debug(f"Disconnecting signals for worker {worker_id}")
                     self.worker.data_received.disconnect()
                     self.worker.finished.disconnect()
                     self.worker.token_limit_exceeded.disconnect()
-                except TypeError:
-                    pass  # Signals may already be disconnected
+                except TypeError as e:
+                    logging.debug(f"Signal disconnection error for worker {worker_id}: {e}")
+                logging.debug(f"Scheduling worker {worker_id} for deletion")
                 self.worker.deleteLater()  # Schedule deletion
                 self.worker = None  # Clear reference
         except Exception as e:
-            print(f"Error cleaning up LLMWorker: {e}")
+            logging.error(f"Error cleaning up LLMWorker: {e}", exc_info=True)
             QMessageBox.critical(self, _("Thread Error"), _("An error occurred while stopping the LLM thread: {}").format(str(e)))
 
     def on_finished(self):
@@ -536,11 +536,20 @@ class ProjectWindow(QMainWindow):
         logging.debug(f"Active threads: {threading.enumerate()}")
 
     def stop_llm(self):
-        if hasattr(self, 'worker') and self.worker and self.worker.isRunning():
-            self.worker.terminate()
-        self.bottom_stack.send_button.setEnabled(True)
-        self.bottom_stack.preview_text.setReadOnly(False)
-        self.cleanup_worker()
+        logging.debug(f"Starting stop_llm, worker: {id(self.worker) if self.worker else None}")
+        try:
+            if hasattr(self, 'worker') and self.worker and self.worker.isRunning():
+                logging.debug("Calling worker.stop()")
+                self.worker.stop()
+                logging.debug("Calling WWApiAggregator.interrupt()")
+                WWApiAggregator.interrupt()
+            self.bottom_stack.send_button.setEnabled(True)
+            self.bottom_stack.preview_text.setReadOnly(False)
+            logging.debug("Calling cleanup_worker")
+            self.cleanup_worker()
+        except Exception as e:
+            logging.error(f"Error in stop_llm: {e}", exc_info=True)
+            QMessageBox.critical(self, _("Error"), _("An error occurred while stopping the LLM: {}").format(str(e)))
 
     def apply_preview(self):
         """Appends the LLM's output to the scene editor."""
@@ -753,8 +762,8 @@ class ProjectWindow(QMainWindow):
         characters.append(_("Custom..."))
         self.bottom_stack.pov_character_combo.blockSignals(True)
         self.bottom_stack.pov_character_combo.clear()
-        self.bottom_stack.pov_character_combo.addItems(characters)
         self.bottom_stack.pov_character_combo.blockSignals(False)
+        self.bottom_stack.pov_character_combo.addItems(characters)
 
     def restore_pov_character(self, previous_pov):
         """Restore the previous POV character if it still exists, otherwise handle appropriately."""

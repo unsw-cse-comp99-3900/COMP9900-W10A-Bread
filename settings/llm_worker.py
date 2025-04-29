@@ -19,11 +19,12 @@ class LLMWorker(QThread):
     def run(self):
         logging.debug(f"LLMWorker started: {id(self)}")
         try:
-            for i, chunk in enumerate(WWApiAggregator.stream_prompt_to_llm(self.prompt, self.overrides, self.conversation_history)):
+            i = 0  # Initialize chunk counter
+            for i, chunk in enumerate(WWApiAggregator.stream_prompt_to_llm(self.prompt, self.overrides, self.conversation_history), 1):
                 if not self._is_running:  # Check if thread should stop
                     logging.debug("LLMWorker interrupted")
                     break
-                if i == 0 and self.is_token_limit_error(chunk):
+                if i == 1 and self.is_token_limit_error(chunk):
                     self.token_limit_exceeded.emit(chunk)
                     logging.debug("LLMWorker: Token limit error detected")
                     return
@@ -35,15 +36,20 @@ class LLMWorker(QThread):
             logging.debug(f"LLMWorker: Streaming completed processing {i} chunks")
             self.finished.emit()
         except Exception as e:
-            logging.error(f"LLMWorker error: {e}")
+            logging.error(f"LLMWorker streaming error: {e}")
             self.data_received.emit(f"Error: {e}")
             self.finished.emit()
-        logging.debug(f"LLMWorker finished: {id(self)}")
+        finally:
+            logging.debug(f"LLMWorker finished: {id(self)}")
 
     def stop(self):
-        self._is_running = False  # Signal the thread to stop
-        self.wait()  # Wait for the thread to finish
         logging.debug(f"LLMWorker stopped: {id(self)}")
+        try:
+            self._is_running = False  # Signal the thread to stop
+            self.wait()  # Wait for the thread to finish. Should we self.quit()?
+        except Exception as e:
+            logging.error(f"Error in LLMWorker.stop: {e}", exc_info=True)
+            raise
 
     def is_auth_error(self, response):
         """Check if the response indicates an authentication error."""

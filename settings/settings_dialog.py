@@ -84,6 +84,10 @@ class SettingsDialog(QDialog):
         self.show_quote_checkbox.stateChanged.connect(self.mark_unsaved_changes)
         layout.addRow(self.show_quote_checkbox)
 
+        self.enable_debug_logging_checkbox = QCheckBox(_("Enable Debug Logging"))
+        self.enable_debug_logging_checkbox.stateChanged.connect(self.mark_unsaved_changes)
+        layout.addRow(self.enable_debug_logging_checkbox)
+
         self.language_combobox = QComboBox()
         self.language_combobox.setMinimumWidth(80)
         self.language_combobox.addItems(LANGUAGES)
@@ -329,6 +333,7 @@ class SettingsDialog(QDialog):
         self.fast_tts_checkbox.setText(_("Fast Text to Speech"))
         self.enable_autosave_checkbox.setText(_("Enable Auto-Save"))
         self.show_quote_checkbox.setText(_("Show Random Quotes"))
+        self.enable_debug_logging_checkbox.setText(_("Enable Debug Logging"))
         self.language_label.setText(_("Language"))
         self.theme_label.setText(_("Theme"))
         self.background_color_button.setText(_("Background Color"))
@@ -351,6 +356,7 @@ class SettingsDialog(QDialog):
         """Loads the settings values into the UI elements."""
         self.fast_tts_checkbox.setChecked(self.general_settings["fast_tts"])
         self.enable_autosave_checkbox.setChecked(self.general_settings["enable_autosave"])
+        self.enable_debug_logging_checkbox.setChecked(self.general_settings.get("enable_debug_logging", False))
         index = self.language_combobox.findText(self.general_settings["language"])
         if index >= 0:
             self.language_combobox.setCurrentIndex(index)
@@ -370,6 +376,7 @@ class SettingsDialog(QDialog):
         self.general_settings["fast_tts"] = self.fast_tts_checkbox.isChecked()
         self.general_settings["enable_autosave"] = self.enable_autosave_checkbox.isChecked()
         self.general_settings["show_random_quote"] = self.show_quote_checkbox.isChecked()
+        self.general_settings["enable_debug_logging"] = self.enable_debug_logging_checkbox.isChecked()
         self.general_settings["language"] = self.language_combobox.currentText()
         self.appearance_settings["theme"] = self.theme_combobox.currentText()
         self.appearance_settings["text_size"] = self.text_size_spinbox.value()

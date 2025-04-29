@@ -44,7 +44,8 @@ class BottomStack(QWidget):
 
         # LLM Settings Group
         self.summary_prompt_panel = PromptPanel("Summary")
-        self.summary_prompt_panel.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        self.summary_prompt_panel.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.summary_prompt_panel.setMaximumWidth(300)
         layout.addWidget(self.summary_prompt_panel)
 
         self.summary_preview_button = QPushButton()
@@ -101,7 +102,8 @@ class BottomStack(QWidget):
 
         # LLM Settings Group
         self.prose_prompt_panel = PromptPanel("Prose")
-        self.prose_prompt_panel.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        self.prose_prompt_panel.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.prose_prompt_panel.setMaximumWidth(300)
         buttons_layout.addWidget(self.prose_prompt_panel)
 
         self.preview_button = QPushButton()
@@ -197,18 +199,26 @@ class BottomStack(QWidget):
             context_panel.setVisible(True)
             self.context_toggle_button.setIcon(self.controller.get_tinted_icon("assets/icons/book-open.svg"))
 
-    def preview_prompt(self):
-        additional_vars = {
-            "pov": self.model.settings["global_pov"] or _("Third Person"),
-            "pov_character": self.model.settings["global_pov_character"] or _("Character"),
-            "tense": self.model.settings["global_tense"] or _("Present Tense"),
+    def get_additional_vars(self):
+        return {
+            "pov": self.pov_combo.currentText(),
+            "pov_character": self.pov_character_combo.currentText(),
+            "tense": self.tense_combo.currentText()
         }
-
+    
+    def preview_prompt(self):
+        additional_vars = self.get_additional_vars()
         prompt_config = self.prose_prompt_panel.get_prompt()
         action_beats = self.prompt_input.toPlainText().strip()
         current_scene_text = self.scene_editor.editor.toPlainText().strip() if self.controller.project_tree.tree.currentItem() and self.controller.project_tree.get_item_level(self.controller.project_tree.tree.currentItem()) >= 2 else None
         extra_context = self.context_panel.get_selected_context_text()
         
         # Show the preview dialog
-        dialog = PromptPreviewDialog(prompt_config, action_beats, additional_vars, current_scene_text, extra_context, self.controller)
+        dialog = PromptPreviewDialog(
+            self.controller,
+            prompt_config=prompt_config, 
+            user_input=action_beats, 
+            additional_vars=additional_vars, 
+            current_scene_text=current_scene_text, 
+            extra_context=extra_context)
         dialog.exec_()

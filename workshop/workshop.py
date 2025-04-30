@@ -99,7 +99,7 @@ class WorkshopWindow(QDialog):
         self.conversation_list = QListWidget()
         self.conversation_list.setContextMenuPolicy(Qt.CustomContextMenu)
         self.conversation_list.customContextMenuRequested.connect(self.show_conversation_context_menu)
-        self.conversation_list.itemClicked.connect(self.load_conversation_from_list)
+        self.conversation_list.itemSelectionChanged.connect(self.on_conversation_selection_changed)
         conversation_layout.addWidget(self.conversation_list)
 
         new_chat_button = QPushButton(_("New Chat"))
@@ -240,16 +240,16 @@ class WorkshopWindow(QDialog):
 
         main_layout.addWidget(self.outer_splitter)
         
-    def open_pdf_rag_tool(self):
-        """Open the PDF RAG processor as independent window"""
-        self.pdf_window = PdfRagApp()
-        self.pdf_window.show()
-
         # Shortcuts for zoom
         self.zoom_in_shortcut = QShortcut(QKeySequence("Ctrl+="), self)
         self.zoom_in_shortcut.activated.connect(self.zoom_in)
         self.zoom_out_shortcut = QShortcut(QKeySequence("Ctrl+-"), self)
         self.zoom_out_shortcut.activated.connect(self.zoom_out)
+
+    def open_pdf_rag_tool(self):
+        """Open the PDF RAG processor as independent window"""
+        self.pdf_window = PdfRagApp()
+        self.pdf_window.show()
 
     def read_settings(self):
         settings = QSettings("MyCompany", "WritingwayProject")
@@ -373,15 +373,31 @@ class WorkshopWindow(QDialog):
             self.context_panel.setVisible(True)
             self.context_button.setIcon(QIcon("assets/icons/book-open.svg"))
 
+    def generate_unique_chat_name(self):
+        """Generate a unique chat name in the format 'Chat <number>'."""
+        existing_numbers = []
+        chat_pattern = re.compile(r'^Chat (\d+)$')
+        
+        # Extract numbers from existing chat names that match 'Chat <number>'
+        for name in self.conversations.keys():
+            match = chat_pattern.match(name)
+            if match:
+                existing_numbers.append(int(match.group(1)))
+        
+        # Find the next largest positive integer
+        number = 1
+        for n in existing_numbers:
+            if n >= number:
+                number = n + 1
+        
+        return f"Chat {number}"
+
     def new_conversation(self):
-        new_chat_number = self.conversation_list.count() + 1
-        new_chat_name = f"Chat {new_chat_number}"
+        """Create a new conversation with a unique name."""
+        new_chat_name = self.generate_unique_chat_name()
         self.conversations[new_chat_name] = []
         self.conversation_list.addItem(new_chat_name)
-        self.conversation_list.setCurrentRow(new_chat_number-1)
-        self.current_conversation = new_chat_name
-        self.conversation_history = self.conversations[new_chat_name]
-        self.chat_log.clear()
+        self.conversation_list.setCurrentRow(self.conversation_list.count() - 1)
         self.save_conversations()
 
     def get_scene_text(self, scene_name):
@@ -615,7 +631,7 @@ class WorkshopWindow(QDialog):
                     self.worker.data_received.disconnect()
                     self.worker.finished.disconnect()
                     self.worker.token_limit_exceeded.disconnect()
-                except TypeError:
+                except TypeError as e:
                     logging.debug(f"Signal disconnection error for worker {worker_id}: {e}")
                 logging.debug(f"Scheduling worker {worker_id} for deletion")
                 self.worker.deleteLater()  # Schedule deletion
@@ -638,20 +654,8 @@ class WorkshopWindow(QDialog):
             item = item.parent()
         return hierarchy
 
-    def load_conversation_from_list(self, item: QListWidgetItem):
-        selected_name = item.text()
-        self.current_conversation = selected_name
-        self.conversation_history = self.conversations.get(selected_name, [])
-        self.chat_log.clear()
-        for msg in self.conversation_history:
-            role = msg.get("role", "Unknown")
-            content = msg.get("content", "")
-            self.chat_log.append(f"{role.capitalize()}: {content}\n")
-        self.format_chat_log_html()
-        if not self._is_initial_load:
-            self.save_conversations()
-
     def show_conversation_context_menu(self, pos: QPoint):
+        """Show context menu for conversation list items."""
         item = self.conversation_list.itemAt(pos)
         if item is None:
             return
@@ -665,39 +669,117 @@ class WorkshopWindow(QDialog):
             self.delete_conversation(item)
 
     def rename_conversation(self, item: QListWidgetItem):
+        """Rename the selected conversation, ensuring no overwrite."""
         current_name = item.text()
-        new_name, ok = QInputDialog.getText(self, _("Rename Conversation"), _("Enter new conversation name:"), text=current_name)
-        if ok and new_name.strip():
+        assert current_name in self.conversations, f"Conversation {current_name} not found in self.conversations"
+
+        while True:
+            new_name, ok = QInputDialog.getText(
+                self, _("Rename Conversation"), 
+                _("Enter new conversation name:"), 
+                text=current_name
+            )
+            if not ok:
+                logging.info(f"User cancelled renaming conversation {current_name}")
+                return  # User cancelled, no changes made
+
             new_name = new_name.strip()
-            self.conversations[new_name] = self.conversations.pop(current_name)
-            item.setText(new_name)
-            if self.current_conversation == current_name:
-                self.current_conversation = new_name
-            self.save_conversations()
+            if not new_name:
+                QMessageBox.warning(
+                    self, _("Invalid Name"), 
+                    _("The conversation name cannot be empty. Please try again.")
+                )
+                continue
+
+            if new_name == current_name:
+                logging.info(f"User kept same name {current_name} for conversation")
+                return  # No change needed
+
+            if new_name in self.conversations:
+                QMessageBox.warning(
+                    self, _("Name Conflict"), 
+                    _("A conversation named '{}' already exists. Please choose a different name.").format(new_name)
+                )
+                continue
+
+            # Backup conversation data
+            backup_data = self.conversations[current_name].copy()
+            logging.info(f"Renaming conversation from {current_name} to {new_name}")
+
+            try:
+                # Perform rename
+                self.conversations[new_name] = self.conversations.pop(current_name)
+                item.setText(new_name)
+                if self.current_conversation == current_name:
+                    self.current_conversation = new_name
+                self.conversation_list.setCurrentItem(item)  # Ensure item remains selected
+                self.save_conversations()
+
+                # Verify state consistency
+                assert new_name in self.conversations, f"Failed to add {new_name} to self.conversations"
+                assert current_name not in self.conversations, f"{current_name} still in self.conversations"
+                assert item.text() == new_name, f"List item text not updated to {new_name}"
+                logging.info(f"Successfully renamed conversation from {current_name} to {new_name}")
+                break
+
+            except Exception as e:
+                # Restore backup on error
+                self.conversations[current_name] = backup_data
+                if new_name in self.conversations:
+                    del self.conversations[new_name]
+                logging.error(f"Error renaming conversation {current_name} to {new_name}: {e}", exc_info=True)
+                QMessageBox.critical(
+                    self, _("Rename Error"), 
+                    _("An error occurred while renaming the conversation: {}. The operation was cancelled to prevent data loss.").format(str(e))
+                )
+                return
 
     def delete_conversation(self, item: QListWidgetItem):
+        """Delete the selected conversation."""
         conversation_name = item.text()
-        reply = QMessageBox.question(self, _("Delete Conversation"), _("Are you sure you want to delete '{}'?").format(conversation_name),
-                                     QMessageBox.Yes | QMessageBox.No)
+        reply = QMessageBox.question(
+            self, _("Delete Conversation"), 
+            _("Are you sure you want to delete '{}'?").format(conversation_name),
+            QMessageBox.Yes | QMessageBox.No
+        )
         if reply == QMessageBox.Yes:
             row = self.conversation_list.row(item)
             self.conversation_list.takeItem(row)
             if conversation_name in self.conversations:
                 del self.conversations[conversation_name]
-            if self.current_conversation == conversation_name:
-                if self.conversation_list.count() > 0:
-                    new_item = self.conversation_list.item(0)
-                    self.current_conversation = new_item.text()
-                    self.conversation_history = self.conversations.get(self.current_conversation, [])
-                    self.load_conversation_from_list(new_item)
-                else:
-                    self.current_conversation = "Chat 1"
-                    self.conversations[self.current_conversation] = []
-                    self.conversation_list.addItem(self.current_conversation)
-                    self.chat_log.clear()
+            # Check if the list is empty
+            if self.conversation_list.count() == 0:
+                # Create a new default conversation
+                self.current_conversation = "Chat 1"
+                self.conversations[self.current_conversation] = []
+                self.conversation_list.addItem(self.current_conversation)
+                self.conversation_list.setCurrentRow(0)
+            # No need to manually load a conversation; itemSelectionChanged will handle it
+            self.save_conversations()
+
+    def on_conversation_selection_changed(self):
+        """Sync the UI with the currently selected conversation."""
+        selected_items = self.conversation_list.selectedItems()
+        if selected_items:
+            selected_name = selected_items[0].text()
+            self.current_conversation = selected_name
+            self.conversation_history = self.conversations.get(selected_name, [])
+            self.chat_log.clear()
+            for msg in self.conversation_history:
+                role = msg.get("role", "Unknown")
+                content = msg.get("content", "")
+                self.chat_log.append(f"{role.capitalize()}: {content}\n")
+            self.format_chat_log_html()
+        else:
+            # No conversation selected (e.g., list is empty)
+            self.current_conversation = None
+            self.conversation_history = []
+            self.chat_log.clear()
+        if not self._is_initial_load:
             self.save_conversations()
 
     def load_conversations(self):
+        """Load conversations from file and initialize the UI."""
         self._is_initial_load = True
         if os.path.exists("conversations.json"):
             try:
@@ -729,45 +811,48 @@ class WorkshopWindow(QDialog):
                 for conv_name in self.conversations:
                     self.conversation_list.addItem(conv_name)
 
+                # Set selection to last_viewed_chat or first item
                 if last_viewed_chat in self.conversations:
-                    self.current_conversation = last_viewed_chat
-                    self.conversation_history = self.conversations[self.current_conversation]
                     for i in range(self.conversation_list.count()):
                         if self.conversation_list.item(i).text() == last_viewed_chat:
                             self.conversation_list.setCurrentRow(i)
-                            self.load_conversation_from_list(self.conversation_list.item(i))
                             break
                 else:
-                    self.current_conversation = list(self.conversations.keys())[0] if self.conversations else "Chat 1"
-                    if not self.conversations:
-                        self.conversations = {"Chat 1": []}
-                        self.conversation_list.addItem("Chat 1")
-                    self.conversation_history = self.conversations[self.current_conversation]
+                    self.conversations["Chat 1"] = []
+                    self.conversation_list.addItem("Chat 1")
                     self.conversation_list.setCurrentRow(0)
-                    self.load_conversation_from_list(self.conversation_list.item(0))
             except Exception as e:
-                print(f"Error loading conversations: {e}")
+                logging.error(f"Error loading conversations: {e}", exc_info=True)
                 self.conversations = {"Chat 1": []}
-                self.current_conversation = "Chat 1"
                 self.conversation_list.clear()
                 self.conversation_list.addItem("Chat 1")
+                self.conversation_list.setCurrentRow(0)
         else:
-            print("DEBUG: No conversations.json found, initializing default")
+            logging.info("No conversations.json found, initializing default")
             self.conversations = {"Chat 1": []}
-            self.current_conversation = "Chat 1"
             self.conversation_list.clear()
             self.conversation_list.addItem("Chat 1")
+            self.conversation_list.setCurrentRow(0)
         self._is_initial_load = False
 
     def save_conversations(self):
+        """Save conversations to file."""
         try:
+            # Verify state before saving
+            for name in self.conversations:
+                assert isinstance(self.conversations[name], list), f"Conversation {name} has invalid data"
             with open("conversations.json", "w", encoding="utf-8") as f:
                 json.dump({
                     "conversations": self.conversations,
                     "last_viewed_chat": self.current_conversation
                 }, f, indent=4)
+            logging.debug("Conversations saved successfully")
         except Exception as e:
-            print("Error saving conversations:", e)
+            logging.error(f"Error saving conversations: {e}", exc_info=True)
+            QMessageBox.warning(
+                self, _("Save Error"), 
+                _("Failed to save conversations: {}. Your data is safe in memory, but try saving again later.").format(str(e))
+            )
 
     def toggle_recording(self):
         if not self.record_button.isChecked():
@@ -909,3 +994,4 @@ if __name__ == "__main__":
     window = WorkshopWindow()
     window.show()
     sys.exit(app.exec_())
+

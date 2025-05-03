@@ -24,7 +24,10 @@ pydub
 moviepy
 internetarchive
 PyMuPDF
+pymupdf4llm
 pillow
+demucs
+soundfile
 PyQtWebEngine
 boilerpy3
 spylls

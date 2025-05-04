@@ -26,7 +26,7 @@ from settings.settings_manager import WWSettingsManager
 from settings.theme_manager import ThemeManager
 from workshop.workshop import WorkshopWindow
 from util.text_analysis_gui import TextAnalysisApp
-from util.wikidata_dialog import WikidataDialog
+from util.web_llm import MainWindow
 from util.whisper_app import WhisperApp
 from util.ia_window import IAWindow
 from muse.prompts_window import PromptsWindow
@@ -684,9 +684,9 @@ class ProjectWindow(QMainWindow):
         self.analysis_editor_window = TextAnalysisApp(parent=self, initial_text=current_text, save_callback=self.analysis_save_callback)
         self.analysis_editor_window.show()
         
-    def open_wikidata_search(self):
-        self.wikidata_dialog = WikidataDialog(self)
-        self.wikidata_dialog.show()
+    def open_web_llm(self):
+        self.web_llm = MainWindow()
+        self.web_llm.show()
         
     def open_whisper_app(self):
         self.whisper_app = WhisperApp(self)
@@ -715,14 +715,6 @@ class ProjectWindow(QMainWindow):
     def open_workshop(self):
         self.workshop_window = WorkshopWindow(self)
         self.workshop_window.show()
-
-    def show_editor_context_menu(self, pos):
-        menu = self.scene_editor.editor.createStandardContextMenu()
-        cursor = self.scene_editor.editor.textCursor()
-        if cursor.hasSelection():
-            rewrite_action = menu.addAction(_("Rewrite"))
-            rewrite_action.triggered.connect(self.rewrite_selected_text)
-        menu.exec_(self.scene_editor.editor.mapToGlobal(pos))
 
     def rewrite_selected_text(self):
         cursor = self.scene_editor.editor.textCursor()

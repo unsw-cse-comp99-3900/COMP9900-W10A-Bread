@@ -16,7 +16,6 @@ requests==2.31.0
 spacy==3.7.5
 textstat
 tiktoken
-wikipedia-api
 noisereduce
 pyaudio
 whisper
@@ -25,7 +24,10 @@ pydub
 moviepy
 internetarchive
 PyMuPDF
-pillow
 pymupdf4llm
+pillow
 demucs
 soundfile
+PyQtWebEngine
+boilerpy3
+spylls

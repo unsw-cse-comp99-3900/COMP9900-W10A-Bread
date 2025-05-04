@@ -1,9 +1,11 @@
 import sys
 import os
 import json
+import subprocess
 import warnings
 import datetime
 import tempfile
+import time
 import numpy as np
 import noisereduce as nr
 import shutil  # Added for FFmpeg check
@@ -14,7 +16,7 @@ from PyQt5.QtWidgets import (
     QDialog, QListWidget, QGridLayout, QSlider, QStyle, QAction, QMenu,
     QListWidgetItem, QFrame, QWidget, QToolButton, QCheckBox, QSpinBox, QGroupBox
 )
-from PyQt5.QtGui import QFont, QDesktopServices
+from PyQt5.QtGui import QFont, QDesktopServices, QIcon
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 import pyaudio
 import wave
@@ -169,34 +171,88 @@ class TranscriptionHistoryDialog(QDialog):
             filename = item.get('filename', 'Unknown file')
             model = item.get('model', 'Unknown model')
             display_text = f"{timestamp} - {filename} (Model: {model})"
-            list_item = QListWidgetItem(display_text)
+            
+            # Create list widget item with checkbox
+            list_item = QListWidgetItem()
             list_item.setData(Qt.UserRole, idx)
+            
+            # Create widget for the item with checkbox and label
+            item_widget = QWidget()
+            item_layout = QHBoxLayout()
+            item_layout.setContentsMargins(5, 2, 5, 2)
+            
+            checkbox = QCheckBox()
+            label = QLabel(display_text)
+            
+            item_layout.addWidget(checkbox)
+            item_layout.addWidget(label)
+            item_layout.addStretch()
+            
+            item_widget.setLayout(item_layout)
+            
+            # Set the custom widget for this item
             self.history_list.addItem(list_item)
+            self.history_list.setItemWidget(list_item, item_widget)
+            
+            # Store the checkbox reference in the item's data for later access
+            list_item.setData(Qt.UserRole + 1, checkbox)
     
     def load_transcription(self):
-        selected_items = self.history_list.selectedItems()
-        if not selected_items:
+        selected_item = None
+        
+        # Find the first selected item (with checkbox or directly selected)
+        for i in range(self.history_list.count()):
+            item = self.history_list.item(i)
+            checkbox = item.data(Qt.UserRole + 1)
+            
+            if checkbox.isChecked() or item.isSelected():
+                selected_item = item
+                break
+        
+        if not selected_item:
             return
-        idx = selected_items[0].data(Qt.UserRole)
+            
+        idx = selected_item.data(Qt.UserRole)
         sorted_history = sorted(self.history_data, key=lambda x: x.get('timestamp', ''), reverse=True)
         selected_item = sorted_history[idx]
         self.transcription_selected.emit(selected_item)
         self.close()
     
+    def get_selected_indices(self):
+        selected_indices = []
+        
+        for i in range(self.history_list.count()):
+            item = self.history_list.item(i)
+            checkbox = item.data(Qt.UserRole + 1)
+            
+            if checkbox.isChecked():
+                idx = item.data(Qt.UserRole)
+                selected_indices.append(idx)
+                
+        return selected_indices
+    
     def delete_transcription(self):
-        selected_items = self.history_list.selectedItems()
-        if not selected_items:
+        selected_indices = self.get_selected_indices()
+        
+        if not selected_indices:
             return
+            
+        message = "Are you sure you want to delete the selected item?" if len(selected_indices) == 1 else f"Are you sure you want to delete {len(selected_indices)} selected items?"
+        
         reply = QMessageBox.question(
             self, "Confirm Deletion",
-            "Are you sure you want to delete this history item?",
+            message,
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
+        
         if reply == QMessageBox.Yes:
-            idx = selected_items[0].data(Qt.UserRole)
             sorted_history = sorted(self.history_data, key=lambda x: x.get('timestamp', ''), reverse=True)
-            item_to_delete = sorted_history[idx]
-            self.history_data.remove(item_to_delete)
+            
+            # Delete items in reverse order to avoid index shifting issues
+            for idx in sorted(selected_indices, reverse=True):
+                item_to_delete = sorted_history[idx]
+                self.history_data.remove(item_to_delete)
+                
             self.populate_history_list()
             self.parent().save_history()
 
@@ -249,6 +305,66 @@ class AudioRecorder(QThread):
     
     def resume(self):
         self.is_paused = False
+
+# ------------------------ Audio Separation Worker Thread ------------------------
+class AudioSeparationWorker(QThread):
+    finished = pyqtSignal(str)
+    log = pyqtSignal(str)
+    error = pyqtSignal(str)
+
+    def __init__(self, input_file):
+        super().__init__()
+        self.input_file = input_file
+        self.output_file = None
+        self.temp_dir = None
+
+    def run(self):
+        try:
+            self.log.emit("Starting voice separation in background thread...")
+            
+            # Create a unique output directory
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_dir = os.path.join(tempfile.gettempdir(), f"demucs_output_{timestamp}")
+            os.makedirs(output_dir, exist_ok=True)
+            self.temp_dir = output_dir
+            
+            # Prepare the Demucs command
+            cmd = [
+                "demucs",
+                "--two-stems=vocals",   # vocals vs. accompaniment
+                "--mp3",                # force MP3 encoding
+                "--mp3-bitrate", "320",
+                "-o", output_dir,
+                self.input_file
+            ]
+            
+            self.log.emit("Running Demucs voice separation...")
+            subprocess.run(cmd, check=True)
+            
+            # Find the vocals file in the output directory
+            model_dir = os.path.join(output_dir, os.listdir(output_dir)[0])
+            audio_name = os.path.splitext(os.path.basename(self.input_file))[0]
+            audio_dir = os.path.join(model_dir, audio_name)
+            vocals_file = os.path.join(audio_dir, "vocals.mp3")
+            
+            if not os.path.exists(vocals_file):
+                raise FileNotFoundError(f"Could not find vocals file at {vocals_file}")
+            
+            # Convert MP3 to WAV for further processing
+            vocals_wav = tempfile.mktemp(suffix=".wav")
+            audio = AudioSegment.from_mp3(vocals_file)
+            audio.export(vocals_wav, format="wav")
+            
+            self.log.emit("Voice separation completed successfully.")
+            self.output_file = vocals_wav
+            self.finished.emit(vocals_wav)
+            
+        except Exception as e:
+            self.error.emit(f"Voice separation error: {str(e)}")
+            self.finished.emit(self.input_file)  # Return original file on error
+
+    def get_temp_dir(self):
+        return self.temp_dir
 
 # ------------------------ Transcription Worker Thread ------------------------
 class TranscriptionWorker(QThread):
@@ -342,19 +458,12 @@ class WhisperApp(QMainWindow):
         settings_layout.addWidget(self.btn_show_folder, 1, 2)
         main_layout.addWidget(settings_frame)
         
-        # Row for buttons: Choose Audio File, Record Audio, etc.
+        # Row for buttons: Choose Audio File, Start Transcription, etc.
         buttons_frame = QFrame()
         buttons_layout = QHBoxLayout(buttons_frame)
         self.btn_choose_file = QPushButton("Choose Audio File")
         self.btn_choose_file.clicked.connect(self.select_file)
         buttons_layout.addWidget(self.btn_choose_file)
-        self.btn_record = QPushButton("Record Audio")
-        self.btn_record.clicked.connect(self.toggle_recording)
-        buttons_layout.addWidget(self.btn_record)
-        self.btn_pause_record = QPushButton("Pause Recording")
-        self.btn_pause_record.setEnabled(False)
-        self.btn_pause_record.clicked.connect(self.toggle_pause_recording)
-        buttons_layout.addWidget(self.btn_pause_record)
         self.btn_start = QPushButton("Start Transcription")
         self.btn_start.clicked.connect(self.start_transcription)
         self.btn_start.setEnabled(False)
@@ -365,15 +474,38 @@ class WhisperApp(QMainWindow):
         buttons_layout.addWidget(self.btn_open_temp_folder)
         main_layout.addWidget(buttons_frame)
         
-        # Add a new row for the recording time display
-        recording_time_frame = QFrame()
-        recording_time_layout = QHBoxLayout(recording_time_frame)
+        # Combined frame for recording controls and time display
+        recording_frame = QFrame()
+        recording_layout = QHBoxLayout(recording_frame)
+
+        # Record button
+        self.btn_record = QPushButton()
+        self.btn_record.setIcon(QIcon("assets/icons/mic.svg"))
+        self.btn_record.setText("Record Audio")
+        self.btn_record.clicked.connect(self.toggle_recording)
+        recording_layout.addWidget(self.btn_record)
+
+        # Pause Recording button
+        self.btn_pause_record = QPushButton()
+        self.btn_pause_record.setIcon(QIcon("assets/icons/pause.svg"))
+        self.btn_pause_record.setText("Pause Recording")
+        self.btn_pause_record.setEnabled(False)
+        self.btn_pause_record.clicked.connect(self.toggle_pause_recording)
+        recording_layout.addWidget(self.btn_pause_record)
+
+        # Recording time label
         recording_time_label = QLabel("Recording Time:")
-        recording_time_layout.addWidget(recording_time_label)
+        recording_layout.addWidget(recording_time_label)
+
+        # Dynamic time display
         self.time_label = QLabel("00:00:00")
-        recording_time_layout.addWidget(self.time_label)
-        recording_time_layout.addStretch()  # Optional: add stretch to push content to the left
-        main_layout.addWidget(recording_time_frame)
+        recording_layout.addWidget(self.time_label)
+
+        # Push everything to the left, leaving empty space on the right
+        recording_layout.addStretch()
+
+        # Add the combined frame to the main layout
+        main_layout.addWidget(recording_frame)
         
         # File information row: displays the selected file name
         file_info_layout = QHBoxLayout()
@@ -397,6 +529,12 @@ class WhisperApp(QMainWindow):
         self.checkbox_bass_boost = QCheckBox("Bass Boost")
         self.checkbox_bass_boost.setToolTip("Enhances the low-frequency components for a richer bass output.")
         processing_layout.addWidget(self.checkbox_bass_boost, 1, 0)
+        
+        # Add the new Voice Separation checkbox
+        self.checkbox_voice_separation = QCheckBox("Voice Separation")
+        self.checkbox_voice_separation.setToolTip("Extracts vocals from the audio for clearer transcription.")
+        processing_layout.addWidget(self.checkbox_voice_separation, 1, 1)
+        
         filters_label = QLabel("Filters:")
         filters_label.setStyleSheet("font-weight: bold;")
         processing_layout.addWidget(filters_label, 2, 0, 1, 2)
@@ -661,8 +799,12 @@ class WhisperApp(QMainWindow):
         try:
             video = VideoFileClip(video_path)
             audio = video.audio
-            audio_file = tempfile.mktemp(suffix='.wav')
+            # Save the audio file in the same directory as the script instead of temp
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            audio_file = os.path.join(script_dir, f"temp_audio_{int(time.time())}.wav")
             audio.write_audiofile(audio_file, codec='pcm_s16le')
+            # Store the path so we can clean it up later
+            self.temp_audio_file = audio_file
             return audio_file
         except Exception as e:
             self.log_text.append(f"Video conversion error: {e}")
@@ -775,16 +917,53 @@ class WhisperApp(QMainWindow):
         if not self.selected_file_path:
             QMessageBox.warning(self, "No File", "Please select an audio file first.")
             return
+        
+        # Disable the start button while processing
+        self.btn_start.setEnabled(False)
+        self.log_text.append(f"Processing file: {os.path.basename(self.selected_file_path)}")
+        
+        # Start with the original file
+        self.current_processing_file = self.selected_file_path
+        
+        # Step 1: Apply voice separation if enabled, in a separate thread
+        if self.processing_group.isChecked() and self.checkbox_voice_separation.isChecked():
+            self.log_text.append("Initiating voice separation...")
+            self.separation_worker = AudioSeparationWorker(self.current_processing_file)
+            self.separation_worker.log.connect(self.update_log)
+            self.separation_worker.error.connect(self.update_log)
+            self.separation_worker.finished.connect(self.after_audio_separation)
+            self.separation_worker.start()
+        else:
+            # Skip to audio processing if voice separation is not needed
+            self.process_and_transcribe()
+
+    def after_audio_separation(self, separated_file):
+        """Handle completion of voice separation and continue with processing."""
+        self.current_processing_file = separated_file
+        
+        # Store the temp directory for cleanup later
+        if hasattr(self.separation_worker, 'get_temp_dir'):
+            self.voice_separation_temp_dir = self.separation_worker.get_temp_dir()
+        
+        # Continue with audio processing and transcription
+        self.process_and_transcribe()
+
+    def process_and_transcribe(self):
+        """Process audio and start transcription after separation (if any)."""
+        # Apply audio processing if enabled
         if self.processing_group.isChecked() and self.ffmpeg_installed:
-            self.transcription_audio_file = self.process_audio(self.selected_file_path)
+            self.transcription_audio_file = self.process_audio(self.current_processing_file)
             self.processing_applied = True
         else:
-            self.transcription_audio_file = self.selected_file_path
+            self.transcription_audio_file = self.current_processing_file
             self.processing_applied = False
+        
+        # Start transcription
         selected_model = self.model_combo.currentText()
         selected_language = self.language_combo.currentText()
         language = None if selected_language.lower() == "auto" else selected_language
-        self.log_text.append(f"Starting transcription for file: {self.transcription_audio_file}")
+        
+        self.log_text.append(f"Starting transcription for file: {os.path.basename(self.transcription_audio_file)}")
         self.worker = TranscriptionWorker(self.transcription_audio_file, selected_model, language)
         self.worker.log.connect(self.update_log)
         self.worker.finished.connect(self.transcription_finished)
@@ -796,6 +975,34 @@ class WhisperApp(QMainWindow):
     
     def transcription_finished(self, result_text):
         """Handle transcription completion."""
+        try:
+            # Clean up temporary audio file if it exists (in script directory)
+            if hasattr(self, 'temp_audio_file') and os.path.exists(self.temp_audio_file):
+                os.remove(self.temp_audio_file)
+                delattr(self, 'temp_audio_file')
+                self.log_text.append("Cleaned up temporary audio file.")
+                
+            # Clean up temporary vocals WAV file if it exists (in script directory)
+            if hasattr(self, 'vocals_wav_file') and os.path.exists(self.vocals_wav_file):
+                os.remove(self.vocals_wav_file)
+                delattr(self, 'vocals_wav_file')
+                self.log_text.append("Cleaned up temporary vocals WAV file.")
+                
+            # Inform user about files in temp folder that need manual cleanup
+            # but don't try to delete them
+            self.log_text.append("IMPORTANT: Temporary files in system temp folder need to be manually deleted.")
+            
+            # Inform specifically about Demucs output if available
+            if hasattr(self, 'demucs_output_directory'):
+                self.log_text.append(f"Please use the 'Open Temp Folder' button and delete the directory: {self.demucs_output_directory}")
+                delattr(self, 'demucs_output_directory')
+                
+            # Also mention potential files from process_audio
+            self.log_text.append("Also check for any temporary WAV files in the temp folder from audio processing.")
+            
+        except Exception as e:
+            self.log_text.append(f"Error cleaning up temporary files: {str(e)}")
+        
         if result_text:
             self.result_text.setPlainText(result_text)
             self.btn_save_text.setEnabled(True)
@@ -806,6 +1013,8 @@ class WhisperApp(QMainWindow):
             self.add_to_history(self.selected_file_path, result_text, model, language)
         else:
             self.result_text.setPlainText("Transcription failed.")
+        
+        # Re-enable the start button
         self.btn_start.setEnabled(True)
     
     def save_transcription(self):
@@ -834,6 +1043,7 @@ class WhisperApp(QMainWindow):
         if not self.is_recording:
             self.is_recording = True
             self.btn_record.setText("Stop Recording")
+            self.btn_record.setIcon(QIcon("assets/icons/stop-circle.svg"))
             self.btn_pause_record.setEnabled(True)
             self.recording_file = tempfile.mktemp(suffix='.wav')
             self.recorder = AudioRecorder()
@@ -848,6 +1058,7 @@ class WhisperApp(QMainWindow):
         else:
             self.is_recording = False
             self.btn_record.setText("Record Audio")
+            self.btn_record.setIcon(QIcon("assets/icons/mic.svg"))
             self.btn_pause_record.setEnabled(False)
             self.recorder.stop_recording()
             # Stop the timer and reset the label
@@ -863,12 +1074,14 @@ class WhisperApp(QMainWindow):
             self.pause_start = None
             self.recorder.resume()
             self.btn_pause_record.setText("Pause Recording")
+            self.btn_pause_record.setIcon(QIcon("assets/icons/pause.svg"))
             self.log_text.append("Recording resumed.")
         else:
             # Pausing recording
             self.pause_start = datetime.datetime.now()
             self.recorder.pause()
             self.btn_pause_record.setText("Resume Recording")
+            self.btn_pause_record.setIcon(QIcon("assets/icons/play.svg"))  # Assuming you have a play icon
             self.log_text.append("Recording paused.")
     
     def update_recording_time(self):
@@ -920,6 +1133,91 @@ class WhisperApp(QMainWindow):
             self.history = []
             self.save_history()
             QMessageBox.information(self, "History Cleared", "Transcription history has been cleared.")
+            
+    def separate_audio(self, input_file):
+        """Separate vocals from the input audio file using Demucs."""
+        try:
+            self.log_text.append("Starting voice separation...")
+            
+            # Create a unique timestamp for this separation
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # This is the directory where Demucs will actually save files
+            demucs_temp_dir = os.path.join(tempfile.gettempdir(), f"demucs_output_{timestamp}")
+            
+            # Prepare the Demucs command with MP3 output
+            cmd = [
+                "demucs",
+                "--two-stems=vocals",   # vocals vs. accompaniment
+                "--mp3",                # force MP3 encoding to avoid backend errors
+                "--mp3-bitrate", "320",
+                "-o", demucs_temp_dir,  # output directory
+                input_file
+            ]
+            
+            self.log_text.append("Running Demucs voice separation...")
+            process = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            
+            # Track the actual directory used by Demucs
+            actual_output_dir = None
+            if process.stdout:
+                for line in process.stdout.splitlines():
+                    if "Separated tracks will be stored in" in line:
+                        actual_output_dir = line.split("Separated tracks will be stored in ")[1].strip()
+                        break
+            
+            # If we couldn't get it from stdout, try stderr
+            if not actual_output_dir and process.stderr:
+                for line in process.stderr.splitlines():
+                    if "Separated tracks will be stored in" in line:
+                        actual_output_dir = line.split("Separated tracks will be stored in ")[1].strip()
+                        break
+            
+            # If we still don't have it, use our best guess
+            if not actual_output_dir:
+                actual_output_dir = demucs_temp_dir
+                self.log_text.append(f"Could not detect Demucs output directory, using: {actual_output_dir}")
+            else:
+                self.log_text.append(f"Demucs output directory: {actual_output_dir}")
+            
+            # Store the directory path to inform the user later
+            self.demucs_output_directory = actual_output_dir
+            
+            # Find the vocals file in the output directory
+            model_name = "htdemucs"  # Default model name
+            audio_name = os.path.splitext(os.path.basename(input_file))[0]
+            audio_dir = os.path.join(actual_output_dir, model_name, audio_name)
+            vocals_file = os.path.join(audio_dir, "vocals.mp3")
+            
+            if not os.path.exists(vocals_file):
+                # Try looking through all directories to find the vocals file
+                possible_models = os.listdir(actual_output_dir) if os.path.exists(actual_output_dir) else []
+                for model in possible_models:
+                    possible_path = os.path.join(actual_output_dir, model, audio_name, "vocals.mp3")
+                    if os.path.exists(possible_path):
+                        vocals_file = possible_path
+                        self.log_text.append(f"Found vocals file at: {vocals_file}")
+                        break
+                else:
+                    raise FileNotFoundError(f"Could not find vocals file in {actual_output_dir}")
+            
+            # Convert MP3 to WAV for further processing if needed
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            vocals_wav = os.path.join(script_dir, f"vocals_{timestamp}.wav")
+            audio = AudioSegment.from_mp3(vocals_file)
+            audio.export(vocals_wav, format="wav")
+            
+            self.log_text.append("Voice separation completed successfully.")
+            
+            # Store the vocals file path to clean up later
+            self.vocals_wav_file = vocals_wav
+            
+            return vocals_wav
+        except Exception as e:
+            self.log_text.append(f"Voice separation error: {str(e)}")
+            import traceback
+            self.log_text.append(traceback.format_exc())
+            return input_file
     
     def closeEvent(self, event):
         """Handle application close event."""

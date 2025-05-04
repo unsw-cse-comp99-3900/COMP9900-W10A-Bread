@@ -19,6 +19,7 @@ from settings.autosave_manager import load_latest_autosave
 from .conversation_history_manager import estimate_conversation_tokens, summarize_conversation
 from .embedding_manager import EmbeddingIndex
 from compendium.context_panel import ContextPanel
+from .rag_pdf import PdfRagApp
 
 TOKEN_LIMIT = 2000
 
@@ -173,6 +174,13 @@ class WorkshopWindow(QDialog):
         self.time_label = QLabel("00:00")
         audio_group_layout.addWidget(self.time_label)
         
+        # PDF RAG Button
+        self.pdf_rag_btn = QPushButton()
+        self.pdf_rag_btn.setIcon(QIcon("assets/icons/file-text.svg"))
+        self.pdf_rag_btn.setToolTip("Document Analysis (PDF/Images)")
+        self.pdf_rag_btn.clicked.connect(self.open_pdf_rag_tool)
+        buttons_layout.addWidget(self.pdf_rag_btn)
+        
         # Whisper model selection - only show installed models
         audio_group_layout.addWidget(QLabel(_("Model:")))
         self.model_combo = QComboBox()
@@ -216,6 +224,11 @@ class WorkshopWindow(QDialog):
         outer_splitter.setStretchFactor(1, 3)
 
         main_layout.addWidget(outer_splitter)
+        
+    def open_pdf_rag_tool(self):
+        """Open the PDF RAG processor as independent window"""
+        self.pdf_window = PdfRagApp()
+        self.pdf_window.show()
 
     def prompt_selection_changed(self, index):
         """Called when a workshop prompt is selected from the pulldown menu."""

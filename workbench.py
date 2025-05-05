@@ -322,6 +322,7 @@ class WorkbenchWindow(QMainWindow):
         self.enhanced_compendium = EnhancedCompendiumWindow()
         self.enhanced_compendium.hide()
         self.last_opened_project = None
+        self.open_project_windows = {}
         self.translation_manager.language_changed.connect(self.on_language_changed)
 
 
@@ -594,11 +595,29 @@ class WorkbenchWindow(QMainWindow):
 
     def open_project(self, project_name):
         """Open a project and mark it as last opened."""
+        # Check if the project window is already open
+        if project_name in self.open_project_windows:
+            project_window = self.open_project_windows[project_name]
+            # Ensure the window is still valid (not deleted)
+            if project_window and project_window.isVisible():
+                project_window.raise_()  # Bring to front
+                project_window.activateWindow()  # Focus the window
+                return
+
         self.last_opened_project = project_name
         PROJECTS_DATA[LAST_DISPLAYED_KEY] = project_name
         save_projects(PROJECTS_DATA)
         self.project_window = ProjectWindow(project_name, self.enhanced_compendium)
+        self.open_project_windows[project_name] = self.project_window
+        # Connect the window's destroyed signal to clean up the dictionary
+        self.project_window.destroyed.connect(
+            lambda: self.on_project_window_closed(project_name)
+        )
         self.project_window.show()
+
+    def on_project_window_closed(self, project_name):
+        """Remove the project window from the tracking dictionary when closed."""
+        self.open_project_windows.pop(project_name, None)
 
     def new_project(self):
         name, ok = QInputDialog.getText(

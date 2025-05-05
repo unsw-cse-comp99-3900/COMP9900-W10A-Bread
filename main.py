@@ -1,7 +1,12 @@
 import sys
-import gettext
+import logging
 from settings.translation_manager import TranslationManager
 from settings.settings_manager import WWSettingsManager
+
+def exception_hook(exctype, value, traceback):
+    logging.error("Unhandled exception", exc_info=(exctype, value, traceback))
+    sys.__excepthook__(exctype, value, traceback)
+sys.excepthook = exception_hook
 
 def check_dependencies():
     """Check for required modules and notify the user via Tkinter if any are missing."""

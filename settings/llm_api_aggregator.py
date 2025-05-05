@@ -12,6 +12,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 from langchain_together import ChatTogether
 from .settings_manager import WWSettingsManager
+import logging
 
 # Configuration constants
 DEFAULT_MAX_TOKENS = 1024
@@ -61,6 +62,10 @@ class LLMProviderBase(ABC):
     def get_llm_instance(self, overrides) -> Union[LLM, BaseChatModel]:
         """Returns a configured LLM instance."""
         pass
+    
+    def reset_llm_instance(self):
+        """Reset the cached LLM instance to force reinitialization."""
+        self.llm_instance = None
     
     def _do_models_request(self, url: str, headers: Dict[str, str] = None) -> List[str]:
         """Send a request to the provider to fetch available models."""
@@ -275,7 +280,6 @@ class GeminiProvider(LLMProviderBase):
         if not self.llm_instance:
             self.llm_instance = ChatGoogleGenerativeAI(
                 google_api_key=overrides.get("api_key", self.get_api_key()),
-#                base_url=overrides.get("endpoint", self.get_base_url()), # Unsupported by Google API
                 model=overrides.get("model", self.get_current_model() or "gemini-2.0-flash"),
                 temperature=overrides.get("temperature", self.config.get("temperature", DEFAULT_TEMPERATURE)),
                 max_output_tokens=overrides.get("max_tokens", self.config.get("max_tokens", DEFAULT_MAX_TOKENS)),
@@ -528,7 +532,6 @@ class LMStudioProvider(LLMProviderBase):
             )
         return self.llm_instance
 
-
 class CustomProvider(LLMProviderBase):
     """Custom LLM provider implementation for local network tools."""
     
@@ -557,7 +560,6 @@ class CustomProvider(LLMProviderBase):
                 request_timeout=self.get_timeout(overrides)
             )
         return self.llm_instance
-
 
 class WW_Aggregator:
     """Main aggregator class for managing LLM providers."""
@@ -619,6 +621,8 @@ class LLMAPIAggregator:
     def __init__(self):
         self.aggregator = WW_Aggregator()
         self.interrupt_flag = threading.Event()
+        self.is_streaming = False  # Track whether streaming is active
+        logging.debug("LLMAPIAggregator initialized")
     
     def get_llm_providers(self) -> List[str]:
         """Dynamically returns a list of supported LLM provider names."""
@@ -675,6 +679,7 @@ class LLMAPIAggregator:
         conversation_history: Optional[List[Dict[str, str]]] = None
     ):
         """Stream a prompt to the active LLM and yield the generated text."""
+        logging.debug(f"Starting stream_prompt_to_llm, interrupt_flag: {self.interrupt_flag.is_set()}")
         overrides = overrides or {}
         
         provider_name = overrides.get("provider") or WWSettingsManager.get_active_llm_name()
@@ -698,36 +703,55 @@ class LLMAPIAggregator:
         except ValueError as e:
             raise ValueError(f"Failed to initialize LLM: {e}")
         
-        if conversation_history:
-            from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-            
-            messages = []
-            for message in conversation_history:
-                role = message.get("role", "").lower()
-                content = message.get("content", "")
+        self.is_streaming = True
+        try:
+            if conversation_history:
+                from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
                 
-                if role == "system":
-                    messages.append(SystemMessage(content=content))
-                elif role == "user" or role == "human":
-                    messages.append(HumanMessage(content=content))
-                elif role == "assistant" or role == "ai":
-                    messages.append(AIMessage(content=content))
-            
-            messages.append(HumanMessage(content=final_prompt))
-            
-            for chunk in llm.stream(messages):
-                if self.interrupt_flag.is_set():
-                    break
-                yield chunk.content
-        else:
-            for chunk in llm.stream(final_prompt):
-                if self.interrupt_flag.is_set():
-                    break
-                yield chunk.content
+                messages = []
+                for message in conversation_history:
+                    role = message.get("role", "").lower()
+                    content = message.get("content", "")
+                    
+                    if role == "system":
+                        messages.append(SystemMessage(content=content))
+                    elif role == "user" or role == "human":
+                        messages.append(HumanMessage(content=content))
+                    elif role == "assistant" or role == "ai":
+                        messages.append(AIMessage(content=content))
+                
+                messages.append(HumanMessage(content=final_prompt))
+                
+                stream = llm.stream(messages)
+                for chunk in stream:
+                    if self.interrupt_flag.is_set():
+                        logging.debug("Stream interrupted by flag")
+                        break
+                    yield chunk.content
+            else:
+                stream = llm.stream(final_prompt)
+                for chunk in stream:
+                    if self.interrupt_flag.is_set():
+                        logging.debug("Stream interrupted by flag")
+                        break
+                    yield chunk.content
+        except Exception as e:
+            logging.error(f"Streaming error: {e}")
+            raise
+        finally:
+            logging.debug(f"Stream cleanup, setting is_streaming=False, clearing interrupt_flag")
+            self.is_streaming = False
+            self.interrupt_flag.clear()
+            provider.reset_llm_instance()
+            logging.debug(f"After cleanup, interrupt_flag: {self.interrupt_flag.is_set()}")
 
     def interrupt(self):
         """Interrupt the streaming process."""
-        self.interrupt_flag.set()
+        if self.is_streaming:
+            logging.debug(f"Interrupting stream, setting interrupt_flag")
+            self.interrupt_flag.set()
+        else:
+            logging.debug("Interrupt called but no active stream")
 
 WWApiAggregator = LLMAPIAggregator()
 

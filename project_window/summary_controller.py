@@ -60,12 +60,12 @@ class SummaryController(QObject):
 
         # Show the preview dialog
         dialog = PromptPreviewDialog(
+            controller=self.view.controller,
             prompt_config=prompt,
             user_input=None,  # No user input for summary preview
             additional_vars=None,  # No additional vars needed here
             current_scene_text=plain_text,
-            extra_context=None,
-            controller=self.view.controller
+            extra_context=None
         )
         dialog.exec_()
 

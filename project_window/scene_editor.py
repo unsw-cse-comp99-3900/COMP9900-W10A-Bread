@@ -8,7 +8,7 @@ import json
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QToolBar, QAction,
-    QFontComboBox, QComboBox, QLabel, QMessageBox, QTextEdit, QDialog, QPushButton, QShortcut
+    QFontComboBox, QComboBox, QLabel, QMessageBox, QTextEdit, QStyle, QShortcut
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont, QTextCursor, QColor, QTextCharFormat, QPen, QKeySequence
@@ -135,6 +135,10 @@ class SceneEditor(QWidget):
         e.textChanged.connect(self.start_spellcheck_timer)
         e.cursorPositionChanged.connect(self.update_toolbar_state)
         e.selectionChanged.connect(self.update_toolbar_state)
+
+        # Adjust viewport margins to prevent scrollbar from obscuring content
+        scrollbar_width = e.style().pixelMetric(QStyle.PM_ScrollBarExtent)
+        e.setViewportMargins(0, 0, scrollbar_width, 0)  # Reserve space on the right for scrollbar
 
         # Spellcheck timer
         self.spellcheck_timer = QTimer(self)

@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (QMainWindow, QSplitter, QLabel, QShortcut,
                              QMessageBox, QInputDialog, QApplication, QDialog,
                              QTreeWidgetItem)
 from PyQt5.QtCore import Qt, QTimer, QSettings, pyqtSlot
-from PyQt5.QtGui import QIcon, QColor, QTextCharFormat, QFont, QTextCursor, QPixmap, QPainter, QKeySequence
+from PyQt5.QtGui import QColor, QTextCharFormat, QFont, QTextCursor, QKeySequence
 from .project_model import ProjectModel
 from .global_toolbar import GlobalToolbar
 from .project_tree_widget import ProjectTreeWidget
@@ -55,7 +55,7 @@ class ProjectWindow(QMainWindow):
     def __init__(self, project_name, compendium_window):
         super().__init__()
         self.model = ProjectModel(project_name)
-        self.current_theme = "Standard"
+        self.current_theme = WWSettingsManager.get_appearance_settings()["theme"]
         self.icon_tint = QColor(ThemeManager.ICON_TINTS.get(self.current_theme, "black"))
         self.tts_playing = False
         self.unsaved_preview = False
@@ -128,23 +128,6 @@ class ProjectWindow(QMainWindow):
                 self.restore_pov_character(current_pov)
                 if self.bottom_stack.pov_character_combo.currentText() != current_pov:
                     self.handle_pov_character_change()
-
-    def get_tinted_icon(self, file_path, tint_color=None):
-        """Generate a tinted icon from a file path."""
-        if not tint_color:
-            tint_color = self.icon_tint
-        if tint_color == QColor("black"):
-            return QIcon(file_path)
-        original_pix = QPixmap(file_path)
-        if original_pix.isNull():
-            return QIcon()
-        tinted_pix = QPixmap(original_pix.size())
-        tinted_pix.fill(tint_color)
-        painter = QPainter(tinted_pix)
-        painter.setCompositionMode(QPainter.CompositionMode_DestinationIn)
-        painter.drawPixmap(0, 0, original_pix)
-        painter.end()
-        return QIcon(tinted_pix)
 
     def load_initial_state(self):
         self.bottom_stack.pov_combo.setCurrentText(self.model.settings["global_pov"])
@@ -662,7 +645,7 @@ class ProjectWindow(QMainWindow):
         if self.tts_playing:
             WW_TTSManager.stop()
             self.tts_playing = False
-            self.scene_editor.tts_action.setIcon(self.get_tinted_icon("assets/icons/play-circle.svg"))
+            self.scene_editor.tts_action.setIcon(ThemeManager.get_tinted_icon("assets/icons/play-circle.svg"))
         else:
             cursor = self.scene_editor.editor.textCursor()
             text = cursor.selectedText() if cursor.hasSelection() else self.scene_editor.editor.toPlainText()
@@ -671,12 +654,12 @@ class ProjectWindow(QMainWindow):
                 QMessageBox.warning(self, _("TTS Warning"), _("There is no text to read."))
                 return
             self.tts_playing = True
-            self.scene_editor.tts_action.setIcon(self.get_tinted_icon("assets/icons/stop-circle.svg"))
+            self.scene_editor.tts_action.setIcon(ThemeManager.get_tinted_icon("assets/icons/stop-circle.svg"))
             WW_TTSManager.speak(text, start_position=start_position, on_complete=self.tts_completed)
 
     def tts_completed(self):
         self.tts_playing = False
-        self.scene_editor.tts_action.setIcon(self.get_tinted_icon("assets/icons/play-circle.svg"))
+        self.scene_editor.tts_action.setIcon(ThemeManager.get_tinted_icon("assets/icons/play-circle.svg"))
 
     def open_focus_mode(self):
         scene_text = self.scene_editor.editor.toPlainText()

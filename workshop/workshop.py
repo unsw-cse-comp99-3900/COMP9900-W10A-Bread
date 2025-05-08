@@ -14,11 +14,12 @@ from PyQt5.QtWidgets import (
     QMenu, QComboBox, QSizePolicy
 )
 from PyQt5.QtCore import Qt, QPoint, QThread, pyqtSignal, QTimer, QSettings
-from PyQt5.QtGui import QIcon, QCursor, QPixmap, QFont, QKeySequence, QTextCursor
+from PyQt5.QtGui import QCursor, QPixmap, QFont, QKeySequence, QTextCursor
 from PyQt5.QtWidgets import QShortcut
 from muse.prompt_panel import PromptPanel
 from muse.prompt_preview_dialog import PromptPreviewDialog
 from settings.settings_manager import WWSettingsManager
+from settings.theme_manager import ThemeManager
 from settings.llm_api_aggregator import WWApiAggregator
 from settings.llm_worker import LLMWorker
 from settings.autosave_manager import load_latest_autosave
@@ -150,14 +151,14 @@ class WorkshopWindow(QDialog):
 
         # Prompt Preview button
         self.preview_button = QPushButton()
-        self.preview_button.setIcon(QIcon("assets/icons/eye.svg"))
+        self.preview_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/eye.svg"))
         self.preview_button.setToolTip(_("Preview the final prompt"))
         self.preview_button.clicked.connect(self.preview_prompt)
         button_row1.addWidget(self.preview_button)
 
         # Send button
         self.send_button = QPushButton()
-        self.send_button.setIcon(QIcon("assets/icons/send.svg"))
+        self.send_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/send.svg"))
         self.send_button.clicked.connect(self.on_send_or_stop)
         button_row1.addWidget(self.send_button)
 
@@ -166,13 +167,13 @@ class WorkshopWindow(QDialog):
         # Context button
         self.context_button = QPushButton()
         self.context_button.setCheckable(True)
-        self.context_button.setIcon(QIcon("assets/icons/book-open.svg"))
+        self.context_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/book-open.svg"))
         self.context_button.clicked.connect(self.toggle_context_panel)
         button_row2.addWidget(self.context_button)
 
         # PDF RAG Button
         self.pdf_rag_btn = QPushButton()
-        self.pdf_rag_btn.setIcon(QIcon("assets/icons/file-text.svg"))
+        self.pdf_rag_btn.setIcon(ThemeManager.get_tinted_icon("assets/icons/file-text.svg"))
         self.pdf_rag_btn.setToolTip("Document Analysis (PDF/Images)")
         self.pdf_rag_btn.clicked.connect(self.open_pdf_rag_tool)
         button_row2.addWidget(self.pdf_rag_btn)
@@ -188,13 +189,13 @@ class WorkshopWindow(QDialog):
         audio_group_layout = QHBoxLayout()
         
         self.record_button = QPushButton()
-        self.record_button.setIcon(QIcon("assets/icons/mic.svg"))
+        self.record_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/mic.svg"))
         self.record_button.setCheckable(True)
         self.record_button.clicked.connect(self.toggle_recording)
         audio_group_layout.addWidget(self.record_button)
         
         self.pause_button = QPushButton()
-        self.pause_button.setIcon(QIcon("assets/icons/pause.svg"))
+        self.pause_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/pause.svg"))
         self.pause_button.setCheckable(True)
         self.pause_button.setEnabled(False)
         self.pause_button.clicked.connect(self.toggle_pause)
@@ -368,10 +369,10 @@ class WorkshopWindow(QDialog):
     def toggle_context_panel(self):
         if self.context_panel.isVisible():
             self.context_panel.setVisible(False)
-            self.context_button.setIcon(QIcon("assets/icons/book.svg"))
+            self.context_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/book.svg"))
         else:
             self.context_panel.setVisible(True)
-            self.context_button.setIcon(QIcon("assets/icons/book-open.svg"))
+            self.context_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/book-open.svg"))
 
     def generate_unique_chat_name(self):
         """Generate a unique chat name in the format 'Chat <number>'."""
@@ -421,7 +422,7 @@ class WorkshopWindow(QDialog):
             if not user_message:
                 return
             self.is_streaming = True
-            self.send_button.setIcon(QIcon("assets/icons/x-octagon.svg"))
+            self.send_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/x-octagon.svg"))
             self.send_message()
 
     def send_message(self):
@@ -467,7 +468,7 @@ class WorkshopWindow(QDialog):
         except Exception as e:
             QMessageBox.warning(self, _("Error"), _("Failed to generate response: {}").format(str(e)))
             self.is_streaming = False
-            self.send_button.setIcon(QIcon("assets/icons/send.svg"))
+            self.send_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/send.svg"))
             self.pre_stream_cursor_pos = None
             self.cleanup_worker()
 
@@ -537,7 +538,7 @@ class WorkshopWindow(QDialog):
         # Clean up
         self.cleanup_worker()
         self.is_streaming = False
-        self.send_button.setIcon(QIcon("assets/icons/send.svg"))
+        self.send_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/send.svg"))
         self.chat_input.clear()
         self.pre_stream_cursor_pos = None
 
@@ -607,7 +608,7 @@ class WorkshopWindow(QDialog):
             self.format_chat_log_html()
 
             self.is_streaming = False
-            self.send_button.setIcon(QIcon("assets/icons/send.svg"))
+            self.send_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/send.svg"))
             self.pre_stream_cursor_pos = None
         except Exception as e:
             logging.error(f"Error in stop_llm UI update: {e}", exc_info=True)
@@ -859,7 +860,7 @@ class WorkshopWindow(QDialog):
             self.recorder.stop_recording()
             self.recording_timer.stop()
             self.pause_button.setEnabled(False)
-            self.record_button.setIcon(QIcon("assets/icons/mic.svg"))
+            self.record_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/mic.svg"))
             self.time_label.setText("00:00")
         else:
             self.recording_file = tempfile.mktemp(suffix='.wav')
@@ -872,19 +873,19 @@ class WorkshopWindow(QDialog):
             self.pause_start = None
             self.recording_timer.start(1000)
             self.pause_button.setEnabled(True)
-            self.record_button.setIcon(QIcon("assets/icons/stop-circle.svg"))
+            self.record_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/stop-circle.svg"))
 
     def toggle_pause(self):
         if self.recorder.is_paused:
             self.recorder.resume()
-            self.pause_button.setIcon(QIcon("assets/icons/pause.svg"))
+            self.pause_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/pause.svg"))
             if self.pause_start:
                 pause_duration = datetime.datetime.now() - self.pause_start
                 self.start_time += pause_duration
                 self.pause_start = None
         else:
             self.recorder.pause()
-            self.pause_button.setIcon(QIcon("assets/icons/play.svg"))
+            self.pause_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/play.svg"))
             self.pause_start = datetime.datetime.now()
 
     def update_recording_time(self):

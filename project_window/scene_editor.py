@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import os
 import glob
 import re
@@ -16,6 +14,7 @@ from PyQt5.QtGui import QFont, QTextCursor, QColor, QTextCharFormat, QPen, QKeyS
 from .focus_mode import PlainTextEdit
 from spylls.hunspell import Dictionary
 from util.find_dialog import FindDialog
+from settings.theme_manager import ThemeManager
 
 class SceneEditor(QWidget):
     """Scene editor with toolbar, text area, and spellchecking support."""
@@ -61,6 +60,7 @@ class SceneEditor(QWidget):
         self.load_languages()
 
     def setup_toolbar(self):
+        self.toolbar.setStyleSheet("")  # Reset any custom styles to use theme
         # Formatting actions
         for name, icon, tip, func, check in [
             ("bold", "assets/icons/bold.svg", _("Bold"), self.controller.toggle_bold, True),
@@ -119,7 +119,7 @@ class SceneEditor(QWidget):
         self.toolbar.addWidget(self.lang_combo)
 
     def add_action(self, name, icon_path, tooltip, callback, checkable=False):
-        action = QAction(self.controller.get_tinted_icon(icon_path, self.tint_color), "", self)
+        action = QAction(ThemeManager.get_tinted_icon(icon_path, self.tint_color), "", self)
         action.setToolTip(tooltip)
         action.setCheckable(checkable)
         action.triggered.connect(callback)
@@ -398,7 +398,7 @@ class SceneEditor(QWidget):
         ]:
             action = getattr(self, f"{name}_action")
             path = f"assets/icons/{name.replace('_','-')}.svg"
-            action.setIcon(self.controller.get_tinted_icon(path, tint_color))
+            action.setIcon(ThemeManager.get_tinted_icon(path, tint_color))
             
     def open_find_dialog(self):
         if self.find_dialog is None:

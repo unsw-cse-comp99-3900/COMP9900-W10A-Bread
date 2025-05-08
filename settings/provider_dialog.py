@@ -5,11 +5,12 @@ from PyQt5.QtWidgets import (
     QHBoxLayout, QCheckBox, QDialogButtonBox,
     QMessageBox, QInputDialog, QSizePolicy
 )
-from PyQt5.QtGui import QIcon, QIntValidator
+from PyQt5.QtGui import QIntValidator
 
 from .llm_api_aggregator import WWApiAggregator
 from .provider_info_dialog import ProviderInfoDialog
 from .settings_manager import WWSettingsManager
+from .theme_manager import ThemeManager
 
 class ProviderDialog(QDialog):
     def __init__(self, parent=None, provider_name=None, provider_data=None, providers=None, is_default=False):
@@ -40,7 +41,7 @@ class ProviderDialog(QDialog):
         self.provider_combobox.addItems(self.providers)
         self.provider_combobox.currentIndexChanged.connect(self.provider_selected)
         self.provider_info_button = QPushButton()
-        self.provider_info_button.setIcon(QIcon("assets/icons/info.svg"))
+        self.provider_info_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/info.svg"))
         self.provider_info_button.setToolTip(_("Provider Information"))
         self.provider_info_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
         self.provider_info_button.clicked.connect(self.show_provider_info)
@@ -59,7 +60,7 @@ class ProviderDialog(QDialog):
         self.endpoint_url_input.setToolTip(_("Leave empty for default"))
         self.endpoint_url_input.setMinimumWidth(300)
         self.endpoint_help_button = QPushButton()
-        self.endpoint_help_button.setIcon(QIcon("assets/icons/help-circle.svg"))
+        self.endpoint_help_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/help-circle.svg"))
         self.endpoint_help_button.setToolTip("https://example.com/v1")
         self.endpoint_help_button.clicked.connect(lambda: QMessageBox.information(self, _("Endpoint URL Help"), _("Override URL for provider\n\nOnly use if you have a proxy server or a Custom provider.\nLeave empty for default URL.\n\nEx: 'https://localhost:1234/v1'")))
         endpoint_layout = QHBoxLayout()
@@ -69,7 +70,7 @@ class ProviderDialog(QDialog):
         
         self.model_label = QLabel(_("Model"))
         self.refresh_button = QPushButton()
-        self.refresh_button.setIcon(QIcon("assets/icons/rotate-cw.svg"))
+        self.refresh_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/rotate-cw.svg"))
         self.refresh_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
         self.refresh_button.setToolTip(_("Refresh Model List"))
         self.refresh_button.clicked.connect(self.refresh_models)

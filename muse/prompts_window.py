@@ -6,10 +6,10 @@ from PyQt5.QtWidgets import (
     QLabel, QComboBox, QSpinBox, QDoubleSpinBox, QApplication
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
 from .prompt_utils import get_prompt_categories, load_prompts, get_default_prompt
 from settings.llm_api_aggregator import WWApiAggregator
 from settings.settings_manager import WWSettingsManager
+from settings.theme_manager import ThemeManager
 from settings.provider_info_dialog import ProviderInfoDialog
 
 class PromptsWindow(QDialog):
@@ -81,7 +81,7 @@ class PromptsWindow(QDialog):
         provider_header = QHBoxLayout()
         self.provider_label = QLabel(_("Provider:"))
         provider_info_button = QPushButton()
-        provider_info_button.setIcon(QIcon("assets/icons/info.svg"))
+        provider_info_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/info.svg"))
         provider_info_button.setToolTip(_("Show Model Details"))
         provider_info_button.clicked.connect(self.show_provider_info)
         provider_header.addWidget(self.provider_label)
@@ -292,7 +292,7 @@ class PromptsWindow(QDialog):
                 if prompt.get("default", False):
                     # Set the warning icon on the left of the prompt name
                     icon_path = os.path.join("assets", "icons", "alert-triangle.svg")
-                    child.setIcon(0, QIcon(icon_path))
+                    child.setIcon(0, ThemeManager.get_tinted_icon(icon_path))
                     tooltip += _("\nDefault prompt (read-only): LLM settings cannot be modified.")
                 child.setToolTip(0, tooltip)
                 child.setData(0, Qt.UserRole, {

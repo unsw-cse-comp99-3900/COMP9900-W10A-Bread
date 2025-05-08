@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTreeWidget, QTreeWidgetItem, QPushButton, QHBoxLayout, QTextEdit, QLabel
 from PyQt5.QtCore import Qt, QSettings
 from PyQt5.QtGui import QFont, QKeySequence
 from PyQt5.QtWidgets import QShortcut
+from settings.theme_manager import ThemeManager
 import muse.prompt_handler as prompt_handler
 import tiktoken
 
@@ -39,12 +39,12 @@ class PromptPreviewDialog(QDialog):
         # Buttons and zoom controls
         button_layout = QHBoxLayout()
         self.zoom_in_button = QPushButton()
-        self.zoom_in_button.setIcon(self.controller.get_tinted_icon("assets/icons/zoom-in.svg", self.controller.icon_tint))
+        self.zoom_in_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/zoom-in.svg", self.controller.icon_tint))
         self.zoom_in_button.setToolTip(_("Zoom In (Cmd+=)"))
         self.zoom_in_button.clicked.connect(self.zoom_in)
 
         self.zoom_out_button = QPushButton()
-        self.zoom_out_button.setIcon(self.controller.get_tinted_icon("assets/icons/zoom-out.svg", self.controller.icon_tint))
+        self.zoom_out_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/zoom-out.svg", self.controller.icon_tint))
         self.zoom_out_button.setToolTip(_("Zoom Out (Cmd+-)"))
         self.zoom_out_button.clicked.connect(self.zoom_out)
         self.ok_button = QPushButton(_("OK"))

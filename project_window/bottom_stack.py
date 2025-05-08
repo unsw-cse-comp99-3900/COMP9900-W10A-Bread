@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QStackedWidget, QHBoxLayout, QPushButton, 
-                            QTextEdit, QComboBox, QLabel, QCheckBox, QSizePolicy, QGroupBox,
+                            QTextEdit, QComboBox, QCheckBox, QSizePolicy,
                             QFormLayout, QSplitter)
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import Qt
+from settings.theme_manager import ThemeManager
 from .focus_mode import PlainTextEdit
 from compendium.context_panel import ContextPanel
 from .summary_controller import SummaryController
@@ -49,7 +50,7 @@ class BottomStack(QWidget):
         layout.addWidget(self.summary_prompt_panel)
 
         self.summary_preview_button = QPushButton()
-        self.summary_preview_button.setIcon(self.controller.get_tinted_icon("assets/icons/eye.svg", self.tint_color))
+        self.summary_preview_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/eye.svg", self.tint_color))
         self.summary_preview_button.setToolTip(_("Preview the final prompt"))
         self.summary_preview_button.clicked.connect(self.summary_controller.preview_summary)
         layout.addWidget(self.summary_preview_button)
@@ -76,7 +77,7 @@ class BottomStack(QWidget):
         self.preview_text.setPlaceholderText(_("LLM output preview will appear here..."))
         preview_buttons = QHBoxLayout()
         self.apply_button = QPushButton()
-        self.apply_button.setIcon(self.controller.get_tinted_icon("assets/icons/save.svg", self.tint_color))
+        self.apply_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/save.svg", self.tint_color))
         self.apply_button.setToolTip(_("Appends the LLM's output to your current scene"))
         self.apply_button.clicked.connect(self.controller.apply_preview)
         self.include_prompt_checkbox = QCheckBox(_("Include Action Beats"))
@@ -107,25 +108,25 @@ class BottomStack(QWidget):
         buttons_layout.addWidget(self.prose_prompt_panel)
 
         self.preview_button = QPushButton()
-        self.preview_button.setIcon(self.controller.get_tinted_icon("assets/icons/eye.svg", self.tint_color))
+        self.preview_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/eye.svg", self.tint_color))
         self.preview_button.setToolTip(_("Preview the final prompt"))
         self.preview_button.clicked.connect(self.preview_prompt)
         buttons_layout.addWidget(self.preview_button)
 
         self.send_button = QPushButton()
-        self.send_button.setIcon(self.controller.get_tinted_icon("assets/icons/send.svg", self.tint_color))
+        self.send_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/send.svg", self.tint_color))
         self.send_button.setToolTip(_("Sends the action beats to the LLM"))
         self.send_button.clicked.connect(self.controller.send_prompt)
         buttons_layout.addWidget(self.send_button)
 
         self.stop_button = QPushButton()
-        self.stop_button.setIcon(self.controller.get_tinted_icon("assets/icons/x-octagon.svg", self.tint_color))
+        self.stop_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/x-octagon.svg", self.tint_color))
         self.stop_button.setToolTip(_("Stop the LLM processing"))
         self.stop_button.clicked.connect(self.controller.stop_llm)
         buttons_layout.addWidget(self.stop_button)
 
         self.context_toggle_button = QPushButton()
-        self.context_toggle_button.setIcon(self.controller.get_tinted_icon("assets/icons/book.svg", self.tint_color))
+        self.context_toggle_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/book.svg", self.tint_color))
         self.context_toggle_button.setToolTip(_("Toggle context panel"))
         self.context_toggle_button.setCheckable(True)
         self.context_toggle_button.clicked.connect(self.toggle_context_panel)
@@ -172,10 +173,10 @@ class BottomStack(QWidget):
     def update_tint(self, tint_color):
         """Update icon tints when theme changes."""
         self.tint_color = tint_color
-        self.apply_button.setIcon(self.controller.get_tinted_icon("assets/icons/save.svg", tint_color))
-        self.send_button.setIcon(self.controller.get_tinted_icon("assets/icons/send.svg", tint_color))
-        self.stop_button.setIcon(self.controller.get_tinted_icon("assets/icons/x-octagon.svg", tint_color))
-        self.context_toggle_button.setIcon(self.controller.get_tinted_icon(
+        self.apply_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/save.svg", tint_color))
+        self.send_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/send.svg", tint_color))
+        self.stop_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/x-octagon.svg", tint_color))
+        self.context_toggle_button.setIcon(ThemeManager.get_tinted_icon(
             "assets/icons/book-open.svg" if self.context_panel.isVisible() else "assets/icons/book.svg", tint_color))
         # Update combo tooltips if needed
         if self.pov_combo:
@@ -192,12 +193,12 @@ class BottomStack(QWidget):
         context_panel = self.context_panel
         if context_panel.isVisible():
             context_panel.setVisible(False)
-            self.context_toggle_button.setIcon(self.controller.get_tinted_icon("assets/icons/book.svg"))
+            self.context_toggle_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/book.svg"))
         else:
             context_panel.build_project_tree()
             context_panel.build_compendium_tree()
             context_panel.setVisible(True)
-            self.context_toggle_button.setIcon(self.controller.get_tinted_icon("assets/icons/book-open.svg"))
+            self.context_toggle_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/book-open.svg"))
 
     def get_additional_vars(self):
         return {

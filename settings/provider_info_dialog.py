@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
                              QDialogButtonBox, QSplitter, QMessageBox, QInputDialog,
                              QHeaderView, QPushButton, QHBoxLayout, QWidget, QLineEdit)
 from PyQt5.QtCore import Qt, QSettings
-from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QStyle
 import json
 import re
@@ -11,6 +11,7 @@ from typing import Dict, List
 
 from .llm_api_aggregator import WWApiAggregator
 from .settings_manager import WWSettingsManager
+from .theme_manager import ThemeManager
 
 class ProviderInfoDialog(QDialog):
     def __init__(self, parent=None, llm_configs=None):
@@ -92,13 +93,13 @@ class ProviderInfoDialog(QDialog):
 
         # Zoom buttons
         self.zoom_in_button = QPushButton()
-        self.zoom_in_button.setIcon(QIcon("assets/icons/zoom-in.svg"))
+        self.zoom_in_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/zoom-in.svg"))
         self.zoom_in_button.setToolTip(_("Zoom in table content (CMD++)"))
         self.zoom_in_button.clicked.connect(self.zoom_in)
         button_layout.addWidget(self.zoom_in_button)
 
         self.zoom_out_button = QPushButton()
-        self.zoom_out_button.setIcon(QIcon("assets/icons/zoom-out.svg"))
+        self.zoom_out_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/zoom-out.svg"))
         self.zoom_out_button.setToolTip(_("Zoom out table content (CMD+-)"))
         self.zoom_out_button.clicked.connect(self.zoom_out)
         button_layout.addWidget(self.zoom_out_button)

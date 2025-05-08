@@ -8,8 +8,8 @@ import datetime
 import logging
 logging.getLogger("boilerpy3").setLevel(logging.ERROR)
 logging.getLogger("qt.fonts").setLevel(logging.ERROR)
-from PyQt5.QtGui import QIcon, QKeySequence
-from PyQt5.QtCore import QUrl, Qt, QThread, pyqtSignal, QDir, QPoint
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtCore import QUrl, Qt, QThread, pyqtSignal, QDir
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLineEdit, QPushButton, QFileDialog, QMessageBox,
@@ -24,6 +24,7 @@ from boilerpy3 import extractors
 from bs4 import BeautifulSoup, NavigableString
 import re
 from settings.llm_api_aggregator import WWApiAggregator
+from settings.theme_manager import ThemeManager
 
 class SilentPage(QWebEnginePage):
     def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
@@ -187,22 +188,22 @@ class MainWindow(QWidget):
         toolbar = QHBoxLayout()
         
         back_btn = QToolButton()
-        back_btn.setIcon(QIcon("assets/icons/arrow-left.svg"))
+        back_btn.setIcon(ThemeManager.get_tinted_icon("assets/icons/arrow-left.svg"))
         back_btn.clicked.connect(lambda: self.web_view.back())
         toolbar.addWidget(back_btn)
 
         forward_btn = QToolButton()
-        forward_btn.setIcon(QIcon("assets/icons/arrow-right.svg"))
+        forward_btn.setIcon(ThemeManager.get_tinted_icon("assets/icons/arrow-right.svg"))
         forward_btn.clicked.connect(lambda: self.web_view.forward())
         toolbar.addWidget(forward_btn)
 
         reload_btn = QToolButton()
-        reload_btn.setIcon(QIcon("assets/icons/refresh-cw.svg"))
+        reload_btn.setIcon(ThemeManager.get_tinted_icon("assets/icons/refresh-cw.svg"))
         reload_btn.clicked.connect(lambda: self.web_view.reload())
         toolbar.addWidget(reload_btn)
 
         home_btn = QToolButton()
-        home_btn.setIcon(QIcon("assets/icons/home.svg"))
+        home_btn.setIcon(ThemeManager.get_tinted_icon("assets/icons/home.svg"))
         home_btn.clicked.connect(self.load_home)
         toolbar.addWidget(home_btn)
 
@@ -212,7 +213,7 @@ class MainWindow(QWidget):
         toolbar.addWidget(self.url_input)
 
         load_btn = QToolButton()
-        load_btn.setIcon(QIcon("assets/icons/search.svg"))
+        load_btn.setIcon(ThemeManager.get_tinted_icon("assets/icons/search.svg"))
         load_btn.clicked.connect(self.load_url)
         toolbar.addWidget(load_btn)
         

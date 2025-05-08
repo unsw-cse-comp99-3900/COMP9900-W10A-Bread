@@ -11,6 +11,7 @@ from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from project_window.project_window import ProjectWindow
 from settings.settings_dialog import SettingsDialog
 from settings.settings_manager import WWSettingsManager
+from settings.theme_manager import ThemeManager
 from project_window import project_settings_manager
 from compendium.enhanced_compendium import EnhancedCompendiumWindow
 
@@ -347,7 +348,7 @@ class WorkbenchWindow(QMainWindow):
 
         self.settings_button = QPushButton("")
         cog_icon_path = os.path.join("assets", "icons", "settings.svg")
-        self.settings_button.setIcon(QIcon(cog_icon_path))
+        self.settings_button.setIcon(ThemeManager.get_tinted_icon(cog_icon_path))
         self.settings_button.setToolTip(_("Click here to configure global options (paths, fonts, themes, etc.)"))
         self.settings_button.clicked.connect(self.open_settings)
         header_layout.addWidget(self.settings_button)
@@ -359,7 +360,7 @@ class WorkbenchWindow(QMainWindow):
         carousel_layout.setSpacing(10)
 
         self.left_button = QPushButton("")
-        left_arrow_icon = QIcon(os.path.join("assets", "icons", "chevron-left.svg"))
+        left_arrow_icon = ThemeManager.get_tinted_icon(os.path.join("assets", "icons", "chevron-left.svg"))
         self.left_button.setIcon(left_arrow_icon)
         self.left_button.setIconSize(QSize(32, 32))
         self.left_button.setFixedSize(60, 60)
@@ -372,7 +373,7 @@ class WorkbenchWindow(QMainWindow):
         carousel_layout.addWidget(self.coverStack, stretch=1)
 
         self.right_button = QPushButton("")
-        right_arrow_icon = QIcon(os.path.join("assets", "icons", "chevron-right.svg"))
+        right_arrow_icon = ThemeManager.get_tinted_icon(os.path.join("assets", "icons", "chevron-right.svg"))
         self.right_button.setIcon(right_arrow_icon)
         self.right_button.setIconSize(QSize(32, 32))
         self.right_button.setFixedSize(60, 60)
@@ -482,31 +483,18 @@ class WorkbenchWindow(QMainWindow):
 
     def apply_fixed_stylesheet(self):
         fixed_styles = """
-            QMainWindow {
-                background-color: #f5f5f5;
-            }
             QLabel#headerLabel {
                 font-size: 22px;
                 font-weight: 600;
-                color: #333;
             }
             QLabel#projectTitleLabel {
-                font-size: 14px;
                 font-weight: 500;
-                color: #333;
             }
             QPushButton {
-                background-color: #ffffff;
                 border: 1px solid #ccc;
                 border-radius: 6px;
                 font-size: 14px;
                 padding: 6px 12px;
-            }
-            QPushButton:hover {
-                background-color: #e6e6e6;
-            }
-            QPushButton:pressed {
-                background-color: #dcdcdc;
             }
             QPushButton#newProjectButton {
                 font-size: 16px;
@@ -515,10 +503,6 @@ class WorkbenchWindow(QMainWindow):
             QToolButton {
                 border: 2px solid #ccc;
                 border-radius: 5px;
-                background-color: #fff;
-            }
-            QToolButton:hover {
-                background-color: #f0f0f0;
             }
         """
         self.setStyleSheet(fixed_styles)

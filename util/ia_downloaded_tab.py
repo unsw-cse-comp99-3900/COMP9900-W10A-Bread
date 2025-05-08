@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QComboBox, QDateEdit, QCheckBox, QTreeView, QFileSystemModel, QMessageBox, QAbstractItemView, QMenu, QDialog, QScrollArea, QTextEdit, QShortcut, QHeaderView
 from PyQt5.QtCore import Qt, QItemSelectionModel, QUrl, QDate, QObject, pyqtSignal
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-from PyQt5.QtGui import QPixmap, QDesktopServices, QImage, QKeySequence, QTextDocument, QTextCursor, QIcon
+from PyQt5.QtGui import QPixmap, QDesktopServices, QImage, QKeySequence, QTextDocument, QTextCursor
+from settings.theme_manager import ThemeManager
 from workshop.rag_pdf import PdfRagApp
 from util.whisper_app import WhisperApp
 from pathlib import Path
@@ -174,13 +174,13 @@ class DownloadedTab(QWidget):
         
         # PDF RAG Button
         self.pdf_rag_btn = QPushButton()
-        self.pdf_rag_btn.setIcon(QIcon("assets/icons/file-text.svg"))
+        self.pdf_rag_btn.setIcon(ThemeManager.get_tinted_icon("assets/icons/file-text.svg"))
         self.pdf_rag_btn.setToolTip("Document Analysis (PDF/Images)")
         self.pdf_rag_btn.clicked.connect(self.open_pdf_rag_tool)
         
         # Whisper App Button
         self.whisper_app_btn = QPushButton()
-        self.whisper_app_btn.setIcon(QIcon("assets/icons/mic.svg"))
+        self.whisper_app_btn.setIcon(ThemeManager.get_tinted_icon("assets/icons/mic.svg"))
         self.whisper_app_btn.setToolTip("Open Whisper")
         self.whisper_app_btn.clicked.connect(self.open_whisper_app)
         

@@ -1,10 +1,10 @@
-import uuid
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTreeWidget, QMenu, 
                              QMessageBox, QInputDialog)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from . import tree_manager
 from . import project_structure_manager as psm
+from settings.theme_manager import ThemeManager
 
 class ProjectTreeWidget(QWidget):
     """Left panel with the project structure tree."""
@@ -43,7 +43,7 @@ class ProjectTreeWidget(QWidget):
             _("In Progress"): "assets/icons/loader.svg",
             _("Final Draft"): "assets/icons/check-circle.svg"
         }
-        item.setIcon(1, self.controller.get_tinted_icon(icons.get(status, ""), tint) if status in icons else QIcon())
+        item.setIcon(1, ThemeManager.get_tinted_icon(icons.get(status, ""), tint) if status in icons else QIcon())
         item.setText(1, "")
 
     def get_item_level(self, item):
@@ -102,17 +102,17 @@ class ProjectTreeWidget(QWidget):
         scene_data = item.data(0, Qt.UserRole) or {"name": item.text(0), "status": _("To Do")}
 
         if level < 2:  # Act or Chapter
-            item.setIcon(0, self.controller.get_tinted_icon("assets/icons/book.svg", tint))
+            item.setIcon(0, ThemeManager.get_tinted_icon("assets/icons/book.svg", tint))
             item.setText(1, "")  # No status for acts or chapters
         else:  # Scene
-            item.setIcon(0, self.controller.get_tinted_icon("assets/icons/edit.svg", tint))
+            item.setIcon(0, ThemeManager.get_tinted_icon("assets/icons/edit.svg", tint))
             status = scene_data.get("status", _("To Do"))
             icons = {
                 _("To Do"): "assets/icons/circle.svg",
                 _("In Progress"): "assets/icons/loader.svg",
                 _("Final Draft"): "assets/icons/check-circle.svg"
             }
-            item.setIcon(1, self.controller.get_tinted_icon(icons.get(status, ""), tint) if status in icons else QIcon())
+            item.setIcon(1, ThemeManager.get_tinted_icon(icons.get(status, ""), tint) if status in icons else QIcon())
             item.setText(1, "")
 
     def assign_all_icons(self):

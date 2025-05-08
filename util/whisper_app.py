@@ -9,20 +9,21 @@ import time
 import numpy as np
 import noisereduce as nr
 import shutil  # Added for FFmpeg check
-from PyQt5.QtCore import QThread, pyqtSignal, Qt, QUrl, QTime, QTimer
+from PyQt5.QtCore import QThread, pyqtSignal, Qt, QUrl, QTimer
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QPushButton,
     QComboBox, QTextEdit, QFileDialog, QLabel, QMessageBox, QSplitter,
-    QDialog, QListWidget, QGridLayout, QSlider, QStyle, QAction, QMenu,
-    QListWidgetItem, QFrame, QWidget, QToolButton, QCheckBox, QSpinBox, QGroupBox
+    QDialog, QListWidget, QGridLayout, QSlider, QStyle, QAction,
+    QListWidgetItem, QFrame, QWidget, QCheckBox, QSpinBox, QGroupBox
 )
-from PyQt5.QtGui import QFont, QDesktopServices, QIcon
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 import pyaudio
 import wave
 import whisper
 from pydub import AudioSegment  # For audio processing
 from moviepy.video.io.VideoFileClip import VideoFileClip
+from settings.theme_manager import ThemeManager
 
 # Suppress FP16 warning for CPU usage
 warnings.filterwarnings("ignore", message="FP16 is not supported on CPU; using FP32 instead")
@@ -480,14 +481,14 @@ class WhisperApp(QMainWindow):
 
         # Record button
         self.btn_record = QPushButton()
-        self.btn_record.setIcon(QIcon("assets/icons/mic.svg"))
+        self.btn_record.setIcon(ThemeManager.get_tinted_icon("assets/icons/mic.svg"))
         self.btn_record.setText("Record Audio")
         self.btn_record.clicked.connect(self.toggle_recording)
         recording_layout.addWidget(self.btn_record)
 
         # Pause Recording button
         self.btn_pause_record = QPushButton()
-        self.btn_pause_record.setIcon(QIcon("assets/icons/pause.svg"))
+        self.btn_pause_record.setIcon(ThemeManager.get_tinted_icon("assets/icons/pause.svg"))
         self.btn_pause_record.setText("Pause Recording")
         self.btn_pause_record.setEnabled(False)
         self.btn_pause_record.clicked.connect(self.toggle_pause_recording)
@@ -1043,7 +1044,7 @@ class WhisperApp(QMainWindow):
         if not self.is_recording:
             self.is_recording = True
             self.btn_record.setText("Stop Recording")
-            self.btn_record.setIcon(QIcon("assets/icons/stop-circle.svg"))
+            self.btn_record.setIcon(ThemeManager.get_tinted_icon("assets/icons/stop-circle.svg"))
             self.btn_pause_record.setEnabled(True)
             self.recording_file = tempfile.mktemp(suffix='.wav')
             self.recorder = AudioRecorder()
@@ -1058,7 +1059,7 @@ class WhisperApp(QMainWindow):
         else:
             self.is_recording = False
             self.btn_record.setText("Record Audio")
-            self.btn_record.setIcon(QIcon("assets/icons/mic.svg"))
+            self.btn_record.setIcon(ThemeManager.get_tinted_icon("assets/icons/mic.svg"))
             self.btn_pause_record.setEnabled(False)
             self.recorder.stop_recording()
             # Stop the timer and reset the label
@@ -1074,14 +1075,14 @@ class WhisperApp(QMainWindow):
             self.pause_start = None
             self.recorder.resume()
             self.btn_pause_record.setText("Pause Recording")
-            self.btn_pause_record.setIcon(QIcon("assets/icons/pause.svg"))
+            self.btn_pause_record.setIcon(ThemeManager.get_tinted_icon("assets/icons/pause.svg"))
             self.log_text.append("Recording resumed.")
         else:
             # Pausing recording
             self.pause_start = datetime.datetime.now()
             self.recorder.pause()
             self.btn_pause_record.setText("Resume Recording")
-            self.btn_pause_record.setIcon(QIcon("assets/icons/play.svg"))  # Assuming you have a play icon
+            self.btn_pause_record.setIcon(ThemeManager.get_tinted_icon("assets/icons/play.svg"))  # Assuming you have a play icon
             self.log_text.append("Recording paused.")
     
     def update_recording_time(self):

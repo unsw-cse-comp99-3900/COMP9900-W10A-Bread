@@ -24,7 +24,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(_("Preferences"))
         self.resize(500, 500)
-        self.setWindowIcon(QIcon("icon.png"))
+        self.setWindowIcon(QIcon("assets/icon.png"))
 
         self.general_settings = WWSettingsManager.get_general_settings()
         self.appearance_settings = WWSettingsManager.get_appearance_settings()

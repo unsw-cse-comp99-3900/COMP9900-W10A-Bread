@@ -519,12 +519,12 @@ class LMStudioProvider(LLMProviderBase):
     @property
     def default_endpoint(self) -> str:
         return "http://localhost:1234/v1"
-    
+
     def get_llm_instance(self, overrides) -> BaseChatModel:
         if not self.llm_instance:
             self.llm_instance = ChatOpenAI(
-                openai_api_key=overrides.get("api_key", self.get_api_key() or "not-needed"),
-                openai_api_base=overrides.get("endpoint", self.get_base_url()),
+                api_key="not-needed",
+                base_url=overrides.get("endpoint", self.get_base_url()),
                 model_name=overrides.get("model", self.get_current_model() or "local-model"),
                 temperature=self.config.get("temperature", DEFAULT_TEMPERATURE),
                 max_tokens=self.config.get("max_tokens", DEFAULT_MAX_TOKENS),

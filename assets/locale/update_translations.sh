@@ -4,8 +4,10 @@ DOMAIN="writingway"
 LOCALE_DIR="assets/locale"
 POT_FILE="$LOCALE_DIR/$DOMAIN.pot"
 
-# Extract strings
-find . -maxdepth 2 -name "*.py" | xargs xgettext -d $DOMAIN -o $POT_FILE --keyword=_
+# Extract strings, including pgettext
+find . -maxdepth 2 -name "*.py" | xargs xgettext -d $DOMAIN -o $POT_FILE \
+    --keyword=_ \
+    --keyword=pgettext:1c,2
 
 # Update .po files
 for lang in de es fr pt pl ru ja zh ko; do

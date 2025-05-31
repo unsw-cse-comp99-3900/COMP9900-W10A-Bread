@@ -1,3 +1,4 @@
+from gettext import pgettext
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTreeWidget, QMenu, 
                              QMessageBox, QInputDialog)
 from PyQt5.QtCore import Qt
@@ -8,6 +9,17 @@ from settings.theme_manager import ThemeManager
 
 class ProjectTreeWidget(QWidget):
     """Left panel with the project structure tree."""
+    
+    # Mapping of English status values to translated display values
+    STATUS_MAP = {
+        "To Do": pgettext("status", "To Do"),
+        "In Progress": pgettext("status", "In Progress"),
+        "Final Draft": pgettext("status", "Final Draft")
+    }
+    
+    # Reverse mapping for translating user selections back to English
+    REVERSE_STATUS_MAP = {v: k for k, v in STATUS_MAP.items()}
+    
     def __init__(self, controller, model):
         super().__init__()
         self.controller = controller
@@ -37,11 +49,11 @@ class ProjectTreeWidget(QWidget):
     def update_scene_status_icon(self, item):
         """Update the status icon for a scene item."""
         tint = self.controller.icon_tint
-        status = item.data(0, Qt.UserRole).get("status", _("To Do"))
+        status = item.data(0, Qt.UserRole).get("status", "To Do")
         icons = {
-            _("To Do"): "assets/icons/circle.svg",
-            _("In Progress"): "assets/icons/loader.svg",
-            _("Final Draft"): "assets/icons/check-circle.svg"
+            "To Do": "assets/icons/circle.svg",
+            "In Progress": "assets/icons/loader.svg",
+            "Final Draft": "assets/icons/check-circle.svg"
         }
         item.setIcon(1, ThemeManager.get_tinted_icon(icons.get(status, ""), tint) if status in icons else QIcon())
         item.setText(1, "")
@@ -57,7 +69,6 @@ class ProjectTreeWidget(QWidget):
 
     def refresh_tree(self, hierarchy, uuid):
         """Refresh the tree structure based on the model's data."""
-        # Instead of full repopulation, sync specific changes
         self._sync_tree_with_structure(hierarchy, uuid)
 
     def _sync_tree_with_structure(self, hierarchy, uuid):
@@ -77,40 +88,46 @@ class ProjectTreeWidget(QWidget):
         item, level = find_item_by_uuid(root, uuid)
         if item:
             node = self.model._get_node_by_hierarchy(hierarchy)
-            if node:  # Update or create
+            if node:
                 item.setText(0, node["name"])
                 item.setData(0, Qt.UserRole, node)
                 self.assign_item_icon(item, level)
-            else:  # Delete
+            else:
                 parent = item.parent() or root
                 parent.removeChild(item)
-        else:  # New item, rebuild or insert
-            self.populate()  # Fallback to full rebuild for simplicity
+        else:
+            self.populate()
 
-    def get_item_level(self, item):
-        """Calculate the level of an item in the tree."""
-        level = 0
-        temp = item
-        while temp.parent():
-            level += 1
-            temp = temp.parent()
-        return level
+    def find_item_by_hierarchy(self, hierarchy):
+        """Find a tree item by its hierarchy path."""
+        current = self.tree.invisibleRootItem()
+        for name in hierarchy:
+            found = None
+            for i in range(current.childCount()):
+                item = current.child(i)
+                if item.text(0) == name:
+                    found = item
+                    break
+            if not found:
+                return None
+            current = found
+        return current
 
     def assign_item_icon(self, item, level):
         """Assign an icon to a tree item based on its level and status."""
         tint = self.controller.icon_tint
-        scene_data = item.data(0, Qt.UserRole) or {"name": item.text(0), "status": _("To Do")}
+        scene_data = item.data(0, Qt.UserRole) or {"name": item.text(0), "status": "To Do"}
 
         if level < 2:  # Act or Chapter
             item.setIcon(0, ThemeManager.get_tinted_icon("assets/icons/book.svg", tint))
             item.setText(1, "")  # No status for acts or chapters
         else:  # Scene
             item.setIcon(0, ThemeManager.get_tinted_icon("assets/icons/edit.svg", tint))
-            status = scene_data.get("status", _("To Do"))
+            status = scene_data.get("status", "To Do")
             icons = {
-                _("To Do"): "assets/icons/circle.svg",
-                _("In Progress"): "assets/icons/loader.svg",
-                _("Final Draft"): "assets/icons/check-circle.svg"
+                "To Do": "assets/icons/circle.svg",
+                "In Progress": "assets/icons/loader.svg",
+                "Final Draft": "assets/icons/check-circle.svg"
             }
             item.setIcon(1, ThemeManager.get_tinted_icon(icons.get(status, ""), tint) if status in icons else QIcon())
             item.setText(1, "")
@@ -144,10 +161,10 @@ class ProjectTreeWidget(QWidget):
                 menu.addAction(_("Add Scene"), lambda: psm.add_scene(self.controller, item))
             if level >= 2:
                 status_menu = menu.addMenu(_("Set Scene Status"))
-                for status in [_("To Do"), _("In Progress"), _("Final Draft")]:
-                    status_menu.addAction(status, lambda s=status: self.controller.set_scene_status(item, s))
+                for english_status, translated_status in self.STATUS_MAP.items():
+                    status_menu.addAction(translated_status, lambda s=english_status: self.controller.set_scene_status(item, s))
         menu.exec_(self.tree.viewport().mapToGlobal(pos))
 
     def show_error_message(self, message):
         """Display an error message to the user."""
-        QMessageBox.warning(self, _("Duplicate Name Error"), message)
+        QMessageBox

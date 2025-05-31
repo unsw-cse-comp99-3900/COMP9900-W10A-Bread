@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Writingway Project\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-23 15:53-0700\n"
+"POT-Creation-Date: 2025-05-30 15:39-0700\n"
 "PO-Revision-Date: 2025-04-23 16:30+0000\n"
 "Last-Translator: \n"
 "Language-Team: pl\n"
@@ -11,48 +11,48 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: settings/provider_dialog.py:24 settings/provider_dialog.py:315
+#: settings/provider_dialog.py:25 settings/provider_dialog.py:316
 msgid "Edit Provider"
 msgstr "Edytuj dostawcę"
 
-#: settings/provider_dialog.py:26 settings/provider_dialog.py:315
-#: settings/settings_dialog.py:146 settings/settings_dialog.py:341
+#: settings/provider_dialog.py:27 settings/provider_dialog.py:316
+#: settings/settings_dialog.py:150 settings/settings_dialog.py:346
 msgid "New Provider"
 msgstr "Nowy dostawca"
 
-#: settings/provider_dialog.py:34
+#: settings/provider_dialog.py:35
 msgid "Provider Details"
 msgstr "Szczegóły dostawcy"
 
-#: settings/provider_dialog.py:38 settings/provider_dialog.py:316
-#: settings/provider_info_dialog.py:34 settings/provider_info_dialog.py:430
+#: settings/provider_dialog.py:39 settings/provider_dialog.py:317
+#: settings/provider_info_dialog.py:35 settings/provider_info_dialog.py:431
 msgid "Provider"
 msgstr "Dostawca"
 
-#: settings/provider_dialog.py:44 settings/provider_dialog.py:317
-#: settings/provider_info_dialog.py:23
+#: settings/provider_dialog.py:45 settings/provider_dialog.py:318
+#: settings/provider_info_dialog.py:24
 msgid "Provider Information"
 msgstr "Informacje o dostawcy"
 
-#: settings/provider_dialog.py:52 settings/provider_dialog.py:318
-#: project_window/project_tree_widget.py:25
+#: settings/provider_dialog.py:53 settings/provider_dialog.py:319
+#: project_window/project_tree_widget.py:37
 #: compendium/ai_compendium_dialog.py:39
 msgid "Name"
 msgstr "Nazwa"
 
-#: settings/provider_dialog.py:57 settings/provider_dialog.py:319
+#: settings/provider_dialog.py:58 settings/provider_dialog.py:320
 msgid "Endpoint URL"
 msgstr "Adres URL punktu końcowego"
 
-#: settings/provider_dialog.py:59
+#: settings/provider_dialog.py:60
 msgid "Leave empty for default"
 msgstr "Pozostaw puste dla domyślnych ustawień"
 
-#: settings/provider_dialog.py:64 settings/provider_dialog.py:321
+#: settings/provider_dialog.py:65 settings/provider_dialog.py:322
 msgid "Endpoint URL Help"
 msgstr "Pomoc dotycząca adresu URL punktu końcowego"
 
-#: settings/provider_dialog.py:64 settings/provider_dialog.py:321
+#: settings/provider_dialog.py:65 settings/provider_dialog.py:322
 msgid ""
 "Override URL for provider\n"
 "\n"
@@ -68,376 +68,444 @@ msgstr ""
 "\n"
 "Przykład: 'https://localhost:1234/v1'"
 
-#: settings/provider_dialog.py:70 settings/provider_dialog.py:322
+#: settings/provider_dialog.py:71 settings/provider_dialog.py:323
 msgid "Model"
 msgstr "Model"
 
-#: settings/provider_dialog.py:74 settings/provider_dialog.py:323
+#: settings/provider_dialog.py:75 settings/provider_dialog.py:324
 msgid "Refresh Model List"
 msgstr "Odśwież listę modeli"
 
-#: settings/provider_dialog.py:85 settings/provider_dialog.py:324
+#: settings/provider_dialog.py:86 settings/provider_dialog.py:325
 msgid "API Key"
 msgstr "Klucz API"
 
-#: settings/provider_dialog.py:89 settings/provider_dialog.py:229
-#: settings/provider_dialog.py:325
+#: settings/provider_dialog.py:90 settings/provider_dialog.py:230
+#: settings/provider_dialog.py:326
 msgid "Reveal"
 msgstr "Pokaż"
 
-#: settings/provider_dialog.py:98 settings/provider_dialog.py:326
+#: settings/provider_dialog.py:99 settings/provider_dialog.py:327
 msgid "Timeout (seconds)"
 msgstr "Limit czasu (sekundy)"
 
-#: settings/provider_dialog.py:104 settings/provider_dialog.py:327
-#: settings/settings_dialog.py:177
+#: settings/provider_dialog.py:105 settings/provider_dialog.py:328
+#: settings/settings_dialog.py:181
 msgid "Default Provider"
 msgstr "Domyślny dostawca"
 
-#: settings/provider_dialog.py:108 settings/provider_dialog.py:328
+#: settings/provider_dialog.py:109 settings/provider_dialog.py:329
 msgid "Test"
 msgstr "Testuj"
 
-#: settings/provider_dialog.py:117 settings/provider_dialog.py:331
+#: settings/provider_dialog.py:118 settings/provider_dialog.py:332
 msgid "Update"
 msgstr "Aktualizuj"
 
-#: settings/provider_dialog.py:119 settings/provider_dialog.py:333
+#: settings/provider_dialog.py:120 settings/provider_dialog.py:334
 #: compendium/enhanced_compendium.py:236
 msgid "Add"
 msgstr "Dodaj"
 
-#: settings/provider_dialog.py:120 settings/provider_dialog.py:334
-#: settings/settings_dialog.py:61 settings/settings_dialog.py:340
+#: settings/provider_dialog.py:121 settings/provider_dialog.py:335
+#: settings/settings_dialog.py:61 settings/settings_dialog.py:345
 #: compendium/ai_compendium_dialog.py:78
 msgid "Close"
 msgstr "Zamknij"
 
-#: settings/provider_dialog.py:174 settings/provider_dialog.py:193
-#: settings/provider_dialog.py:259 settings/provider_dialog.py:282
-#: workshop/workshop.py:350 muse/prompts_window.py:424
-#: muse/prompts_window.py:590 compendium/ai_compendium_dialog.py:591
-#: compendium/enhanced_compendium.py:324 compendium/enhanced_compendium.py:361
-#: compendium/enhanced_compendium.py:550 compendium/enhanced_compendium.py:743
-#: compendium/compendium_panel.py:325 compendium/compendium_panel.py:332
-#: compendium/compendium_panel.py:341 compendium/compendium_panel.py:442
+#: settings/provider_dialog.py:175 settings/provider_dialog.py:194
+#: settings/provider_dialog.py:260 settings/provider_dialog.py:283
+#: workshop/workshop.py:469 muse/prompts_window.py:424
+#: muse/prompts_window.py:590 project_window/embedded_prompts_panel.py:341
+#: project_window/embedded_prompts_panel.py:472
+#: project_window/project_window.py:640 project_window/scene_editor.py:218
+#: compendium/ai_compendium_dialog.py:591 compendium/enhanced_compendium.py:324
+#: compendium/enhanced_compendium.py:361 compendium/enhanced_compendium.py:550
+#: compendium/enhanced_compendium.py:743
+#: compendium/backstory_builder_dialog.py:309
+#: compendium/backstory_builder_dialog.py:355
+#: compendium/backstory_builder_dialog.py:369
+#: compendium/compendium_panel.py:196 compendium/compendium_panel.py:266
+#: compendium/compendium_panel.py:271 compendium/compendium_panel.py:277
+#: compendium/compendium_panel.py:353
 msgid "Error"
 msgstr "Błąd"
 
-#: settings/provider_dialog.py:199 settings/provider_dialog.py:216
-#: settings/provider_dialog.py:265 settings/provider_info_dialog.py:272
+#: settings/provider_dialog.py:200 settings/provider_dialog.py:217
+#: settings/provider_dialog.py:266 settings/provider_info_dialog.py:273
 msgid "API Key Required"
 msgstr "Wymagany klucz API"
 
-#: settings/provider_dialog.py:226 settings/provider_dialog.py:325
+#: settings/provider_dialog.py:227 settings/provider_dialog.py:326
 msgid "Hide"
 msgstr "Ukryj"
 
-#: settings/provider_dialog.py:287 settings/provider_dialog.py:289
-#: settings/provider_dialog.py:291
+#: settings/provider_dialog.py:288 settings/provider_dialog.py:290
+#: settings/provider_dialog.py:292
 msgid "Test Result"
 msgstr "Wynik testu"
 
-#: settings/provider_dialog.py:287
+#: settings/provider_dialog.py:288
 msgid "Connection successful!"
 msgstr "Połączenie udane!"
 
-#: settings/provider_dialog.py:289
+#: settings/provider_dialog.py:290
 msgid "Connection failed. Check provider settings."
 msgstr "Połączenie nieudane. Sprawdź ustawienia dostawcy."
 
-#: settings/provider_dialog.py:291
+#: settings/provider_dialog.py:292
 msgid "Connection failed: {}"
 msgstr "Połączenie nieudane: {}"
 
-#: settings/settings_dialog.py:25 settings/settings_dialog.py:325
+#: settings/settings_dialog.py:25 settings/settings_dialog.py:329
 msgid "Preferences"
 msgstr "Preferencje"
 
-#: settings/settings_dialog.py:50 settings/settings_dialog.py:326
+#: settings/settings_dialog.py:50 settings/settings_dialog.py:330
 msgid "General"
 msgstr "Ogólne"
 
-#: settings/settings_dialog.py:51 settings/settings_dialog.py:327
+#: settings/settings_dialog.py:51 settings/settings_dialog.py:331
 msgid "Appearance"
 msgstr "Wygląd"
 
-#: settings/settings_dialog.py:52 settings/settings_dialog.py:328
+#: settings/settings_dialog.py:52 settings/settings_dialog.py:332
 msgid "Providers"
 msgstr "Dostawcy"
 
-#: settings/settings_dialog.py:59 settings/settings_dialog.py:339
-#: settings/settings_dialog.py:408 muse/prompts_window.py:480
+#: settings/settings_dialog.py:59 settings/settings_dialog.py:344
+#: settings/settings_dialog.py:415 muse/prompts_window.py:480
+#: project_window/embedded_prompts_panel.py:387
 msgid "Save"
 msgstr "Zapisz"
 
-#: settings/settings_dialog.py:75 settings/settings_dialog.py:329
+#: settings/settings_dialog.py:75 settings/settings_dialog.py:333
 msgid "Fast Text to Speech"
 msgstr "Szybka zamiana tekstu na mowę"
 
-#: settings/settings_dialog.py:79 settings/settings_dialog.py:330
+#: settings/settings_dialog.py:79 settings/settings_dialog.py:334
 msgid "Enable Auto-Save"
 msgstr "Włącz automatyczne zapisywanie"
 
-#: settings/settings_dialog.py:83 settings/settings_dialog.py:331
+#: settings/settings_dialog.py:83 settings/settings_dialog.py:335
 msgid "Show Random Quotes"
 msgstr "Pokaż losowe cytaty"
 
-#: settings/settings_dialog.py:92 settings/settings_dialog.py:332
+#: settings/settings_dialog.py:87 settings/settings_dialog.py:336
+msgid "Enable Debug Logging"
+msgstr "Włącz rejestrowanie debugowania"
+
+#: settings/settings_dialog.py:96 settings/settings_dialog.py:337
 msgid "Language"
 msgstr "Język"
 
-#: settings/settings_dialog.py:104 settings/settings_dialog.py:333
+#: settings/settings_dialog.py:108 settings/settings_dialog.py:338
 msgid "Theme"
 msgstr "Motyw"
 
-#: settings/settings_dialog.py:107 settings/settings_dialog.py:334
+#: settings/settings_dialog.py:111 settings/settings_dialog.py:339
 msgid "Background Color"
 msgstr "Kolor tła"
 
-#: settings/settings_dialog.py:121 settings/settings_dialog.py:335
+#: settings/settings_dialog.py:125 settings/settings_dialog.py:340
 msgid "Text Size"
 msgstr "Rozmiar tekstu"
 
-#: settings/settings_dialog.py:127 settings/settings_dialog.py:337
+#: settings/settings_dialog.py:131 settings/settings_dialog.py:342
 msgid "Sample Text"
 msgstr "Przykładowy tekst"
 
-#: settings/settings_dialog.py:137 settings/settings_dialog.py:336
+#: settings/settings_dialog.py:141 settings/settings_dialog.py:341
 msgid "Configured Providers"
 msgstr "Skonfigurowani dostawcy"
 
-#: settings/settings_dialog.py:148 settings/settings_dialog.py:342
+#: settings/settings_dialog.py:152 settings/settings_dialog.py:347
 msgid "Edit"
 msgstr "Edytuj"
 
-#: settings/settings_dialog.py:150 settings/settings_dialog.py:343
-#: workshop/workshop.py:378 muse/prompts_window.py:479
-#: project_window/project_tree_widget.py:137
+#: settings/settings_dialog.py:154 settings/settings_dialog.py:348
+#: workshop/workshop.py:665 muse/prompts_window.py:479
+#: project_window/embedded_prompts_panel.py:386
+#: project_window/project_tree_widget.py:154
 msgid "Delete"
 msgstr "Usuń"
 
-#: settings/settings_dialog.py:206 settings/settings_dialog.py:210
-#: settings/settings_dialog.py:285 settings/settings_dialog.py:381
-#: settings/settings_dialog.py:395 compendium/compendium_panel.py:250
+#: settings/settings_dialog.py:210 settings/settings_dialog.py:214
+#: settings/settings_dialog.py:289 settings/settings_dialog.py:388
+#: settings/settings_dialog.py:402 compendium/backstory_builder_dialog.py:179
+#: compendium/compendium_panel.py:209
 msgid "Warning"
 msgstr "Ostrzeżenie"
 
-#: settings/settings_dialog.py:206
+#: settings/settings_dialog.py:210
 msgid "Provider name cannot be empty."
 msgstr "Nazwa dostawcy nie może być pusta."
 
-#: settings/settings_dialog.py:290 compendium/enhanced_compendium.py:763
+#: settings/settings_dialog.py:294 compendium/enhanced_compendium.py:763
 #: compendium/enhanced_compendium.py:778
 msgid "Confirm Deletion"
 msgstr "Potwierdź usunięcie"
 
-#: settings/settings_dialog.py:291
+#: settings/settings_dialog.py:295
 msgid "Are you sure you want to delete the selected provider?"
 msgstr "Czy na pewno chcesz usunąć wybranego dostawcę?"
 
-#: settings/settings_dialog.py:391
+#: settings/settings_dialog.py:398
 msgid "Save Result"
 msgstr "Wynik zapisu"
 
-#: settings/settings_dialog.py:391
+#: settings/settings_dialog.py:398
 msgid "Settings saved successfully."
 msgstr "Ustawienia zapisane pomyślnie."
 
-#: settings/settings_dialog.py:395
+#: settings/settings_dialog.py:402
 msgid "Failed to save settings."
 msgstr "Nie udało się zapisać ustawień."
 
-#: settings/settings_dialog.py:406
+#: settings/settings_dialog.py:413
 msgid "Unsaved Changes"
 msgstr "Niezapisane zmiany"
 
-#: settings/settings_dialog.py:407
+#: settings/settings_dialog.py:414
 msgid "You have unsaved changes. Do you want to save them before closing?"
 msgstr "Masz niezapisane zmiany. Czy chcesz je zapisać przed zamknięciem?"
 
-#: settings/settings_dialog.py:409
+#: settings/settings_dialog.py:416
 msgid "Discard"
 msgstr "Odrzuć"
 
-#: settings/settings_dialog.py:410 project_window/rewrite_feature.py:74
-#: project_window/dialogs.py:19
+#: settings/settings_dialog.py:417 project_window/rewrite_feature.py:74
 msgid "Cancel"
 msgstr "Anuluj"
 
-#: settings/provider_info_dialog.py:43
+#: settings/provider_info_dialog.py:44
 msgid "Filter"
 msgstr "Filtruj"
 
-#: settings/provider_info_dialog.py:46 settings/provider_info_dialog.py:325
-#: settings/provider_info_dialog.py:433
+#: settings/provider_info_dialog.py:47 settings/provider_info_dialog.py:326
+#: settings/provider_info_dialog.py:434
 msgid "All Models"
 msgstr "Wszystkie modele"
 
-#: settings/provider_info_dialog.py:47 settings/provider_info_dialog.py:327
-#: settings/provider_info_dialog.py:434
+#: settings/provider_info_dialog.py:48 settings/provider_info_dialog.py:328
+#: settings/provider_info_dialog.py:435
 msgid "Free Models"
 msgstr "Bezpłatne modele"
 
-#: settings/provider_info_dialog.py:48 settings/provider_info_dialog.py:329
-#: settings/provider_info_dialog.py:435
+#: settings/provider_info_dialog.py:49 settings/provider_info_dialog.py:330
+#: settings/provider_info_dialog.py:436
 msgid "Chat Capabilities"
 msgstr "Możliwości czatu"
 
-#: settings/provider_info_dialog.py:49 settings/provider_info_dialog.py:331
-#: settings/provider_info_dialog.py:436
+#: settings/provider_info_dialog.py:50 settings/provider_info_dialog.py:332
+#: settings/provider_info_dialog.py:437
 msgid "Research Capabilities"
 msgstr "Możliwości badawcze"
 
-#: settings/provider_info_dialog.py:50 settings/provider_info_dialog.py:333
-#: settings/provider_info_dialog.py:437
+#: settings/provider_info_dialog.py:51 settings/provider_info_dialog.py:334
+#: settings/provider_info_dialog.py:438
 msgid "Instruction Following"
 msgstr "Śledzenie instrukcji"
 
-#: settings/provider_info_dialog.py:55
+#: settings/provider_info_dialog.py:56
 msgid "Group:"
 msgstr "Grupa:"
 
-#: settings/provider_info_dialog.py:57 settings/provider_info_dialog.py:186
-#: settings/provider_info_dialog.py:194
+#: settings/provider_info_dialog.py:58 settings/provider_info_dialog.py:187
+#: settings/provider_info_dialog.py:195
 msgid "All"
 msgstr "Wszystkie"
 
-#: settings/provider_info_dialog.py:89
+#: settings/provider_info_dialog.py:90
 msgid "Collapse all providers"
 msgstr "Zwiń wszystkich dostawców"
 
-#: settings/provider_info_dialog.py:96
+#: settings/provider_info_dialog.py:97
 msgid "Zoom in table content (CMD++)"
 msgstr "Powiększ zawartość tabeli (CMD++)"
 
-#: settings/provider_info_dialog.py:102
+#: settings/provider_info_dialog.py:103
 msgid "Zoom out table content (CMD+-)"
 msgstr "Pomniejsz zawartość tabeli (CMD+-)"
 
-#: settings/provider_info_dialog.py:108
+#: settings/provider_info_dialog.py:109
 msgid "Reset table content zoom"
 msgstr "Resetuj powiększenie zawartości tabeli"
 
-#: settings/provider_info_dialog.py:266
+#: settings/provider_info_dialog.py:267
 msgid "No models available or error fetching models."
 msgstr "Brak dostępnych modeli lub błąd podczas pobierania modeli."
 
-#: settings/provider_info_dialog.py:273
+#: settings/provider_info_dialog.py:274
 msgid "An API key is required for "
 msgstr "Klucz API jest wymagany dla "
 
-#: settings/provider_info_dialog.py:273
+#: settings/provider_info_dialog.py:274
 msgid ". Please enter it:"
 msgstr ". Proszę go wprowadzić:"
 
-#: settings/provider_info_dialog.py:292
+#: settings/provider_info_dialog.py:293
 msgid "API key is required for "
 msgstr "Klucz API jest wymagany dla "
 
-#: settings/provider_info_dialog.py:302
+#: settings/provider_info_dialog.py:303
 msgid "Failed to fetch models for "
 msgstr "Nie udało się pobrać modeli dla "
 
-#: settings/provider_info_dialog.py:429
+#: settings/provider_info_dialog.py:430
 msgid "Provider and Model Information"
 msgstr "Informacje o dostawcy i modelu"
 
-#: workshop/workshop.py:28
+#: workshop/workshop.py:37
 msgid "Workshop"
 msgstr "Warsztat"
 
-#: workshop/workshop.py:93
+#: workshop/workshop.py:106
 msgid "New Chat"
 msgstr "Nowy czat"
 
-#: workshop/workshop.py:115
+#: workshop/workshop.py:131
 msgid "Type your message here..."
 msgstr "Wpisz swoją wiadomość tutaj..."
 
-#: workshop/workshop.py:136
-msgid "No Workshop Prompts"
-msgstr "Brak monitów warsztatowych"
+#: workshop/workshop.py:155 project_window/bottom_stack.py:54
+#: project_window/bottom_stack.py:112
+msgid "Preview the final prompt"
+msgstr "Podgląd ostatecznego monitu"
 
-#: workshop/workshop.py:177 muse/prompts_window.py:100
-msgid "Model:"
-msgstr "Model:"
+#: workshop/workshop.py:209
+msgid "Speech Model: "
+msgstr "Model mowy: "
 
-#: workshop/workshop.py:183
-msgid "Language:"
-msgstr "Język:"
+#: workshop/workshop.py:213
+msgid "Language: "
+msgstr "Język: "
 
-#: workshop/workshop.py:201
-msgid "Model: [None]"
-msgstr "Model: [Brak]"
+#: workshop/workshop.py:355
+msgid "Empty Message"
+msgstr "Pusta wiadomość"
 
-#: workshop/workshop.py:233
-msgid "Selected mode:"
-msgstr "Wybrany tryb:"
+#: workshop/workshop.py:355
+msgid "Please enter a chat message."
+msgstr "Proszę wpisać wiadomość czatu."
 
-#: workshop/workshop.py:289
-msgid "LLM: Generating response..."
-msgstr "LLM: Generowanie odpowiedzi..."
-
-#: workshop/workshop.py:316
-msgid "LLM: [Conversation summarized to reduce token count.]"
-msgstr "LLM: [Rozmowa podsumowana w celu zmniejszenia liczby tokenów.]"
-
-#: workshop/workshop.py:350
+#: workshop/workshop.py:469
 msgid "Failed to generate response: {}"
 msgstr "Nie udało się wygenerować odpowiedzi: {}"
 
-#: workshop/workshop.py:377 muse/prompts_window.py:476
+#: workshop/workshop.py:547 project_window/token_limit_dialog.py:39
+msgid "Token Limit Exceeded"
+msgstr "Przekroczono limit tokenów"
+
+#: workshop/workshop.py:572
+msgid "Save Streamed Output"
+msgstr "Zapisz przesyłany strumieniowo wynik"
+
+#: workshop/workshop.py:573
+msgid ""
+"Streaming was interrupted. Would you like to save the output received so far?"
+msgstr ""
+"Przesyłanie strumieniowe zostało przerwane. Czy chcesz zapisać dotychczas otrzymany wynik?"
+
+#: workshop/workshop.py:649 project_window/project_window.py:611
+msgid "Thread Error"
+msgstr "Błąd wątku"
+
+#: workshop/workshop.py:649 project_window/project_window.py:611
+msgid "An error occurred while stopping the LLM thread: {}"
+msgstr "Wystąpił błąd podczas zatrzymywania wątku LLM: {}"
+
+#: workshop/workshop.py:664 muse/prompts_window.py:476
+#: project_window/embedded_prompts_panel.py:383
 #: project_window/project_structure_manager.py:34
-#: project_window/project_tree_widget.py:136
+#: project_window/project_tree_widget.py:153
 msgid "Rename"
 msgstr "Zmień nazwę"
 
-#: workshop/workshop.py:387
+#: workshop/workshop.py:679
 msgid "Rename Conversation"
 msgstr "Zmień nazwę rozmowy"
 
-#: workshop/workshop.py:387
+#: workshop/workshop.py:680
 msgid "Enter new conversation name:"
 msgstr "Wprowadź nową nazwę rozmowy:"
 
-#: workshop/workshop.py:398
+#: workshop/workshop.py:690
+msgid "Invalid Name"
+msgstr "Nieprawidłowa nazwa"
+
+#: workshop/workshop.py:691
+msgid "The conversation name cannot be empty. Please try again."
+msgstr "Nazwa rozmowy nie może być pusta. Spróbuj ponownie."
+
+#: workshop/workshop.py:701
+msgid "Name Conflict"
+msgstr "Konflikt nazw"
+
+#: workshop/workshop.py:702
+msgid ""
+"A conversation named '{}' already exists. Please choose a different name."
+msgstr "Rozmowa o nazwie '{}' już istnieje. Proszę wybrać inną nazwę."
+
+#: workshop/workshop.py:733
+msgid "Rename Error"
+msgstr "Błąd zmiany nazwy"
+
+#: workshop/workshop.py:734
+msgid ""
+"An error occurred while renaming the conversation: {}. The operation was "
+"cancelled to prevent data loss."
+msgstr ""
+"Wystąpił błąd podczas zmiany nazwy rozmowy: {}. Operacja została anulowana, aby zapobiec utracie danych."
+
+#: workshop/workshop.py:742
 msgid "Delete Conversation"
 msgstr "Usuń rozmowę"
 
-#: workshop/workshop.py:398 workbench.py:122
+#: workshop/workshop.py:743 workbench.py:123
 msgid "Are you sure you want to delete '{}'?"
 msgstr "Czy na pewno chcesz usunąć '{}'?"
 
-#: workshop/workshop.py:526
+#: workshop/workshop.py:854
+msgid "Save Error"
+msgstr "Błąd zapisu"
+
+#: workshop/workshop.py:855
+msgid ""
+"Failed to save conversations: {}. Your data is safe in memory, but try "
+"saving again later."
+msgstr ""
+"Nie udało się zapisać rozmów: {}. Twoje dane są bezpieczne w pamięci, ale spróbuj zapisać ponownie później."
+
+#: workshop/workshop.py:918
 msgid "Transcription Error"
 msgstr "Błąd transkrypcji"
 
-#: muse/prompt_preview_dialog.py:12
+#: muse/prompt_preview_dialog.py:13
 msgid "Prompt Preview"
 msgstr "Podgląd monitu"
 
-#: muse/prompt_preview_dialog.py:41
+#: muse/prompt_preview_dialog.py:43
 msgid "Zoom In (Cmd+=)"
 msgstr "Powiększ (Cmd+=)"
 
-#: muse/prompt_preview_dialog.py:46
+#: muse/prompt_preview_dialog.py:48
 msgid "Zoom Out (Cmd+-)"
 msgstr "Pomniejsz (Cmd+-)"
 
-#: muse/prompt_preview_dialog.py:48
+#: muse/prompt_preview_dialog.py:50
 msgid "OK"
 msgstr "OK"
 
-#: muse/prompt_preview_dialog.py:56
+#: muse/prompt_preview_dialog.py:57
 msgid "Token Count: 0"
 msgstr "Liczba tokenów: 0"
 
-#: muse/prompt_preview_dialog.py:172
+#: muse/prompt_preview_dialog.py:191
 msgid "Token Count: {}"
 msgstr "Liczba tokenów: {}"
 
-#: muse/prompt_preview_dialog.py:174
+#: muse/prompt_preview_dialog.py:193
 msgid "Token Count: Error ({})"
 msgstr "Liczba tokenów: Błąd ({})"
 
@@ -461,8 +529,8 @@ msgid ""
 "conscientious of token usage."
 msgstr ""
 "Podsumuj następujący rozdział do użycia w monicie opowieści, obejmując cel, "
-"kluczowe wydarzenia, rozwój postaci, ujawnione informacje, łuk emocjonalny "
-"i ustawienie fabuły. Zwróć uwagę na zużycie tokenów."
+"kluczowe wydarzenia, rozwój postaci, ujawnione informacje, łuk emocjonalny i "
+"ustawienie fabuły. Zwróć uwagę na zużycie tokenów."
 
 #: muse/prompt_utils.py:41
 msgid "Rewrite the passage for clarity."
@@ -492,56 +560,65 @@ msgstr "Domyślny model"
 msgid "Prompts - "
 msgstr "Monity - "
 
-#: muse/prompts_window.py:49
+#: muse/prompts_window.py:49 project_window/embedded_prompts_panel.py:40
 msgid "Prompts"
 msgstr "Monity"
 
 #: muse/prompts_window.py:66 muse/prompts_window.py:469
+#: project_window/embedded_prompts_panel.py:53
+#: project_window/embedded_prompts_panel.py:377
 msgid "Replicate"
 msgstr "Replikuj"
 
-#: muse/prompts_window.py:67
+#: muse/prompts_window.py:67 project_window/embedded_prompts_panel.py:54
 msgid "This is a read-only default prompt. Create a copy to edit it."
 msgstr "To domyślny monit tylko do odczytu. Utwórz kopię, aby go edytować."
 
-#: muse/prompts_window.py:82
+#: muse/prompts_window.py:82 project_window/embedded_prompts_panel.py:65
 msgid "Provider:"
 msgstr "Dostawca:"
 
-#: muse/prompts_window.py:85
+#: muse/prompts_window.py:85 project_window/embedded_prompts_panel.py:68
 msgid "Show Model Details"
 msgstr "Pokaż szczegóły modelu"
 
-#: muse/prompts_window.py:102
+#: muse/prompts_window.py:100 project_window/embedded_prompts_panel.py:81
+msgid "Model:"
+msgstr "Model:"
+
+#: muse/prompts_window.py:102 project_window/embedded_prompts_panel.py:83
 msgid "Refresh model list"
 msgstr "Odśwież listę modeli"
 
-#: muse/prompts_window.py:125
+#: muse/prompts_window.py:125 project_window/embedded_prompts_panel.py:99
 msgid "Max Tokens:"
 msgstr "Maksymalna liczba tokenów:"
 
-#: muse/prompts_window.py:135
+#: muse/prompts_window.py:135 project_window/embedded_prompts_panel.py:108
 msgid "Temperature:"
 msgstr "Temperatura:"
 
 #: muse/prompts_window.py:165 muse/prompts_window.py:414
+#: project_window/embedded_prompts_panel.py:132
+#: project_window/embedded_prompts_panel.py:336
 msgid "Save All"
 msgstr "Zapisz wszystko"
 
-#: muse/prompts_window.py:211
+#: muse/prompts_window.py:211 project_window/embedded_prompts_panel.py:164
 msgid "Loading models..."
 msgstr "Ładowanie modeli..."
 
-#: muse/prompts_window.py:221
+#: muse/prompts_window.py:221 project_window/embedded_prompts_panel.py:172
 msgid "Error fetching models: {}"
 msgstr "Błąd podczas pobierania modeli: {}"
 
 #: muse/prompts_window.py:227 muse/prompts_window.py:248
-#: project_window/project_window.py:324 project_window/project_window.py:339
-#: project_window/project_window.py:354 project_window/project_window.py:731
-#: project_window/project_window.py:745 project_window/project_window.py:754
-#: project_window/bottom_stack.py:140 project_window/bottom_stack.py:141
-#: project_window/bottom_stack.py:142
+#: project_window/embedded_prompts_panel.py:177
+#: project_window/project_window.py:430 project_window/project_window.py:456
+#: project_window/project_window.py:482 project_window/project_window.py:826
+#: project_window/project_window.py:838 project_window/project_window.py:846
+#: project_window/bottom_stack.py:143 project_window/bottom_stack.py:144
+#: project_window/bottom_stack.py:145
 msgid "Custom..."
 msgstr "Niestandardowy..."
 
@@ -553,7 +630,7 @@ msgstr "Niestandardowy model"
 msgid "Enter the model identifier:"
 msgstr "Wprowadź identyfikator modelu:"
 
-#: muse/prompts_window.py:296
+#: muse/prompts_window.py:296 project_window/embedded_prompts_panel.py:236
 msgid ""
 "\n"
 "Default prompt (read-only): LLM settings cannot be modified."
@@ -561,131 +638,141 @@ msgstr ""
 "\n"
 "Domyślny monit (tylko do odczytu): Ustawienia LLM nie mogą być zmienione."
 
-#: muse/prompts_window.py:349
+#: muse/prompts_window.py:349 project_window/embedded_prompts_panel.py:280
 msgid "Default prompts are read-only. LLM settings cannot be modified."
 msgstr "Domyślne monity są tylko do odczytu. Ustawienia LLM nie mogą być zmienione."
 
-#: muse/prompts_window.py:414
+#: muse/prompts_window.py:414 project_window/embedded_prompts_panel.py:336
 msgid "Prompts saved successfully."
 msgstr "Monity zapisane pomyślnie."
 
-#: muse/prompts_window.py:424
+#: muse/prompts_window.py:424 project_window/embedded_prompts_panel.py:341
 msgid "Error saving prompts: {}"
 msgstr "Błąd podczas zapisywania monitów: {}"
 
 #: muse/prompts_window.py:463 muse/prompts_window.py:498
+#: project_window/embedded_prompts_panel.py:371
+#: project_window/embedded_prompts_panel.py:403
 msgid "New Prompt"
 msgstr "Nowy monit"
 
-#: muse/prompts_window.py:470
+#: muse/prompts_window.py:470 project_window/embedded_prompts_panel.py:378
 msgid "Default prompt (read-only)"
 msgstr "Domyślny monit (tylko do odczytu)"
 
-#: muse/prompts_window.py:477 project_window/project_tree_widget.py:138
+#: muse/prompts_window.py:477 project_window/embedded_prompts_panel.py:384
+#: project_window/project_tree_widget.py:155
 #: compendium/ai_compendium_dialog.py:337 compendium/enhanced_compendium.py:405
 #: compendium/enhanced_compendium.py:423 compendium/enhanced_compendium.py:445
 msgid "Move Up"
 msgstr "Przesuń w górę"
 
-#: muse/prompts_window.py:478 project_window/project_tree_widget.py:139
+#: muse/prompts_window.py:478 project_window/embedded_prompts_panel.py:385
+#: project_window/project_tree_widget.py:156
 #: compendium/ai_compendium_dialog.py:338 compendium/enhanced_compendium.py:406
 #: compendium/enhanced_compendium.py:424 compendium/enhanced_compendium.py:446
 msgid "Move Down"
 msgstr "Przesuń w dół"
 
-#: muse/prompts_window.py:498
+#: muse/prompts_window.py:498 project_window/embedded_prompts_panel.py:403
 msgid "Enter prompt name:"
 msgstr "Wprowadź nazwę monitu:"
 
 #: muse/prompts_window.py:537 muse/prompts_window.py:581
+#: project_window/embedded_prompts_panel.py:437
+#: project_window/embedded_prompts_panel.py:468
 msgid "Save Prompt"
 msgstr "Zapisz monit"
 
-#: muse/prompts_window.py:538
+#: muse/prompts_window.py:538 project_window/embedded_prompts_panel.py:438
 msgid "Cannot save: Either not a prompt or it is a default prompt (read-only)."
 msgstr "Nie można zapisać: To nie jest monit lub jest to domyślny monit (tylko do odczytu)."
 
-#: muse/prompts_window.py:581
+#: muse/prompts_window.py:581 project_window/embedded_prompts_panel.py:468
 msgid "Prompt '{}' saved successfully."
 msgstr "Monit '{}' zapisany pomyślnie."
 
-#: muse/prompts_window.py:590
+#: muse/prompts_window.py:590 project_window/embedded_prompts_panel.py:472
 msgid "Error saving prompt: {}"
 msgstr "Błąd podczas zapisywania monitu: {}"
 
 #: muse/prompts_window.py:596 muse/prompts_window.py:602
+#: project_window/embedded_prompts_panel.py:477
+#: project_window/embedded_prompts_panel.py:482
 msgid "Rename Prompt"
 msgstr "Zmień nazwę monitu"
 
-#: muse/prompts_window.py:597
+#: muse/prompts_window.py:597 project_window/embedded_prompts_panel.py:478
 msgid "Default prompts cannot be renamed."
 msgstr "Domyślnych monitów nie można zmieniać nazwy."
 
-#: muse/prompts_window.py:602
+#: muse/prompts_window.py:602 project_window/embedded_prompts_panel.py:482
 msgid "Enter new prompt name:"
 msgstr "Wprowadź nową nazwę monitu:"
 
-#: muse/prompts_window.py:619
+#: muse/prompts_window.py:619 project_window/embedded_prompts_panel.py:498
 msgid "Move Prompt"
 msgstr "Przesuń monit"
 
-#: muse/prompts_window.py:620
+#: muse/prompts_window.py:620 project_window/embedded_prompts_panel.py:499
 msgid "Default prompts cannot be moved."
 msgstr "Domyślnych monitów nie można przesuwać."
 
 #: muse/prompts_window.py:643 muse/prompts_window.py:653
+#: project_window/embedded_prompts_panel.py:518
+#: project_window/embedded_prompts_panel.py:526
 msgid "Delete Prompt"
 msgstr "Usuń monit"
 
-#: muse/prompts_window.py:644
+#: muse/prompts_window.py:644 project_window/embedded_prompts_panel.py:519
 msgid "Default prompts cannot be deleted."
 msgstr "Domyślnych monitów nie można usuwać."
 
-#: muse/prompts_window.py:653
+#: muse/prompts_window.py:653 project_window/embedded_prompts_panel.py:526
 msgid "Delete prompt '{}'?"
 msgstr "Usunąć monit '{}'? "
 
-#: muse/prompts_window.py:672
+#: muse/prompts_window.py:672 project_window/embedded_prompts_panel.py:544
 msgid "Replicate Prompt"
 msgstr "Replikuj monit"
 
-#: muse/prompts_window.py:673
+#: muse/prompts_window.py:673 project_window/embedded_prompts_panel.py:545
 msgid "Enter name for the new prompt:"
 msgstr "Wprowadź nazwę dla nowego monitu:"
 
-#: muse/prompts_window.py:691
+#: muse/prompts_window.py:691 project_window/embedded_prompts_panel.py:563
 msgid "Replicated"
 msgstr "Zreplikowano"
 
-#: muse/prompts_window.py:691
+#: muse/prompts_window.py:691 project_window/embedded_prompts_panel.py:563
 msgid "Prompt replicated. You can now edit the new prompt."
 msgstr "Monit zreplikowany. Możesz teraz edytować nowy monit."
 
-#: workbench.py:31
+#: workbench.py:32
 msgid "Load Version Error"
 msgstr "Błąd ładowania wersji"
 
-#: workbench.py:32
+#: workbench.py:33
 msgid "Error loading version: {}"
 msgstr "Błąd ładowania wersji: {}"
 
-#: workbench.py:62
+#: workbench.py:63
 msgid "Load Projects Error"
 msgstr "Błąd ładowania projektów"
 
-#: workbench.py:63
+#: workbench.py:64
 msgid "Error loading projects: {}"
 msgstr "Błąd ładowania projektów: {}"
 
-#: workbench.py:74
+#: workbench.py:75
 msgid "Save Projects Error"
 msgstr "Błąd zapisywania projektów"
 
-#: workbench.py:75
+#: workbench.py:76
 msgid "Error saving projects: {}"
 msgstr "Błąd zapisywania projektów: {}"
 
-#: workbench.py:93 workbench.py:310
+#: workbench.py:94 workbench.py:311
 msgid ""
 "Left-click: Open project\n"
 "Right-click: Options (Delete, Export, Stats, Edit Cover)"
@@ -693,71 +780,72 @@ msgstr ""
 "Lewy przycisk: Otwórz projekt\n"
 "Prawy przycisk: Opcje (Usuń, Eksportuj, Statystyki, Edytuj okładkę)"
 
-#: workbench.py:113 workbench.py:223 workbench.py:228 workbench.py:232
-#: workbench.py:245
+#: workbench.py:114 workbench.py:224 workbench.py:229 workbench.py:233
+#: workbench.py:246
 msgid "Rename Project"
 msgstr "Zmień nazwę projektu"
 
-#: workbench.py:114 workbench.py:121 workbench.py:130
+#: workbench.py:115 workbench.py:122 workbench.py:131
 msgid "Delete Project"
 msgstr "Usuń projekt"
 
-#: workbench.py:115 workbench.py:139
+#: workbench.py:116 workbench.py:140
 msgid "Export Project"
 msgstr "Eksportuj projekt"
 
-#: workbench.py:116
+#: workbench.py:117
 msgid "Project Statistics"
 msgstr "Statystyki projektu"
 
-#: workbench.py:117
+#: workbench.py:118
 msgid "Add Book Cover"
 msgstr "Dodaj okładkę książki"
 
-#: workbench.py:130
+#: workbench.py:131
 msgid "Project '{}' deleted."
 msgstr "Projekt '{}' usunięty."
 
-#: workbench.py:136
+#: workbench.py:137
 msgid "Delete Project Error"
 msgstr "Błąd usuwania projektu"
 
-#: workbench.py:136
+#: workbench.py:137
 msgid "Error deleting project: {}"
 msgstr "Błąd usuwania projektu: {}"
 
-#: workbench.py:140
+#: workbench.py:141
 msgid "Export '{}' functionality will be implemented later."
 msgstr "Funkcjonalność eksportu '{}' zostanie zaimplementowana później."
 
-#: workbench.py:164
+#: workbench.py:165
 msgid ""
 "Could not automatically find the directory for project '{}'. Please select "
 "the project directory manually."
 msgstr ""
-"Nie udało się automatycznie znaleźć katalogu dla projektu '{}'. Proszę ręcznie wybrać katalog projektu."
+"Nie udało się automatycznie znaleźć katalogu dla projektu '{}'. Proszę "
+"ręcznie wybrać katalog projektu."
 
-#: workbench.py:165
+#: workbench.py:166
 msgid "Select Project Directory"
 msgstr "Wybierz katalog projektu"
 
-#: workbench.py:167
+#: workbench.py:168
 msgid "Select Directory for Project '{}'"
 msgstr "Wybierz katalog dla projektu '{}'"
 
-#: workbench.py:171
+#: workbench.py:172
 msgid "User cancelled the project directory selection"
 msgstr "Użytkownik anulował wybór katalogu projektu"
 
-#: workbench.py:173
+#: workbench.py:174
 msgid "Invalid project directory: {}"
 msgstr "Nieprawidłowy katalog projektu: {}"
 
-#: workbench.py:180
+#: workbench.py:181
 msgid "Statistics Error"
 msgstr "Błąd statystyk"
 
-#: workbench.py:181
+#: workbench.py:182
 msgid ""
 "Error loading project statistics: {}\n"
 "\n"
@@ -775,113 +863,130 @@ msgstr ""
 "Szczegóły (do debugowania):\n"
 "{}"
 
-#: workbench.py:189
+#: workbench.py:190
 msgid "Error Adding Cover"
 msgstr "Błąd dodawania okładki"
 
-#: workbench.py:190
+#: workbench.py:191
 msgid "Error adding book cover: {}"
 msgstr "Błąd dodawania okładki książki: {}"
 
-#: workbench.py:196
+#: workbench.py:197
 msgid "Error Renaming Project"
 msgstr "Błąd zmiany nazwy projektu"
 
-#: workbench.py:197
+#: workbench.py:198
 msgid "Error renaming project: {}"
 msgstr "Błąd zmiany nazwy projektu: {}"
 
-#: workbench.py:201
+#: workbench.py:202
 msgid "Select Book Cover"
 msgstr "Wybierz okładkę książki"
 
-#: workbench.py:201
+#: workbench.py:202
 msgid "Image Files (*.png *.jpg *.jpeg *.bmp)"
 msgstr "Pliki obrazów (*.png *.jpg *.jpeg *.bmp)"
 
-#: workbench.py:211
+#: workbench.py:212
 msgid "Invalid Image"
 msgstr "Nieprawidłowy obraz"
 
-#: workbench.py:212
+#: workbench.py:213
 msgid "The selected file is not a valid image."
 msgstr "Wybrany plik nie jest prawidłowym obrazem."
 
-#: workbench.py:223
+#: workbench.py:224
 msgid "Enter the project's new name:"
 msgstr "Wprowadź nową nazwę projektu:"
 
-#: workbench.py:229 workbench.py:609
+#: workbench.py:230 workbench.py:612
 msgid "Project '{}' already exists."
 msgstr "Projekt '{}' już istnieje."
 
-#: workbench.py:233
+#: workbench.py:234
 msgid "Project name is unchanged."
 msgstr "Nazwa projektu nie została zmieniona."
 
-#: workbench.py:245
+#: workbench.py:246
 msgid "Project {} renamed to '{}'"
 msgstr "Projekt {} zmieniono nazwę na '{}'"
 
-#: workbench.py:255
+#: workbench.py:256
 msgid "Project '{}' directory already exists."
 msgstr "Katalog projektu '{}' już istnieje."
 
-#: workbench.py:317 workbench.py:542
+#: workbench.py:318 workbench.py:527
 msgid "Writingway - Workbench"
 msgstr "Writingway - Stół roboczy"
 
-#: workbench.py:350 workbench.py:547
+#: workbench.py:352 workbench.py:532
 msgid "Click here to configure global options (paths, fonts, themes, etc.)"
 msgstr "Kliknij tutaj, aby skonfigurować opcje globalne (ścieżki, czcionki, motywy itp.)"
 
-#: workbench.py:365 workbench.py:543
+#: workbench.py:367 workbench.py:528
 msgid "Previous Project"
 msgstr "Poprzedni projekt"
 
-#: workbench.py:378 workbench.py:544
+#: workbench.py:380 workbench.py:529
 msgid "Next Project"
 msgstr "Następny projekt"
 
-#: workbench.py:383 workbench.py:545 workbench.py:573
+#: workbench.py:385 workbench.py:530 workbench.py:558
 msgid "＋ New Project"
 msgstr "＋ Nowy projekt"
 
-#: workbench.py:386 workbench.py:546
+#: workbench.py:388 workbench.py:531
 msgid "Create a brand-new project"
 msgstr "Utwórz zupełnie nowy projekt"
 
-#: workbench.py:401 workbench.py:548
+#: workbench.py:403 workbench.py:533
 msgid "Version: {}"
 msgstr "Wersja: {}"
 
-#: workbench.py:426 workbench.py:462
+#: workbench.py:428 workbench.py:464
 msgid "No quote available"
 msgstr "Brak dostępnego cytatu"
 
-#: workbench.py:427 workbench.py:462
+#: workbench.py:429 workbench.py:464
 msgid "Unknown"
 msgstr "Nieznany"
 
-#: workbench.py:447 workbench.py:457
+#: workbench.py:449 workbench.py:459
 msgid "Empty quotes list"
 msgstr "Pusta lista cytatów"
 
-#: workbench.py:605 workbench.py:608 workbench.py:618 workbench.py:621
+#: workbench.py:608 workbench.py:611 workbench.py:621 workbench.py:624
 msgid "New Project"
 msgstr "Nowy projekt"
 
-#: workbench.py:605
+#: workbench.py:608
 msgid "Enter new project name:"
 msgstr "Wprowadź nazwę nowego projektu:"
 
-#: workbench.py:618
+#: workbench.py:621
 msgid "Project '{}' created."
 msgstr "Projekt '{}' utworzony."
 
-#: workbench.py:621
+#: workbench.py:624
 msgid "Project creation cancelled."
 msgstr "Tworzenie projektu anulowane."
+
+#: project_window/activity_bar.py:29
+msgid "Outline and Scene Editor"
+msgstr "Zarys i edytor scen"
+
+#: project_window/activity_bar.py:34
+msgid "Search and Replace"
+msgstr "Szukaj i zamień"
+
+#: project_window/activity_bar.py:39 compendium/enhanced_compendium.py:188
+#: compendium/compendium_panel.py:58
+msgid "Compendium"
+msgstr "Kompendium"
+
+#: project_window/activity_bar.py:44
+msgid "Prompt Options"
+msgstr "Opcje monitów"
 
 #: project_window/summary_controller.py:26
 msgid "Selected prompt not found."
@@ -916,9 +1021,8 @@ msgstr "LLM nie zwrócił żadnego wyniku."
 msgid "Summary generated successfully."
 msgstr "Podsumowanie wygenerowane pomyślnie."
 
-#: project_window/summary_controller.py:94 project_window/project_window.py:557
-#: project_window/project_window.py:565 project_window/project_window.py:567
-#: project_window/bottom_stack.py:46
+#: project_window/summary_controller.py:94 project_window/project_window.py:668
+#: project_window/project_window.py:676 project_window/project_window.py:678
 msgid "Summary"
 msgstr "Podsumowanie"
 
@@ -926,18 +1030,16 @@ msgstr "Podsumowanie"
 msgid "Summary Error"
 msgstr "Błąd podsumowania"
 
-#: project_window/project_model.py:30 project_window/bottom_stack.py:140
+#: project_window/project_model.py:30 project_window/bottom_stack.py:143
 msgid "Third Person Limited"
 msgstr "Trzecia osoba ograniczona"
 
-#: project_window/project_model.py:31 project_window/project_window.py:386
-#: project_window/project_window.py:428 project_window/bottom_stack.py:203
+#: project_window/project_model.py:31 project_window/project_window.py:541
 msgid "Character"
 msgstr "Postać"
 
-#: project_window/project_model.py:32 project_window/project_window.py:387
-#: project_window/project_window.py:429 project_window/bottom_stack.py:142
-#: project_window/bottom_stack.py:204
+#: project_window/project_model.py:32 project_window/project_window.py:542
+#: project_window/bottom_stack.py:145
 msgid "Present Tense"
 msgstr "Czas teraźniejszy"
 
@@ -986,7 +1088,7 @@ msgstr "Wybierz monit przepisania:"
 
 #: project_window/rewrite_feature.py:47 project_window/rewrite_feature.py:93
 #: project_window/rewrite_feature.py:116 project_window/rewrite_feature.py:127
-#: project_window/project_window.py:701 project_window/project_window.py:708
+#: project_window/project_window.py:803 project_window/scene_editor.py:303
 msgid "Rewrite"
 msgstr "Przepisz"
 
@@ -1023,17 +1125,17 @@ msgid "No rewritten text to apply."
 msgstr "Brak przepisanego tekstu do zastosowania."
 
 #: project_window/project_structure_manager.py:7
-#: project_window/project_tree_widget.py:134
+#: project_window/project_tree_widget.py:151
 msgid "Add Act"
 msgstr "Dodaj akt"
 
 #: project_window/project_structure_manager.py:7
-#: project_window/project_tree_widget.py:134
+#: project_window/project_tree_widget.py:151
 msgid "Enter act name:"
 msgstr "Wprowadź nazwę aktu:"
 
 #: project_window/project_structure_manager.py:14
-#: project_window/project_tree_widget.py:142
+#: project_window/project_tree_widget.py:159
 msgid "Add Chapter"
 msgstr "Dodaj rozdział"
 
@@ -1042,7 +1144,7 @@ msgid "Enter chapter name:"
 msgstr "Wprowadź nazwę rozdziału:"
 
 #: project_window/project_structure_manager.py:22
-#: project_window/project_tree_widget.py:144
+#: project_window/project_tree_widget.py:161
 msgid "Add Scene"
 msgstr "Dodaj scenę"
 
@@ -1054,60 +1156,64 @@ msgstr "Wprowadź nazwę sceny:"
 msgid "Enter new name:"
 msgstr "Wprowadź nową nazwę:"
 
-#: project_window/project_window.py:74
+#: project_window/project_window.py:76
 msgid "Project: {}"
 msgstr "Projekt: {}"
 
-#: project_window/project_window.py:113 project_window/project_window.py:771
+#: project_window/project_window.py:119
+msgid "Select a compendium entry to view..."
+msgstr "Wybierz wpis kompendium do wyświetlenia..."
+
+#: project_window/project_window.py:221 project_window/project_window.py:865
 msgid "Words: {}"
 msgstr "Słowa: {}"
 
-#: project_window/project_window.py:114 project_window/project_window.py:298
+#: project_window/project_window.py:222 project_window/project_window.py:406
 msgid "Last Saved: {}"
 msgstr "Ostatnio zapisano: {}"
 
-#: project_window/project_window.py:237
+#: project_window/project_window.py:335
 msgid "Enter scene content..."
 msgstr "Wprowadź treść sceny..."
 
-#: project_window/project_window.py:245
+#: project_window/project_window.py:343
 msgid "Enter summary for {}..."
 msgstr "Wprowadź podsumowanie dla {}..."
 
-#: project_window/project_window.py:269 project_window/project_window.py:273
-#: project_window/scene_editor.py:53
+#: project_window/project_window.py:378 project_window/project_window.py:382
+#: project_window/scene_editor.py:105
 msgid "Manual Save"
 msgstr "Ręczny zapis"
 
-#: project_window/project_window.py:269
+#: project_window/project_window.py:378
 msgid "Please select a scene for manual save."
 msgstr "Proszę wybrać scenę do ręcznego zapisu."
 
-#: project_window/project_window.py:273
+#: project_window/project_window.py:382
 msgid "There is no content to save."
 msgstr "Brak treści do zapisania."
 
-#: project_window/project_window.py:278
+#: project_window/project_window.py:387
 msgid "Scene manually saved"
 msgstr "Scena zapisana ręcznie"
 
-#: project_window/project_window.py:292
+#: project_window/project_window.py:401
 msgid "Scene autosaved"
 msgstr "Scena zapisana automatycznie"
 
-#: project_window/project_window.py:309
+#: project_window/project_window.py:415
 msgid "Backup Versions"
 msgstr "Wersje zapasowe"
 
-#: project_window/project_window.py:309
+#: project_window/project_window.py:415
 msgid "Please select a scene to view backups."
 msgstr "Proszę wybrać scenę, aby zobaczyć kopie zapasowe."
 
-#: project_window/project_window.py:320
+#: project_window/project_window.py:426
 msgid "Backup Loaded"
 msgstr "Kopia zapasowa wczytana"
 
-#: project_window/project_window.py:320
+#: project_window/project_window.py:426
 msgid ""
 "Backup loaded from:\n"
 "{}"
@@ -1115,196 +1221,194 @@ msgstr ""
 "Kopia zapasowa wczytana z:\n"
 "{}"
 
-#: project_window/project_window.py:325
+#: project_window/project_window.py:431
 msgid "Custom POV"
 msgstr "Niestandardowy punkt widzenia"
 
-#: project_window/project_window.py:325
+#: project_window/project_window.py:431
 msgid "Enter custom POV:"
 msgstr "Wprowadź niestandardowy punkt widzenia:"
 
-#: project_window/project_window.py:340
+#: project_window/project_window.py:457
 msgid "Custom POV Character"
 msgstr "Niestandardowa postać punktu widzenia"
 
-#: project_window/project_window.py:340
+#: project_window/project_window.py:457
 msgid "Enter custom POV Character:"
 msgstr "Wprowadź niestandardową postać punktu widzenia:"
 
-#: project_window/project_window.py:368 project_window/bottom_stack.py:180
+#: project_window/project_window.py:483
+msgctxt "verb_tense"
+msgid "Custom Tense"
+msgstr "Niestandardowy czas"
+
+#: project_window/project_window.py:483
+msgctxt "verb_tense"
+msgid "Enter custom Tense:"
+msgstr "Wprowadź niestandardowy czas:"
+
+#: project_window/project_window.py:496 project_window/bottom_stack.py:183
 msgid "POV: {}"
 msgstr "Punkt widzenia: {}"
 
-#: project_window/project_window.py:369 project_window/bottom_stack.py:182
+#: project_window/project_window.py:497 project_window/bottom_stack.py:185
 msgid "POV Character: {}"
 msgstr "Postać punktu widzenia: {}"
 
-#: project_window/project_window.py:375 project_window/project_window.py:380
+#: project_window/project_window.py:498
+msgctxt "verb_tense"
+msgid "Tense: {}"
+msgstr "Czas: {}"
+
+#: project_window/project_window.py:503 project_window/project_window.py:507
 msgid "LLM Prompt"
 msgstr "Monit LLM"
 
-#: project_window/project_window.py:375
+#: project_window/project_window.py:503
 msgid "Please enter some action beats before sending."
 msgstr "Proszę wprowadzić kilka akcji przed wysłaniem."
 
-#: project_window/project_window.py:380
+#: project_window/project_window.py:507
 msgid "Please select a prompt."
 msgstr "Proszę wybrać monit."
 
-#: project_window/project_window.py:385 project_window/project_window.py:427
-#: project_window/bottom_stack.py:202
-msgid "Third Person"
-msgstr "Trzecia osoba"
-
-#: project_window/project_window.py:421
+#: project_window/project_window.py:534
 msgid "Generating summary to fit token limit…"
 msgstr "Generowanie podsumowania w granicach limitu tokenów…"
 
-#: project_window/project_window.py:452
+#: project_window/project_window.py:540
+msgid "Third Person"
+msgstr "Trzecia osoba"
+
+#: project_window/project_window.py:564
 msgid "Summary generated. Edit if needed, then resend."
 msgstr "Podsumowanie wygenerowane. Edytuj, jeśli trzeba, a następnie wyślij ponownie."
 
-#: project_window/project_window.py:496
-msgid "Thread Error"
-msgstr "Błąd wątku"
-
-#: project_window/project_window.py:496
-msgid "An error occurred while stopping the LLM thread: {}"
-msgstr "Wystąpił błąd podczas zatrzymywania wątku LLM: {}"
-
-#: project_window/project_window.py:504
+#: project_window/project_window.py:618
 msgid "LLM Response"
 msgstr "Odpowiedź LLM"
 
-#: project_window/project_window.py:504
+#: project_window/project_window.py:618
 msgid ""
 "The LLM did not return any text. Possible token limit reached or an error "
 "occurred."
 msgstr "LLM nie zwrócił żadnego tekstu. Możliwe osiągnięcie limitu tokenów lub błąd."
 
-#: project_window/project_window.py:528 project_window/project_window.py:551
-msgid "Apply Preview"
-msgstr "Zastosuj pod OCP gląd"
+#: project_window/project_window.py:640
+msgid "An error occurred while stopping the LLM: {}"
+msgstr "Wystąpił błąd podczas zatrzymywania LLM: {}"
 
-#: project_window/project_window.py:528
+#: project_window/project_window.py:646 project_window/project_window.py:663
+msgid "Apply Preview"
+msgstr "Zastosuj podgląd"
+
+#: project_window/project_window.py:646
 msgid "No preview text to apply."
 msgstr "Brak tekstu podglądu do zastosowania."
 
-#: project_window/project_window.py:551 project_window/token_limit_dialog.py:46
+#: project_window/project_window.py:663 project_window/token_limit_dialog.py:46
 msgid "Error: {}"
 msgstr "Błąd: {}"
 
-#: project_window/project_window.py:557
+#: project_window/project_window.py:668
 msgid "No Act or Chapter selected."
 msgstr "Nie wybrano aktu ani rozdziału."
 
-#: project_window/project_window.py:563
+#: project_window/project_window.py:674
 msgid "Summary saved successfully"
 msgstr "Podsumowanie zapisane pomyślnie"
 
-#: project_window/project_window.py:565
+#: project_window/project_window.py:676
 msgid "Summary saved successfully."
 msgstr "Podsumowanie zapisane pomyślnie."
 
-#: project_window/project_window.py:567
+#: project_window/project_window.py:678
 msgid "Failed to save summary."
 msgstr "Nie udało się zapisać podsumowania."
 
-#: project_window/project_window.py:640
+#: project_window/project_window.py:744
 msgid "TTS Warning"
 msgstr "Ostrzeżenie TTS"
 
-#: project_window/project_window.py:640
+#: project_window/project_window.py:744
 msgid "There is no text to read."
 msgstr "Brak tekstu do odczytania."
 
-#: project_window/project_window.py:708
+#: project_window/project_window.py:803
 msgid "No text selected to rewrite."
 msgstr "Nie wybrano tekstu do przepisania."
 
-#: project_window/project_window.py:749
+#: project_window/project_window.py:841
 msgid "-- Select Character --"
 msgstr "-- Wybierz postać --"
 
-#: project_window/bottom_stack.py:52 project_window/bottom_stack.py:109
-msgid "Preview the final prompt"
-msgstr "Podgląd ostatecznego monitu"
-
-#: project_window/bottom_stack.py:57 project_window/dialogs.py:7
+#: project_window/bottom_stack.py:59
 msgid "Create Summary"
 msgstr "Utwórz podsumowanie"
 
-#: project_window/bottom_stack.py:59
+#: project_window/bottom_stack.py:61
 msgid "Save Summary"
 msgstr "Zapisz podsumowanie"
 
-#: project_window/bottom_stack.py:75
+#: project_window/bottom_stack.py:77
 msgid "LLM output preview will appear here..."
 msgstr "Podgląd wyniku LLM pojawi się tutaj..."
 
-#: project_window/bottom_stack.py:79
+#: project_window/bottom_stack.py:81
 msgid "Appends the LLM's output to your current scene"
 msgstr "Dołącza wynik LLM do bieżącej sceny"
 
-#: project_window/bottom_stack.py:81
+#: project_window/bottom_stack.py:83
 msgid "Include Action Beats"
 msgstr "Uwzględnij akcje"
 
-#: project_window/bottom_stack.py:82
+#: project_window/bottom_stack.py:84
 msgid "Include the text from the Action Beats field in the scene text"
 msgstr "Uwzględnij tekst z pola akcji w tekście sceny"
 
-#: project_window/bottom_stack.py:95
+#: project_window/bottom_stack.py:97
 msgid "Enter your action beats here..."
 msgstr "Wprowadź swoje akcje tutaj..."
 
-#: project_window/bottom_stack.py:103
-msgid "Prose"
-msgstr "Proza"
-
-#: project_window/bottom_stack.py:115
+#: project_window/bottom_stack.py:118
 msgid "Sends the action beats to the LLM"
 msgstr "Wysyła akcje do LLM"
 
-#: project_window/bottom_stack.py:121
+#: project_window/bottom_stack.py:124
 msgid "Stop the LLM processing"
 msgstr "Zatrzymaj przetwarzanie LLM"
 
-#: project_window/bottom_stack.py:127
+#: project_window/bottom_stack.py:130
 msgid "Toggle context panel"
 msgstr "Przełącz panel kontekstu"
 
-#: project_window/bottom_stack.py:140
+#: project_window/bottom_stack.py:143
 msgid "POV"
 msgstr "Punkt widzenia"
 
-#: project_window/bottom_stack.py:140
+#: project_window/bottom_stack.py:143
 msgid "First Person"
 msgstr "Pierwsza osoba"
 
-#: project_window/bottom_stack.py:140
+#: project_window/bottom_stack.py:143
 msgid "Omniscient"
 msgstr "Wszechwiedzący"
 
-#: project_window/bottom_stack.py:141
+#: project_window/bottom_stack.py:144
 msgid "POV Character"
 msgstr "Postać punktu widzenia"
 
-#: project_window/bottom_stack.py:142
+#: project_window/bottom_stack.py:145
 msgid "Tense"
 msgstr "Czas"
 
-#: project_window/bottom_stack.py:142
+#: project_window/bottom_stack.py:145
 msgid "Past Tense"
 msgstr "Czas przeszły"
 
-#: project_window/bottom_stack.py:184
+#: project_window/bottom_stack.py:187
 msgid "Tense: {}"
 msgstr "Czas: {}"
-
-#: project_window/token_limit_dialog.py:39
-msgid "Token Limit Exceeded"
-msgstr "Przekroczono limit tokenów"
 
 #: project_window/token_limit_dialog.py:46
 msgid ""
@@ -1338,138 +1442,200 @@ msgstr "Puste podsumowanie"
 msgid "Please provide a summary before proceeding."
 msgstr "Proszę podać podsumowanie przed kontynuacją."
 
-#: project_window/project_tree_widget.py:25
-msgid "Status"
-msgstr "Status"
-
-#: project_window/project_tree_widget.py:40
-#: project_window/project_tree_widget.py:42
-#: project_window/project_tree_widget.py:102
-#: project_window/project_tree_widget.py:109
-#: project_window/project_tree_widget.py:111
-#: project_window/project_tree_widget.py:147
+#: project_window/project_tree_widget.py:15
+msgctxt "status"
 msgid "To Do"
 msgstr "Do zrobienia"
 
-#: project_window/project_tree_widget.py:43
-#: project_window/project_tree_widget.py:112
-#: project_window/project_tree_widget.py:147
+#: project_window/project_tree_widget.py:16
+msgctxt "status"
 msgid "In Progress"
 msgstr "W trakcie"
 
-#: project_window/project_tree_widget.py:44
-#: project_window/project_tree_widget.py:113
-#: project_window/project_tree_widget.py:147
+#: project_window/project_tree_widget.py:17
+msgctxt "status"
 msgid "Final Draft"
 msgstr "Ostateczny szkic"
 
-#: project_window/project_tree_widget.py:146
+#: project_window/project_tree_widget.py:37
+msgid "Status"
+msgstr "Status"
+
+#: project_window/project_tree_widget.py:163
 msgid "Set Scene Status"
 msgstr "Ustaw status sceny"
-
-#: project_window/project_tree_widget.py:153
-msgid "Duplicate Name Error"
-msgstr "Błąd zduplikowanej nazwy"
 
 #: project_window/global_toolbar.py:11
 msgid "Global Actions"
 msgstr "Akcje globalne"
 
-#: project_window/global_toolbar.py:20
-msgid "Toggle Compendium"
-msgstr "Przełącz kompendium"
-
-#: project_window/global_toolbar.py:21
-msgid "Prompt Options"
-msgstr "Opcje monitów"
-
 #: project_window/global_toolbar.py:22
 msgid "Workshop Chat"
 msgstr "Czat warsztatowy"
 
-#: project_window/global_toolbar.py:23 project_window/focus_mode.py:46
-msgid "Focus Mode"
-msgstr "Tryb skupienia"
-
-#: project_window/scene_editor.py:18
-msgid "Editor Toolbar"
-msgstr "Pasek narzędzi edytora"
-
-#: project_window/scene_editor.py:29
-msgid "Bold"
-msgstr "Pogrubienie"
-
-#: project_window/scene_editor.py:30
-msgid "Italic"
-msgstr "Kursywa"
-
-#: project_window/scene_editor.py:31
-msgid "Underline"
-msgstr "Podkreślenie"
-
-#: project_window/scene_editor.py:33
-msgid "Play TTS (or Stop if playing)"
-msgstr "Odtwórz TTS (lub zatrzymaj, jeśli odtwarzane)"
-
-#: project_window/scene_editor.py:35
-msgid "Align Left"
-msgstr "Wyrównaj do lewej"
-
-#: project_window/scene_editor.py:36
-msgid "Center Align"
-msgstr "Wyrównaj do środka"
-
-#: project_window/scene_editor.py:37
-msgid "Align Right"
-msgstr "Wyrównaj do prawej"
-
-#: project_window/scene_editor.py:41
-msgid "Select a font"
-msgstr "Wybierz czcionkę"
-
-#: project_window/scene_editor.py:47
-msgid "Select font size"
-msgstr "Wybierz rozmiar czcionki"
-
-#: project_window/scene_editor.py:54
-msgid "Show Backups"
-msgstr "Pokaż kopie zapasowe"
-
-#: project_window/scene_editor.py:55
-msgid "Open Analysis Editor"
-msgstr "Otwórz edytor analizy"
-
-#: project_window/scene_editor.py:56
+#: project_window/global_toolbar.py:23
 msgid "Open Whisper"
 msgstr "Otwórz Whisper"
 
-#: project_window/scene_editor.py:57
-msgid "Open Wikipedia"
-msgstr "Otwórz Wikipedię"
+#: project_window/global_toolbar.py:24
+msgid "Open Web with LLM"
+msgstr "Otwórz sieć z LLM"
 
-#: project_window/scene_editor.py::58
+#: project_window/global_toolbar.py:25
 msgid "Open Internet Archive"
 msgstr "Otwórz Archiwum Internetowe"
 
-#: project_window/scene_editor.py:71
-msgid "Select a node to edit its content..."
-msgstr "Wybierz węzeł, aby edytować jego treść..."
+#: project_window/global_toolbar.py:26 project_window/focus_mode.py:46
+msgid "Focus Mode"
+msgstr "Tryb skupienia"
 
-#: project_window/dialogs.py:13
-msgid "Edit summarizer prompt:"
-msgstr "Edytuj monit podsumowania:"
+#: project_window/scene_editor.py:66
+msgid "Bold"
+msgstr "Pogrubienie"
 
-#: project_window/dialogs.py:18
-msgid "Okay"
-msgstr "OK"
+#: project_window/scene_editor.py:67
+msgid "Italic"
+msgstr "Kursywa"
 
-#: project_window/dialogs.py:30
-msgid "Input Error"
-msgstr "Błąd wprowadzania"
+#: project_window/scene_editor.py:68
+msgid "Underline"
+msgstr "Podkreślenie"
 
-#: project_window/dialogs.py:30
-msgid "The summarizer prompt cannot be empty."
-msgstr "Monit podsumowania nie może być pusty."
+#: project_window/scene_editor.py:75
+msgid "Play TTS (or Stop)"
+msgstr "Odtwórz TTS (lub zatrzymaj)"
+
+#: project_window/scene_editor.py:82
+msgid "Align Left"
+msgstr "Wyrównaj do lewej"
+
+#: project_window/scene_editor.py:83
+msgid "Center Align"
+msgstr "Wyrównaj do środka"
+
+#: project_window/scene_editor.py:84
+msgid "Align Right"
+msgstr "Wyrównaj do prawej"
+
+#: project_window/scene_editor.py:106
+msgid "Show Backups"
+msgstr "Pokaż kopie zapasowe"
+
+#: project_window/scene_editor.py:107
+msgid "Analysis Editor"
+msgstr "Edytor analizy"
+
+#: project_window/scene_editor.py:113
+msgid "Spell check:"
+msgstr "Sprawdzanie pisowni:"
+
+#: project_window/scene_editor.py:128
+msgid "Select a node to edit..."
+msgstr "Wybierz węzeł, aby edytować..."
+
+#: project_window/scene_editor.py:191
+msgid "Additional Dictionaries"
+msgstr "Dodatkowe słowniki"
+
+#: project_window/scene_editor.py:195
+msgid ""
+"For more dictionaries, please visit:<br><a href=\"https://github.com/"
+"LibreOffice/dictionaries\">https://github.com/LibreOffice/dictionaries</"
+"a><br>Paste the .aff and .dic file into the folder:<br>Writingway/assets/"
+"dictionaries"
+msgstr ""
+"Aby uzyskać więcej słowników, odwiedź:<br><a href=\"https://github.com/"
+"LibreOffice/dictionaries\">https://github.com/LibreOffice/dictionaries</"
+"a><br>Wklej pliki .aff i .dic do folderu:<br>Writingway/assets/dictionaries"
+
+#: project_window/scene_editor.py:312
+msgid "Suggestions"
+msgstr "Sugestie"
+
+#: project_window/scene_editor.py:317
+msgid "(No suggestions)"
+msgstr "(Brak sugestii)"
+
+#: project_window/search_replace_panel.py:60
+msgid "Undo replacement"
+msgstr "Cofnij zamianę"
+
+#: project_window/search_replace_panel.py:113
+msgid "Search in scenes..."
+msgstr "Szukaj w scenach..."
+
+#: project_window/search_replace_panel.py:119
+msgid "Search options"
+msgstr "Opcje wyszukiwania"
+
+#: project_window/search_replace_panel.py:123
+msgid "Regex Search"
+msgstr "Wyszukiwanie regex"
+
+#: project_window/search_replace_panel.py:129
+msgid "Show Replace"
+msgstr "Pokaż zamianę"
+
+#: project_window/search_replace_panel.py:144
+msgid "Replace with..."
+msgstr "Zamień na..."
+
+#: project_window/search_replace_panel.py:147
+msgid "Replace current match"
+msgstr "Zamień bieżące dopasowanie"
+
+#: project_window/search_replace_panel.py:151
+msgid "Replace all matches"
+msgstr "Zamień wszystkie dopasowania"
+
+#: project_window/search_replace_panel.py:162
+msgid "Previous match"
+msgstr "Poprzednie dopasowanie"
+
+#: project_window/search_replace_panel.py:166
+msgid "Next match"
+msgstr "Następne dopasowanie"
+
+#: project_window/search_replace_panel.py:173
+msgid "Search Results"
+msgstr "Wyniki wyszukiwania"
+
+#: project_window/search_replace_panel.py:348
+msgid "Invalid regex pattern"
+msgstr "Nieprawidłowy wzorzec regex"
+
+#: project_window/search_replace_panel.py:529
+#: project_window/search_replace_panel.py:1008
+msgid "Match not found; content may have changed"
+msgstr "Nie znaleziono dopasowania; treść mogła się zmienić"
+
+#: project_window/search_replace_panel.py:549
+msgid "Please select a match to replace"
+msgstr "Proszę wybrać dopasowanie do zamiany"
+
+#: project_window/search_replace_panel.py:570
+msgid "Match position is invalid; content may have changed"
+msgstr "Pozycja dopasowania jest nieprawidłowa; treść mogła się zmienić"
+
+#: project_window/search_replace_panel.py:575
+msgid "Match text does not match; content may have changed"
+msgstr "Tekst dopasowania nie zgadza się; treść mogła się zmienić"
+
+#: project_window/search_replace_panel.py:672
+msgid "Replaced 1 match"
+msgstr "Zamieniono 1 dopasowanie"
+
+#: project_window/search_replace_panel.py:836
+msgid "Replaced {} matches"
+msgstr "Zamieniono {} dopasowań"
+
+#: project_window/search_replace_panel.py:864
+msgid "Invalid position for undo"
+msgstr "Nieprawidłowa pozycja do cofnięcia"
+
+#: project_window/search_replace_panel.py:940
+msgid "Undone 1 replacement"
+msgstr "Cofnięto 1 zamianę"
 
 #: compendium/ai_compendium_dialog.py:30
 msgid "AI Compendium Analysis"
@@ -1627,10 +1793,6 @@ msgstr "<b>Projekt:</b>"
 msgid "Search entries and tags..."
 msgstr "Szukaj wpisów i tagów..."
 
-#: compendium/enhanced_compendium.py:188 compendium/compendium_panel.py:67
-msgid "Compendium"
-msgstr "Kompendium"
-
 #: compendium/enhanced_compendium.py:201 compendium/enhanced_compendium.py:906
 msgid "No entry selected"
 msgstr "Nie wybrano wpisu"
@@ -1644,7 +1806,8 @@ msgid ""
 "This is the text the AI can see if you select this entry to be included in "
 "the prompt inside the context panel"
 msgstr ""
-"To tekst, który AI może zobaczyć, jeśli wybierzesz ten wpis do włączenia w monit w panelu kontekstu"
+"To tekst, który AI może zobaczyć, jeśli wybierzesz ten wpis do włączenia w "
+"monit w panelu kontekstu"
 
 #: compendium/enhanced_compendium.py:218
 msgid "Overview"
@@ -1655,14 +1818,16 @@ msgid ""
 "this is the text the AI can see if you select this entry to be included in "
 "the prompt inside the context panel"
 msgstr ""
-"to tekst, który AI może zobaczyć, jeśli wybierzesz ten wpis do włączenia w monit w panelu kontekstu"
+"to tekst, który AI może zobaczyć, jeśli wybierzesz ten wpis do włączenia w "
+"monit w panelu kontekstu"
 
 #: compendium/enhanced_compendium.py:223
 msgid ""
 "Enter details about your entry here... (details about your entry the AI "
 "can't see - this info is only for you)"
 msgstr ""
-"Wprowadź szczegóły swojego wpisu tutaj... (szczegóły wpisu, których AI nie widzi - te informacje są tylko dla Ciebie)"
+"Wprowadź szczegóły swojego wpisu tutaj... (szczegóły wpisu, których AI nie "
+"widzi - te informacje są tylko dla Ciebie)"
 
 #: compendium/enhanced_compendium.py:224
 msgid "Details"
@@ -1826,55 +1991,99 @@ msgstr "Czy na pewno chcesz usunąć wpis '{}'?"
 msgid "Rename {}"
 msgstr "Zmień nazwę {}"
 
-#: compendium/compendium_panel.py:75
-msgid "Select a compendium entry to view."
-msgstr "Wybierz wpis kompendium do wyświetlenia."
+#: compendium/backstory_builder_dialog.py:24
+msgid "Backstory Builder for {}"
+msgstr "Kreator historii dla {}"
 
-#: compendium/compendium_panel.py:225
+#: compendium/backstory_builder_dialog.py:179
+msgid "Failed to load backstory_templates.json. Using default template."
+msgstr "Nie udało się wczytać backstory_templates.json. Używanie domyślnego szablonu."
+
+#: compendium/backstory_builder_dialog.py:235
+msgid "Character Type:"
+msgstr "Typ postaci:"
+
+#: compendium/backstory_builder_dialog.py:244
+msgid "AI-generated or summarized backstory..."
+msgstr "Historia wygenerowana lub podsumowana przez AI..."
+
+#: compendium/backstory_builder_dialog.py:250
+msgid "Generate Backstory"
+msgstr "Wygeneruj historię"
+
+#: compendium/backstory_builder_dialog.py:280
+msgid "Describe custom {}..."
+msgstr "Opisz niestandardowy {}..."
+
+#: compendium/backstory_builder_dialog.py:282
+#: compendium/backstory_builder_dialog.py:284
+#: compendium/backstory_builder_dialog.py:317
+#: compendium/backstory_builder_dialog.py:336
+#: compendium/backstory_builder_dialog.py:377
+msgid "Custom"
+msgstr "Niestandardowy"
+
+#: compendium/backstory_builder_dialog.py:309
+msgid "No prompt selected."
+msgstr "Nie wybrano monitu."
+
+#: compendium/backstory_builder_dialog.py:355
+msgid "Prompt template missing required variable: {}"
+msgstr "Szablon monitu nie zawiera wymaganej zmiennej: {}"
+
+#: compendium/backstory_builder_dialog.py:369
+msgid "Failed to generate backstory: {}"
+msgstr "Nie udało się wygenerować historii: {}"
+
+#: compendium/compendium_panel.py:186
 msgid "Open Enhanced Compendium"
 msgstr "Otwórz rozszerzone kompendium"
 
-#: compendium/compendium_panel.py:226
+#: compendium/compendium_panel.py:187
 msgid "Analyze Scene with AI"
 msgstr "Analizuj scenę z AI"
 
-#: compendium/compendium_panel.py:250
+#: compendium/compendium_panel.py:196
+msgid "Enhanced Compendium window not available."
+msgstr "Okno rozszerzonego kompendium niedostępne."
+
+#: compendium/compendium_panel.py:209
 msgid "No scene content available to analyze."
 msgstr "Brak treści sceny do analizy."
 
-#: compendium/compendium_panel.py:325
+#: compendium/compendium_panel.py:266
 msgid "AI returned invalid JSON that could not be repaired."
 msgstr "AI zwrócił nieprawidłowy JSON, którego nie można naprawić."
 
-#: compendium/compendium_panel.py:332
+#: compendium/compendium_panel.py:271
 msgid "AI returned invalid JSON format."
 msgstr "AI zwrócił nieprawidłowy format JSON."
 
-#: compendium/compendium_panel.py:341
+#: compendium/compendium_panel.py:277
 msgid "Failed to analyze scene: {}"
 msgstr "Nie udało się przeanalizować sceny: {}"
 
-#: compendium/compendium_panel.py:439
+#: compendium/compendium_panel.py:351
 msgid "Success"
 msgstr "Sukces"
 
-#: compendium/compendium_panel.py:439
+#: compendium/compendium_panel.py:351
 msgid "Compendium updated successfully."
 msgstr "Kompendium zaktualizowane pomyślnie."
 
-#: compendium/compendium_panel.py:442
+#: compendium/compendium_panel.py:353
 msgid "Failed to save compendium: {}"
 msgstr "Nie udało się zapisać kompendium: {}"
 
-#: main.py:25
+#: main.py:30
 msgid "Missing Dependencies"
 msgstr "Brakujące zależności"
 
-#: main.py:26
+#: main.py:31
 msgid "The application requires the following module(s): "
 msgstr "Aplikacja wymaga następujących modułów: "
 
-#: main.py:27
+#: main.py:32
 msgid ""
 "\n"
 "\n"
@@ -1888,7 +2097,7 @@ msgstr ""
 "\n"
 "pip install "
 
-#: main.py:28
+#: main.py:33
 msgid ""
 "\n"
 "\n"

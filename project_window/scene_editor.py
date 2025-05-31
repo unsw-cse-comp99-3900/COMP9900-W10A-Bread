@@ -105,9 +105,6 @@ class SceneEditor(QWidget):
             ("manual_save","assets/icons/save.svg",_("Manual Save"),self.controller.manual_save_scene),
             ("oh_shit","assets/icons/share.svg",_("Show Backups"),self.controller.on_oh_shit),
             ("analysis_editor","assets/icons/feather.svg",_("Analysis Editor"),self.controller.open_analysis_editor),
-            ("whisper_app","assets/icons/mic.svg",_("Open Whisper"),self.controller.open_whisper_app),
-            ("web_llm","assets/icons/wikidata.svg",_("Open Web with LLM"),self.controller.open_web_llm),
-            ("ia_window","assets/icons/arch.svg",_("Open Internet Archive"),self.controller.open_ia_window)
         ]:
             setattr(self, f"{name}_action", self.add_action(name, icon, tip, func, False))
 

@@ -149,7 +149,7 @@ class BottomStack(QWidget):
         splitter = QSplitter(Qt.Horizontal)
         splitter.addWidget(left_container)
 
-        self.context_panel = ContextPanel(self.model.structure, self.model.project_name, self.controller)
+        self.context_panel = ContextPanel(self.model.structure, self.model.project_name, self.controller, enhanced_window=self.controller.enhanced_window)
         self.context_panel.setVisible(False)
         splitter.addWidget(self.context_panel)
         splitter.setSizes([500, 300])

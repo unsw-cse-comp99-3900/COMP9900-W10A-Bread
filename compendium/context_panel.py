@@ -1,7 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QSplitter, QTreeWidget, QTreeWidgetItem, QTextEdit
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
 from compendium.compendium_manager import CompendiumManager
-from compendium.enhanced_compendium import EnhancedCompendiumWindow
 
 class ContextPanel(QWidget):
     # Optional signal if ContextPanel itself updates the compendium in the future
@@ -14,12 +13,13 @@ class ContextPanel(QWidget):
     Selections persist until manually changed.
     """
 
-    def __init__(self, project_structure, project_name, parent=None):
+    def __init__(self, project_structure, project_name, parent=None, enhanced_window=None):
         super().__init__(parent)
         self.project_structure = project_structure  # reference to the project structure
         self.project_name = project_name
         self.controller = parent
         self.compendium_manager = CompendiumManager(project_name)
+        self.enhanced_window = enhanced_window  # Store enhanced_window instance
         self.uuid_map = {}  # Map UUIDs to QTreeWidgetItems
         self.init_ui()
         if hasattr(self.controller, "model") and self.controller.model:
@@ -190,7 +190,6 @@ class ContextPanel(QWidget):
                     return
         self.compendium_tree.clearSelection()
 
-
     def propagate_check_state(self, item, column):
         """
         Propagate check state changes to children and update parent items.
@@ -354,19 +353,10 @@ class ContextPanel(QWidget):
             font.setBold(True)
             summary_item.setFont(0, font)
 
-
     def connect_to_compendium_signal(self):
         """Connect to the EnhancedCompendiumWindow's compendium_updated signal."""
-        # Traverse up to ProjectWindow to find EnhancedCompendiumWindow
-        current_parent = self.parent()
-        while current_parent:
-            if hasattr(current_parent, 'enhanced_window') and isinstance(current_parent.enhanced_window, EnhancedCompendiumWindow):
-                current_parent.enhanced_window.compendium_updated.connect(self.update_compendium_tree)
-                break
-            current_parent = current_parent.parent()
-        
-        # If not found (e.g., EnhancedCompendiumWindow not open yet), we'll try again later
-        # Alternatively, we could connect when EnhancedCompendiumWindow is opened (see below)
+        if self.enhanced_window:
+            self.enhanced_window.compendium_updated.connect(self.update_compendium_tree)
     
     @pyqtSlot(str)
     def update_compendium_tree(self, project_name):

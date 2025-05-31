@@ -231,7 +231,7 @@ class WorkshopWindow(QDialog):
         self.inner_splitter.addWidget(left_container)
 
         # Context Panel
-        self.context_panel = ContextPanel(self.structure, self.project_name, parent=self)
+        self.context_panel = ContextPanel(self.structure, self.project_name, parent=self, enhanced_window=self.controller.enhanced_window)
         self.inner_splitter.addWidget(self.context_panel)
         self.inner_splitter.setSizes([500, 300])
 

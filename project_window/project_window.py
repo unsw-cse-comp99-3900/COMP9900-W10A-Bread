@@ -6,9 +6,9 @@ import re
 import logging
 import threading
 
-from PyQt5.QtWidgets import (QMainWindow, QSplitter, QLabel, QShortcut, 
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QSplitter, QLabel, QShortcut, 
                              QMessageBox, QInputDialog, QApplication, QDialog,
-                             QTreeWidgetItem)
+                             QTreeWidgetItem, QTextEdit, QStackedWidget, QHBoxLayout)
 from PyQt5.QtCore import Qt, QTimer, QSettings, pyqtSlot
 from PyQt5.QtGui import QColor, QTextCharFormat, QFont, QTextCursor, QKeySequence
 from .project_model import ProjectModel
@@ -18,8 +18,11 @@ from .scene_editor import SceneEditor
 from .bottom_stack import BottomStack
 from .focus_mode import FocusMode
 from .rewrite_feature import RewriteDialog
-from util.tts_manager import WW_TTSManager
+from .activity_bar import ActivityBar
+from .search_replace_panel import SearchReplacePanel
+from .embedded_prompts_panel import EmbeddedPromptsPanel
 from compendium.compendium_panel import CompendiumPanel
+from util.tts_manager import WW_TTSManager
 from settings.backup_manager import show_backup_dialog
 from settings.llm_api_aggregator import WWApiAggregator
 from settings.llm_worker import LLMWorker
@@ -50,7 +53,6 @@ for path in possible_paths:
 if plugin_path:
     os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = plugin_path
 
-
 class ProjectWindow(QMainWindow):
     def __init__(self, project_name, compendium_window):
         super().__init__()
@@ -61,53 +63,158 @@ class ProjectWindow(QMainWindow):
         self.unsaved_preview = False
         self.enhanced_window = compendium_window
         self.worker = None
+        self.last_sidebar_width = 250  # Default sidebar width
         self.init_ui()
         self.setup_connections()
         self.read_settings()
         self.load_initial_state()
         self.enhanced_window.compendium_updated.connect(self.on_compendium_updated)
 
-        # Restore the toolbar if the user invoked toggleViewAction and saved the settings
-        # If we prevent the user from hiding the toolbar, this will be redundant (but harmless)
         self.global_toolbar.toolbar.show()
 
     def init_ui(self):
         self.setWindowTitle(_("Project: {}").format(self.model.project_name))
         self.resize(900, 600)
 
-        # Status Bar
         self.setup_status_bar()
 
-        # UI Components
         self.global_toolbar = GlobalToolbar(self, self.icon_tint)
         self.addToolBar(self.global_toolbar.toolbar)
 
-        main_splitter = QSplitter(Qt.Horizontal)
+        main_widget = QWidget()
+        main_layout = QHBoxLayout(main_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.main_splitter = QSplitter(Qt.Horizontal)
+        main_layout.addWidget(self.main_splitter)
+
+        # Left side: Activity Bar + Side Bar
+        self.left_widget = QWidget()
+        left_layout = QHBoxLayout(self.left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(0)
+
+        self.activity_bar = ActivityBar(self, self.icon_tint, position="left")
+        left_layout.addWidget(self.activity_bar)
+        self.scene_editor = SceneEditor(self, self.icon_tint)
+
+
+        self.side_bar = QStackedWidget()
+        self.side_bar.setMinimumWidth(200)
         self.project_tree = ProjectTreeWidget(self, self.model)
-        main_splitter.addWidget(self.project_tree)
+        self.search_panel = SearchReplacePanel(self, self.model, self.icon_tint)
+        self.compendium_panel = CompendiumPanel(self, enhanced_window=self.enhanced_window)
+        self.prompts_panel = EmbeddedPromptsPanel(self.model.project_name, self)
+        self.side_bar.addWidget(self.project_tree)
+        self.side_bar.addWidget(self.search_panel)
+        self.side_bar.addWidget(self.compendium_panel)
+        self.side_bar.addWidget(self.prompts_panel)
+        left_layout.addWidget(self.side_bar)
+
+        self.main_splitter.addWidget(self.left_widget)
 
         right_vertical_splitter = QSplitter(Qt.Vertical)
-        top_horizontal_splitter = QSplitter(Qt.Horizontal)
-        self.compendium_panel = CompendiumPanel(self)
-        self.compendium_panel.setVisible(False)
-        top_horizontal_splitter.addWidget(self.compendium_panel)
-        self.scene_editor = SceneEditor(self, self.icon_tint)
-        top_horizontal_splitter.addWidget(self.scene_editor)
-        top_horizontal_splitter.setStretchFactor(0, 1)  # Compendium
-        top_horizontal_splitter.setStretchFactor(1, 3)  # Editor
-
+        self.compendium_editor = QTextEdit()
+        self.compendium_editor.setReadOnly(True)
+        self.compendium_editor.setPlaceholderText(_("Select a compendium entry to view..."))
+        self.prompts_editor = self.prompts_panel.editor_widget
+        self.editor_stack = QStackedWidget()
+        self.editor_stack.addWidget(self.scene_editor)
+        self.editor_stack.addWidget(self.compendium_editor)
+        self.editor_stack.addWidget(self.prompts_editor)
         self.bottom_stack = BottomStack(self, self.model, self.icon_tint)
         self.bottom_stack.preview_text.textChanged.connect(self.on_preview_text_changed)
-        right_vertical_splitter.addWidget(top_horizontal_splitter)
+
+        right_vertical_splitter.addWidget(self.editor_stack)
         right_vertical_splitter.addWidget(self.bottom_stack)
         right_vertical_splitter.setStretchFactor(0, 3)
         right_vertical_splitter.setStretchFactor(1, 1)
 
-        main_splitter.addWidget(right_vertical_splitter)
-        main_splitter.setStretchFactor(0, 1)  # Tree
-        main_splitter.setStretchFactor(1, 3)  # Right Side
-        self.main_splitter = main_splitter
-        self.setCentralWidget(main_splitter)
+        self.main_splitter.addWidget(right_vertical_splitter)
+        self.main_splitter.setStretchFactor(0, 1)
+        self.main_splitter.setStretchFactor(1, 3)
+        self.main_splitter.setHandleWidth(10)
+        self.main_splitter.splitterMoved.connect(self.update_sidebar_width)
+        self.setCentralWidget(main_widget)
+
+    def update_sidebar_width(self, pos, index):
+        """Update last_sidebar_width when the splitter is moved."""
+        if self.side_bar.isVisible():
+            self.last_sidebar_width = self.main_splitter.sizes()[0]
+
+    def toggle_outline_view(self, show):
+        self.side_bar.setVisible(show)
+        if show:
+            self.side_bar.setCurrentWidget(self.project_tree)
+            self.editor_stack.setCurrentWidget(self.scene_editor)
+            self.bottom_stack.setVisible(True)
+            self.main_splitter.setSizes([self.last_sidebar_width, self.main_splitter.sizes()[1]])
+            self.main_splitter.setCollapsible(0, False)
+            self.left_widget.setMinimumWidth(250)
+            self.left_widget.setMaximumWidth(16777215)
+        else:
+            self.last_sidebar_width = self.main_splitter.sizes()[0]
+            self.main_splitter.setSizes([50, self.main_splitter.sizes()[1]])
+            self.main_splitter.setCollapsible(0, True)
+            self.left_widget.setMinimumWidth(50)
+            self.left_widget.setMaximumWidth(50)
+        self.activity_bar.outline_action.setChecked(show)
+        self.bottom_stack.setVisible(True)
+
+    def toggle_search_view(self, show):
+        self.side_bar.setVisible(show)
+        if show:
+            self.side_bar.setCurrentWidget(self.search_panel)
+            self.editor_stack.setCurrentWidget(self.scene_editor)
+            self.main_splitter.setSizes([self.last_sidebar_width, self.main_splitter.sizes()[1]])
+            self.main_splitter.setCollapsible(0, False)
+            self.left_widget.setMinimumWidth(250)
+            self.left_widget.setMaximumWidth(16777215)
+        else:
+            self.last_sidebar_width = self.main_splitter.sizes()[0]
+            self.main_splitter.setSizes([50, self.main_splitter.sizes()[1]])
+            self.main_splitter.setCollapsible(0, True)
+            self.left_widget.setMinimumWidth(50)
+            self.left_widget.setMaximumWidth(50)
+        self.activity_bar.search_action.setChecked(show)
+        self.bottom_stack.setVisible(True)
+
+    def toggle_compendium_view(self, show):
+        self.side_bar.setVisible(show)
+        if show:
+            self.side_bar.setCurrentWidget(self.compendium_panel)
+            self.editor_stack.setCurrentWidget(self.compendium_editor)
+            self.main_splitter.setSizes([self.last_sidebar_width, self.main_splitter.sizes()[1]])
+            self.main_splitter.setCollapsible(0, False)
+            self.left_widget.setMinimumWidth(250)
+            self.left_widget.setMaximumWidth(16777215)
+        else:
+            self.last_sidebar_width = self.main_splitter.sizes()[0]
+            self.main_splitter.setSizes([50, self.main_splitter.sizes()[1]])
+            self.main_splitter.setCollapsible(0, True)
+            self.left_widget.setMinimumWidth(50)
+            self.left_widget.setMaximumWidth(50)
+        self.activity_bar.compendium_action.setChecked(show)
+        self.bottom_stack.setVisible(True)
+
+    def toggle_prompts_view(self, show):
+        self.side_bar.setVisible(show)
+        if show:
+            self.side_bar.setCurrentWidget(self.prompts_panel)
+            self.editor_stack.setCurrentWidget(self.prompts_editor)
+            self.main_splitter.setSizes([self.last_sidebar_width, self.main_splitter.sizes()[1]])
+            self.main_splitter.setCollapsible(0, False)
+            self.left_widget.setMinimumWidth(250)
+            self.left_widget.setMaximumWidth(16777215)
+            self.bottom_stack.setVisible(False)
+        else:
+            self.last_sidebar_width = self.main_splitter.sizes()[0]
+            self.main_splitter.setSizes([50, self.main_splitter.sizes()[1]])
+            self.main_splitter.setCollapsible(0, True)
+            self.left_widget.setMinimumWidth(50)
+            self.left_widget.setMaximumWidth(50)
+            self.bottom_stack.setVisible(True)
+        self.activity_bar.prompts_action.setChecked(show)
 
     def setup_status_bar(self):
         self.setStatusBar(self.statusBar())
@@ -119,6 +226,15 @@ class ProjectWindow(QMainWindow):
     def setup_connections(self):
         self.focus_mode_shortcut = QShortcut(QKeySequence("F11"), self)
         self.focus_mode_shortcut.activated.connect(self.open_focus_mode)
+
+    def load_scene_from_hierarchy(self, hierarchy):
+        """Load a scene into the editor based on its hierarchy."""
+        if len(hierarchy) < 3:
+            return
+        item = self.project_tree.find_item_by_hierarchy(hierarchy)
+        if item:
+            self.project_tree.tree.setCurrentItem(item)
+            self.load_current_item_content()
 
     def on_compendium_updated(self, project_name):
         if project_name == self.model.project_name:
@@ -158,10 +274,9 @@ class ProjectWindow(QMainWindow):
         windowState = settings.value(f"{self.model.project_name}/windowState")
         if windowState:
             self.restoreState(windowState)
-        if hasattr(self, "main_splitter"):
-            main_splitter_state = settings.value(f"{self.model.project_name}/mainSplitterState")
-            if main_splitter_state:
-                self.main_splitter.restoreState(main_splitter_state)
+        splitterState = settings.value(f"{self.model.project_name}/mainSplitterState")
+        if splitterState and hasattr(self, "main_splitter"):
+            self.main_splitter.restoreState(splitterState)
         if hasattr(self, "project_tree"):
             treeHeaderState = settings.value(f"{self.model.project_name}/treeHeaderState")
             if treeHeaderState:
@@ -180,13 +295,11 @@ class ProjectWindow(QMainWindow):
         if not self.check_unsaved_changes():
             event.ignore()
             return
-        # Stop the autosave timer if it exists and is running
         if hasattr(self, 'autosave_timer') and self.autosave_timer.isActive():
             self.autosave_timer.stop()
         self.write_settings()
         event.accept()
 
-    # This used to ask if you want to save. Now it just autosaves.
     def check_unsaved_changes(self, item=None):
         if self.model.unsaved_changes:
             self.autosave_scene(item)
@@ -205,7 +318,6 @@ class ProjectWindow(QMainWindow):
         self.load_current_item_content()
         self.model.unsaved_changes = False
         self.unsaved_preview = False
-
 
     def load_current_item_content(self):
         current = self.project_tree.tree.currentItem()
@@ -231,7 +343,6 @@ class ProjectWindow(QMainWindow):
             editor.setPlaceholderText(_("Enter summary for {}...").format(current.text(0)))
             self.bottom_stack.stack.setCurrentIndex(0)
         self.update_setting_tooltips()
-        # Force update toolbar state after loading content
         self.scene_editor.update_toolbar_state()
 
     def get_item_hierarchy(self, item):
@@ -241,12 +352,24 @@ class ProjectWindow(QMainWindow):
             hierarchy.insert(0, current.text(0).strip())
             current = current.parent()
         return hierarchy
+    
+    def get_current_scene_hierarchy(self):
+        """Return the hierarchy of the currently selected scene, or None if no scene is selected."""
+        current_item = self.project_tree.tree.currentItem()
+        if not current_item:
+            return None
+        level = self.project_tree.get_item_level(current_item)
+        if level < 2:  # Not a scene (Act or Chapter)
+            return None
+        return self.get_item_hierarchy(current_item)
+
 
     def set_scene_status(self, item, new_status):
+        english_status = ProjectTreeWidget.REVERSE_STATUS_MAP.get(new_status, new_status)
         scene_data = item.data(0, Qt.UserRole) or {"name": item.text(0)}
-        scene_data["status"] = new_status
+        scene_data["status"] = english_status
         item.setData(0, Qt.UserRole, scene_data)
-        self.project_tree.assign_item_icon(item, self.project_tree.get_item_level(item))  # Update icon
+        self.project_tree.assign_item_icon(item, self.project_tree.get_item_level(item))
         self.model.update_structure(self.project_tree.tree)
 
     def manual_save_scene(self):
@@ -278,14 +401,11 @@ class ProjectWindow(QMainWindow):
             self.update_save_status(_("Scene autosaved"))
             self.model.unsaved_changes = False
 
-
     def update_save_status(self, message):
         now = time.strftime("%Y-%m-%d %H:%M:%S")
         self.last_save_label.setText(_("Last Saved: {}").format(now))
         self.statusBar().showMessage(message, 3000)
 
-    # This function is a placeholder for the autosave preview feature.
-    # Currently the preview remains even if you navigate away from the scene.
     def autosave_preview(self):
         pass
 
@@ -313,10 +433,10 @@ class ProjectWindow(QMainWindow):
                 value = custom.strip()
                 combo = self.bottom_stack.pov_combo
                 if combo.findText(value) == -1:
-                    combo.blockSignals(True)  # Block signals
+                    combo.blockSignals(True)
                     combo.insertItem(0, value)
-                    combo.setCurrentText(value)  # Set the new value
-                    combo.blockSignals(False)  # Unblock signals
+                    combo.setCurrentText(value)
+                    combo.blockSignals(False)
                 else:
                     combo.blockSignals(True)
                     combo.setCurrentText(value)
@@ -339,10 +459,10 @@ class ProjectWindow(QMainWindow):
                 value = custom.strip()
                 combo = self.bottom_stack.pov_character_combo
                 if combo.findText(value) == -1:
-                    combo.blockSignals(True)  # Block signals
+                    combo.blockSignals(True)
                     combo.insertItem(0, value)
-                    combo.setCurrentText(value)  # Set the new value
-                    combo.blockSignals(False)  # Unblock signals
+                    combo.setCurrentText(value)
+                    combo.blockSignals(False)
                 else:
                     combo.blockSignals(True)
                     combo.setCurrentText(value)
@@ -382,7 +502,6 @@ class ProjectWindow(QMainWindow):
         if not action_beats:
             QMessageBox.warning(self, _("LLM Prompt"), _("Please enter some action beats before sending."))
             return
-        
         prose_config = self.bottom_stack.prose_prompt_panel.get_prompt()
         if not prose_config:
             QMessageBox.warning(self, _("LLM Prompt"), _("Please select a prompt."))
@@ -391,12 +510,10 @@ class ProjectWindow(QMainWindow):
         additional_vars = self.bottom_stack.get_additional_vars()
         current_scene_text = self.scene_editor.editor.toPlainText().strip() if self.project_tree.tree.currentItem() and self.project_tree.get_item_level(self.project_tree.tree.currentItem()) >= 2 else None
         extra_context = self.bottom_stack.context_panel.get_selected_context_text()
-        
         final_prompt = prompt_handler.assemble_final_prompt(prose_config, action_beats, additional_vars, current_scene_text, extra_context)
-        
         self.bottom_stack.preview_text.clear()
         self.bottom_stack.send_button.setEnabled(False)
-        self.bottom_stack.preview_text.setReadOnly(True) # User clicks can really mess up the text inserts
+        self.bottom_stack.preview_text.setReadOnly(True)
         QApplication.processEvents()
         self.stop_llm()
         self.worker = LLMWorker(final_prompt, overrides)
@@ -406,19 +523,14 @@ class ProjectWindow(QMainWindow):
         self.worker.token_limit_exceeded.connect(self.handle_token_limit_error)
         self.worker.start()
 
-
     def handle_token_limit_error(self, error_msg):
         self.bottom_stack.send_button.setEnabled(True)
         current_item = self.project_tree.tree.currentItem()
         level = self.project_tree.get_item_level(current_item) if current_item else -1
-        
-        # Step 1: Check for existing summary
         if current_item and level < 2 and current_item.data(0, Qt.UserRole).get("summary"):
             summary = current_item.data(0, Qt.UserRole)["summary"]
             self.retry_with_summary(summary)
             return
-        
-        # Step 2: Auto-generate summary
         self.statusBar().showMessage(_("Generating summary to fit token limit…"))
         self.bottom_stack.summary_controller.create_summary()
         QTimer.singleShot(30000, lambda: self.retry_with_auto_summary())
@@ -428,18 +540,17 @@ class ProjectWindow(QMainWindow):
             "pov": self.model.settings["global_pov"] or _("Third Person"),
             "pov_character": self.model.settings["global_pov_character"] or _("Character"),
             "tense": self.model.settings["global_tense"] or _("Present Tense"),
-            # Add more ad-hoc tags here if needed, e.g., "assistant": "Grok"
         }
         action_beats = self.bottom_stack.prompt_input.toPlainText().strip()
         prose_config = self.bottom_stack.prose_prompt_panel.get_prompt()
         final_prompt = prompt_handler.assemble_final_prompt(
             prose_config.get("text"),
             action_beats, additional_vars,
-            summary,  # Use summary instead of full story
+            summary,
             None
         )
         self.bottom_stack.preview_text.clear()
-        self.bottom_stack.preview_text.setReadOnly(True) # User clicks can really mess up the text inserts
+        self.bottom_stack.preview_text.setReadOnly(True)
         self.worker = LLMWorker(final_prompt, prose_config)
         self.worker.data_received.connect(self.update_text)
         self.worker.finished.connect(self.on_finished)
@@ -449,9 +560,8 @@ class ProjectWindow(QMainWindow):
 
     def retry_with_auto_summary(self):
         summary = self.scene_editor.editor.toPlainText().strip()
-        self.bottom_stack.preview_text.setPlainText(summary)  # Show for editing
+        self.bottom_stack.preview_text.setPlainText(summary)
         self.statusBar().showMessage(_("Summary generated. Edit if needed, then resend."))
-        # User can hit "Send" again after tweaking
 
     def show_token_limit_dialog(self, error_msg):
         prose_config = self.bottom_stack.prose_prompt_panel.get_prompt()
@@ -465,13 +575,13 @@ class ProjectWindow(QMainWindow):
         full_text = self.scene_editor.editor.toPlainText()
         prose_config = self.bottom_stack.prose_prompt_panel.get_prompt()
         tokens = tiktoken.get_encoding("cl100k_base").encode(full_text)
-        max_tokens = prose_config.get("max_tokens", 2000) * 0.5  # Use half for safety
+        max_tokens = prose_config.get("max_tokens", 2000) * 0.5
         truncated = self.encoding.decode(tokens[-int(max_tokens):])
         self.retry_with_summary(truncated)
 
     def update_text(self, text):
         cursor = self.bottom_stack.preview_text.textCursor()
-        cursor.movePosition(QTextCursor.End)  # Move cursor to the end
+        cursor.movePosition(QTextCursor.End)
         self.bottom_stack.preview_text.setTextCursor(cursor)
         self.bottom_stack.preview_text.insertPlainText(text)
 
@@ -483,7 +593,7 @@ class ProjectWindow(QMainWindow):
                 if self.worker.isRunning():
                     logging.debug(f"Stopping worker {worker_id}")
                     self.worker.stop()
-                    self.worker.wait(5000)  # Wait up to 5 seconds for the thread to stop
+                    self.worker.wait(5000)
                     if self.worker.isRunning():
                         logging.warning(f"Worker {worker_id} did not stop in time; skipping termination")
                 try:
@@ -494,8 +604,8 @@ class ProjectWindow(QMainWindow):
                 except TypeError as e:
                     logging.debug(f"Signal disconnection error for worker {worker_id}: {e}")
                 logging.debug(f"Scheduling worker {worker_id} for deletion")
-                self.worker.deleteLater()  # Schedule deletion
-                self.worker = None  # Clear reference
+                self.worker.deleteLater()
+                self.worker = None
         except Exception as e:
             logging.error(f"Error cleaning up LLMWorker: {e}", exc_info=True)
             QMessageBox.critical(self, _("Thread Error"), _("An error occurred while stopping the LLM thread: {}").format(str(e)))
@@ -503,19 +613,14 @@ class ProjectWindow(QMainWindow):
     def on_finished(self):
         self.bottom_stack.send_button.setEnabled(True)
         self.bottom_stack.preview_text.setReadOnly(False)
-
         raw_text = self.bottom_stack.preview_text.toPlainText()
         if not raw_text.strip():
             QMessageBox.warning(self, _("LLM Response"), _("The LLM did not return any text. Possible token limit reached or an error occurred."))
             return
-
-        # Format Markdown-style bold and italic text as HTML.
-        formatted_text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", raw_text)  # Bold
-        formatted_text = re.sub(r"\*(.*?)\*", r"<i>\1</i>", formatted_text)  # Italic
+        formatted_text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", raw_text)
+        formatted_text = re.sub(r"\*(.*?)\*", r"<i>\1</i>", formatted_text)
         formatted_text = formatted_text.replace("\n", "<br>")
-
         self.bottom_stack.preview_text.setHtml(formatted_text)
-
         logging.debug(f"Active threads: {threading.enumerate()}")
 
     def stop_llm(self):
@@ -535,42 +640,34 @@ class ProjectWindow(QMainWindow):
             QMessageBox.critical(self, _("Error"), _("An error occurred while stopping the LLM: {}").format(str(e)))
 
     def apply_preview(self):
-        """Appends the LLM's output to the scene editor."""
         try:
             preview = self.bottom_stack.preview_text.toHtml().strip()
             if not preview:
                 QMessageBox.warning(self, _("Apply Preview"), _("No preview text to apply."))
                 return
-
-            # Include the prompt block if the checkbox is checked
             prompt_block = None
             if self.bottom_stack.include_prompt_checkbox.isChecked():
                 prompt = self.bottom_stack.prompt_input.toPlainText().strip()
                 if prompt:
                     prompt_block = f"\n{'_' * 10}\n{prompt}\n{'_' * 10}\n"
-
-            # Append the formatted text and prompt block to the scene editor
             cursor = self.scene_editor.editor.textCursor()
-            cursor.movePosition(QTextCursor.End)  # Move cursor to the end of the current text
+            cursor.movePosition(QTextCursor.End)
             if prompt_block:
                 cursor.insertText(prompt_block)
             cursor.insertHtml(preview)
-            self.scene_editor.editor.moveCursor(QTextCursor.End)  # Ensure the cursor is at the end
-
-            # Clear the preview text area after applying
+            self.scene_editor.editor.moveCursor(QTextCursor.End)
             self.bottom_stack.preview_text.clear()
             self.unsaved_preview = False
             self.model.unsaved_changes = True
         except Exception as e:
             QMessageBox.warning(self, _("Apply Preview"), _("Error: {}").format(str(e)))
-        
 
     def save_summary(self):
         current_item = self.project_tree.tree.currentItem()
         if not current_item:
             QMessageBox.warning(self, _("Summary"), _("No Act or Chapter selected."))
             return
-        summary_text = self.scene_editor.editor.toHtml()  # Use HTML to preserve formatting
+        summary_text = self.scene_editor.editor.toHtml()
         hierarchy = self.get_item_hierarchy(current_item)
         filepath = self.model.save_summary(hierarchy, summary_text)
         if filepath:
@@ -579,7 +676,7 @@ class ProjectWindow(QMainWindow):
             QMessageBox.information(self, _("Summary"), _("Summary saved successfully."))
         else:
             QMessageBox.critical(self, _("Summary"), _("Failed to save summary."))
-            
+
     def toggle_bold(self):
         cursor = self.scene_editor.editor.textCursor()
         fmt = QTextCharFormat()
@@ -613,34 +710,27 @@ class ProjectWindow(QMainWindow):
     def set_font_size(self, size):
         cursor = self.scene_editor.editor.textCursor()
         if not cursor.hasSelection():
-            # Apply to the current position for typing new text
             fmt = self.scene_editor.editor.currentCharFormat()
-            fmt.setFontPointSize(float(size))  # Ensure size is a float
+            fmt.setFontPointSize(float(size))
             self.scene_editor.editor.setCurrentCharFormat(fmt)
         else:
-            # Apply to selected text, preserving formatting
-            fmt = QTextCharFormat()  # Get the current format of the selection
-            fmt.setFontPointSize(float(size))  # Update only the size
-            cursor.mergeCharFormat(fmt)  # Apply to the selection directly
-        # No need for setTextCursor here, as mergeCharFormat updates the text directly
+            fmt = QTextCharFormat()
+            fmt.setFontPointSize(float(size))
+            cursor.mergeCharFormat(fmt)
 
     def update_font_family(self, font):
         cursor = self.scene_editor.editor.textCursor()
         if not cursor.hasSelection():
-            # Apply to current position for typing new text
             fmt = self.scene_editor.editor.currentCharFormat()
             fmt.setFontFamilies([font.family()])
-            # Preserve existing size if set, otherwise use default from combo
             current_size = self.scene_editor.font_size_combo.currentText()
             fmt.setFontPointSize(float(current_size) if current_size else font.pointSizeF())
             self.scene_editor.editor.setCurrentCharFormat(fmt)
         else:
-            # Apply to selected text, preserving formatting
-            fmt = QTextCharFormat()  # Get the current format of the selection
-            fmt.setFontFamilies([font.family()])  # Update only the family
-            cursor.mergeCharFormat(fmt)  # Apply to the selection directly
-        # No need for setTextCursor here, as mergeCharFormat updates the text directly
-       
+            fmt = QTextCharFormat()
+            fmt.setFontFamilies([font.family()])
+            cursor.mergeCharFormat(fmt)
+
     def toggle_tts(self):
         if self.tts_playing:
             WW_TTSManager.stop()
@@ -675,17 +765,16 @@ class ProjectWindow(QMainWindow):
         current_text = self.scene_editor.editor.toPlainText()
         self.analysis_editor_window = TextAnalysisApp(parent=self, initial_text=current_text, save_callback=self.analysis_save_callback)
         self.analysis_editor_window.show()
-        
+
     def open_web_llm(self):
         self.web_llm = MainWindow()
         self.web_llm.show()
-        
+
     def open_whisper_app(self):
         self.whisper_app = WhisperApp(self)
         self.whisper_app.show()
-        
+
     def open_ia_window(self):
-        """Open the Internet Archive window."""
         self.ia_window = IAWindow()
         self.ia_window.show()
 
@@ -694,7 +783,7 @@ class ProjectWindow(QMainWindow):
         self.manual_save_scene()
 
     def open_compendium(self):
-        self.compendium_panel.setVisible(not self.compendium_panel.isVisible())
+        self.toggle_compendium_view(not self.side_bar.isVisible() or self.side_bar.currentWidget() != self.compendium_panel)
 
     def open_prompts_window(self):
         prompts_window = PromptsWindow(self.model.project_name, self)
@@ -741,22 +830,19 @@ class ProjectWindow(QMainWindow):
         self.bottom_stack.pov_character_combo.addItems(characters)
 
     def restore_pov_character(self, previous_pov):
-        """Restore the previous POV character if it still exists, otherwise handle appropriately."""
         combo = self.bottom_stack.pov_character_combo
         index = combo.findText(previous_pov)
-        
-        if index >= 0:  # Previous POV character still exists
+        if index >= 0:
             combo.setCurrentIndex(index)
-        else:  # Previous POV character was deleted
-            if combo.count() == 2 and combo.itemText(0) != _("Custom..."):  # Only one character + Custom...
-                combo.setCurrentIndex(0)  # Select the only character
-            elif combo.count() > 2:  # Multiple characters + Custom...
-                # Add and select a placeholder if it doesn't exist
+        else:
+            if combo.count() == 2 and combo.itemText(0) != _("Custom..."):
+                combo.setCurrentIndex(0)
+            elif combo.count() > 2:
                 placeholder = _("-- Select Character --")
                 if combo.findText(placeholder) == -1:
                     combo.insertItem(0, placeholder)
                 combo.setCurrentIndex(0)
-            else:  # No characters, only Custom...
+            else:
                 combo.setCurrentIndex(combo.findText(_("Custom...")))
 
     def update_icons(self):
@@ -765,6 +851,8 @@ class ProjectWindow(QMainWindow):
         self.global_toolbar.update_tint(self.icon_tint)
         self.scene_editor.update_tint(self.icon_tint)
         self.bottom_stack.update_tint(self.icon_tint)
+        self.activity_bar.update_tint(self.icon_tint)
+        self.search_panel.update_tint(self.icon_tint)
         self.project_tree.assign_all_icons()
 
     def change_theme(self, new_theme):
@@ -779,7 +867,7 @@ class ProjectWindow(QMainWindow):
 
     def on_preview_text_changed(self):
         preview_text = self.bottom_stack.preview_text.toPlainText().strip()
-        self.unsaved_preview = bool(preview_text)  # True if not empty, False if empty
+        self.unsaved_preview = bool(preview_text)
 
     def load_prompt_input(self):
         prompt_input_file = WWSettingsManager.get_project_path(self.model.project_name, "action-beat.txt")
@@ -797,7 +885,7 @@ class ProjectWindow(QMainWindow):
                 self.prompt_input_timer = QTimer(self)
                 self.prompt_input_timer.setSingleShot(True)
                 self.prompt_input_timer.timeout.connect(self.save_prompt_input)
-            self.prompt_input_timer.start(5000)  # 5 seconds
+            self.prompt_input_timer.start(5000)
 
     def save_prompt_input(self):
         project_folder = WWSettingsManager.get_project_path(self.model.project_name)
@@ -809,10 +897,15 @@ class ProjectWindow(QMainWindow):
         except Exception as e:
             print(f"Error saving prompt input: {e}")
 
+    def clear_search_highlights(self):
+        """Clear search highlights when switching tools."""
+        if hasattr(self, 'search_panel'):
+            self.search_panel.clear_extra_selections()
+
 if __name__ == "__main__":
     from PyQt5.QtWidgets import QApplication
     import sys
     app = QApplication(sys.argv)
-    window = ProjectWindow("My Awesome Project")
+    window = ProjectWindow("My Awesome Project", None)
     window.show()
     sys.exit(app.exec_())

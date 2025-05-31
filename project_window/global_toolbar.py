@@ -18,10 +18,14 @@ class GlobalToolbar(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.toolbar.setStyleSheet("")  # Reset any custom styles to use theme
 
-        self.compendium_action = self.add_action("assets/icons/book.svg", _("Toggle Compendium"), self.controller.open_compendium)
-        self.prompt_options_action = self.add_action("assets/icons/settings.svg", _("Prompt Options"), self.controller.open_prompts_window)
-        self.workshop_action = self.add_action("assets/icons/message-square.svg", _("Workshop Chat"), self.controller.open_workshop)
-        self.focus_mode_action = self.add_action("assets/icons/maximize-2.svg", _("Focus Mode"), self.controller.open_focus_mode)
+        for icon, tip, func in [
+            ("assets/icons/message-square.svg", _("Workshop Chat"), self.controller.open_workshop),
+            ("assets/icons/mic.svg",_("Open Whisper"),self.controller.open_whisper_app),
+            ("assets/icons/wikidata.svg",_("Open Web with LLM"),self.controller.open_web_llm),
+            ("assets/icons/arch.svg",_("Open Internet Archive"),self.controller.open_ia_window),
+            ("assets/icons/maximize-2.svg", _("Focus Mode"), self.controller.open_focus_mode),
+        ]:
+            self.add_action(icon, tip, func)
 
     def add_action(self, icon_path, tooltip, callback):
         action = QAction(ThemeManager.get_tinted_icon(icon_path, self.tint_color), "", self)
@@ -33,7 +37,5 @@ class GlobalToolbar(QWidget):
     def update_tint(self, tint_color):
         """Update icon tints when theme changes."""
         self.tint_color = tint_color
-        self.compendium_action.setIcon(ThemeManager.get_tinted_icon("assets/icons/book.svg", tint_color))
-        self.prompt_options_action.setIcon(ThemeManager.get_tinted_icon("assets/icons/settings.svg", tint_color))
         self.workshop_action.setIcon(ThemeManager.get_tinted_icon("assets/icons/message-square.svg", tint_color))
         self.focus_mode_action.setIcon(ThemeManager.get_tinted_icon("assets/icons/maximize-2.svg", tint_color))

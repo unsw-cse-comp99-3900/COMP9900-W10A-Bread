@@ -698,6 +698,24 @@ class ProjectWindow(QMainWindow):
         cursor.mergeCharFormat(fmt)
         self.scene_editor.editor.mergeCurrentCharFormat(fmt)
 
+    def toggle_color(self):
+        """
+        Open a color picker dialog and apply the chosen foreground/background
+        colors to the currently selected text in the editor.
+        """
+        # 1) Open QColorDialog via ColorManager:
+        result = self.scene_editor.color_manager.choose_color(self.scene_editor)
+        if not result:
+            return
+
+        # 2) Unpack foreground and background
+        fg, bg = result
+
+        # 3) Apply colors to the selected text
+        self.scene_editor.color_manager.apply_color_to_selection(
+            self.scene_editor.editor, fg, bg
+        )
+
     def align_left(self):
         self.scene_editor.editor.setAlignment(Qt.AlignLeft)
 

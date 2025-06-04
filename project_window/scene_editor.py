@@ -5,16 +5,17 @@ import sys
 import json
 
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QToolBar, QAction,
+    QWidget, QVBoxLayout, QToolBar, QAction, QColorDialog,
     QFontComboBox, QComboBox, QLabel, QMessageBox, QTextEdit, QStyle, QShortcut
 )
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont, QTextCursor, QColor, QTextCharFormat, QPen, QKeySequence
+from PyQt5.QtGui import QFont, QTextCursor, QColor, QTextCharFormat, QPen, QKeySequence, QIcon, QPixmap
 
 from .focus_mode import PlainTextEdit
 from spylls.hunspell import Dictionary
 from util.find_dialog import FindDialog
 from settings.theme_manager import ThemeManager
+from util.color_manager import ColorManager
 
 class SceneEditor(QWidget):
     """Scene editor with toolbar, text area, and spellchecking support."""
@@ -38,6 +39,10 @@ class SceneEditor(QWidget):
         
         # Load saved language preference if available
         self.load_language_preference()
+
+        # --- Initialize ColorManager here ---
+        settings_path = os.path.join(self.dict_dir, "color_settings.json")
+        self.color_manager = ColorManager(settings_path)
 
         self.shortcut_find = QShortcut(QKeySequence("Ctrl+F"), self)
         self.shortcut_find.activated.connect(self.open_find_dialog)
@@ -63,9 +68,10 @@ class SceneEditor(QWidget):
         self.toolbar.setStyleSheet("")  # Reset any custom styles to use theme
         # Formatting actions
         for name, icon, tip, func, check in [
-            ("bold", "assets/icons/bold.svg", _("Bold"), self.controller.toggle_bold, True),
-            ("italic", "assets/icons/italic.svg", _("Italic"), self.controller.toggle_italic, True),
-            ("underline", "assets/icons/underline.svg", _("Underline"), self.controller.toggle_underline, True)
+            ("bold",      "assets/icons/bold.svg",      _("Bold"),               self.controller.toggle_bold,      True),
+            ("italic",    "assets/icons/italic.svg",    _("Italic"),             self.controller.toggle_italic,    True),
+            ("underline", "assets/icons/underline.svg", _("Underline"),          self.controller.toggle_underline, True),
+            ("color",     QIcon(QPixmap("assets/icons/color.svg")), _("Color"), self.on_color_action, False)
         ]:
             setattr(self, f"{name}_action", self.add_action(name, icon, tip, func, check))
         self.toolbar.addSeparator()
@@ -115,8 +121,18 @@ class SceneEditor(QWidget):
         self.lang_combo.currentIndexChanged.connect(self.on_language_changed)
         self.toolbar.addWidget(self.lang_combo)
 
-    def add_action(self, name, icon_path, tooltip, callback, checkable=False):
-        action = QAction(ThemeManager.get_tinted_icon(icon_path, self.tint_color), "", self)
+    def add_action(self, name, icon, tooltip, callback, checkable=False):
+        """
+        Adds a toolbar action. 
+        - If `icon` is a QIcon, use it directly (preserving original colors).
+        - If `icon` is a string path, pass it through ThemeManager.get_tinted_icon.
+        """
+        if isinstance(icon, QIcon):
+            action_icon = icon
+        else:
+            action_icon = ThemeManager.get_tinted_icon(icon, self.tint_color)
+
+        action = QAction(action_icon, "", self)
         action.setToolTip(tooltip)
         action.setCheckable(checkable)
         action.triggered.connect(callback)
@@ -145,6 +161,27 @@ class SceneEditor(QWidget):
         
         # Set a callback to check spelling when content is loaded
         QTimer.singleShot(500, self.delayed_initial_check)
+
+    def on_color_action(self):
+        """
+        Show a single QColorDialog for foreground only, then apply it to the selected text.
+        """
+        # 1) Ask user for a new foreground color:
+        col = QColorDialog.getColor(
+            self.color_manager.default_fg,
+            self,
+            "Select Text Color",
+            QColorDialog.ShowAlphaChannel
+        )
+        if not col.isValid():
+            return
+
+        # 2) Update default in ColorManager and save (background stays unchanged):
+        self.color_manager.default_fg = col
+        self.color_manager.save_colors(self.color_manager.default_fg, self.color_manager.default_bg)
+
+        # 3) Apply only the foreground color to the current selection:
+        self.color_manager.apply_fg_to_selection(self.editor, col)
 
     def load_languages(self):
         self.languages.clear()

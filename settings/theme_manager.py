@@ -1,7 +1,8 @@
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtGui import QIcon, QColor, QPixmap, QPainter, QPainterPath
+from PyQt5.QtGui import QIcon, QColor, QPixmap, QPainter
 from PyQt5.QtSvg import QSvgRenderer
+from .settings_manager import WWSettingsManager
 
 class ThemeManager:
     """
@@ -16,7 +17,12 @@ class ThemeManager:
     _icon_cache = {}  # Cache: (file_path, tint_color) -> QIcon
 
     THEMES = {
-        "Standard": "",  # Default styling; no custom stylesheet.
+        "Standard": """
+            QTreeWidgetItem[is-category="true"] {
+                background-color: #e0e0e0; /* Fallback; will be overridden programmatically */
+                font-weight: bold;
+            }
+        """,
         "Night Mode": """
             /* Night Mode styling */
             QWidget {
@@ -42,6 +48,10 @@ class ThemeManager:
             QTreeView, QTreeWidget {
                 background-color: #3c3f41;
                 color: #ffffff;
+            }
+            QTreeWidgetItem[is-category="true"] {
+                background-color: #4a4d4f; /* Fallback for Night Mode */
+                font-weight: bold;
             }
             QHeaderView::section {
                 background-color: #3c3f41;
@@ -105,6 +115,10 @@ class ThemeManager:
                 background-color: #073642;
                 color: #839496;
             }
+            QTreeWidgetItem[is-category="true"] {
+                background-color: #0a4b5a; /* Fallback for Solarized Dark */
+                font-weight: bold;
+            }
             QHeaderView::section {
                 background-color: #073642;
                 color: #93a1a1;
@@ -164,6 +178,10 @@ class ThemeManager:
                 background-color: #f9f9f9;
                 color: #333;
             }
+            QTreeWidgetItem[is-category="true"] {
+                background-color: #f0f0f0; /* Fallback for Paper White */
+                font-weight: bold;
+            }
             QHeaderView::section {
                 background-color: #e1e1e1;
                 color: #333;
@@ -203,6 +221,10 @@ class ThemeManager:
                 background-color: #b2ebf2;
                 color: #004d40;
             }
+            QTreeWidgetItem[is-category="true"] {
+                background-color: #c8f3f8; /* Fallback for Ocean Breeze */
+                font-weight: bold;
+            }
             QHeaderView::section {
                 background-color: #4dd0e1;
                 color: #004d40;
@@ -241,6 +263,10 @@ class ThemeManager:
             QTreeView, QTreeWidget {
                 background-color: #f4ecd8;
                 color: #5a4630;
+            }
+            QTreeWidgetItem[is-category="true"] {
+                background-color: #f8f1e4; /* Fallback for Sepia */
+                font-weight: bold;
             }
             QHeaderView::section {
                 background-color: #d8c3a5;
@@ -375,6 +401,61 @@ class ThemeManager:
         icon = QIcon(pixmap)
         ThemeManager._icon_cache[cache_key] = icon
         return icon
+    
+    @classmethod
+    def calculate_contrast_ratio(cls, color1, color2):
+        """Calculate the contrast ratio between two QColor objects."""
+        def luminance(color):
+            r, g, b = color.redF(), color.greenF(), color.blueF()
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b
+        l1 = luminance(color1) + 0.05
+        l2 = luminance(color2) + 0.05
+        return max(l1, l2) / min(l1, l2)
+
+    @classmethod
+    def get_category_background_color(cls):
+        """Get a theme-appropriate background color for category rows in QTreeWidget."""
+        if not WWSettingsManager.get_appearance_settings().get("enable_category_background", True):
+            return QColor(Qt.transparent)  # No category background if disabled
+        theme_name = cls._current_theme
+        stylesheet = cls.get_stylesheet(theme_name)
+        # Default fallback color
+        default_color = QColor("#e0e0e0")  # Light gray for contrast with black text
+        bg_color = default_color
+
+        # Parse QTreeWidget background color from stylesheet
+        if stylesheet:
+            lines = stylesheet.splitlines()
+            in_tree_widget_block = False
+            for line in lines:
+                line = line.strip()
+                if "QTreeWidget {" in line:
+                    in_tree_widget_block = True
+                    continue
+                if in_tree_widget_block:
+                    if "}" in line:
+                        in_tree_widget_block = False
+                        break
+                    if "background-color" in line:
+                        color_str = line.split("background-color:")[-1].split(";")[0].strip()
+                        if QColor(color_str).isValid():
+                            bg_color = QColor(color_str)
+                            break
+
+        # Adjust lightness to differentiate category rows
+        h, s, l, a = bg_color.getHslF()
+        # Target lightness > 0.8 for contrast with black text
+        new_lightness = min(1.0, max(0.8, l - 0.05))  # Slightly lighter for distinction
+        adjusted_color = QColor.fromHslF(h, s, new_lightness, a)
+
+        # Verify contrast ratio with black text (#000000)
+        black = QColor("black")
+        contrast_ratio = cls.calculate_contrast_ratio(adjusted_color, black)
+        if contrast_ratio < 4.5:
+            # If contrast is too low, use a lighter gray
+            adjusted_color = QColor("#f0f0f0")  # Very light gray
+
+        return adjusted_color
 
 
 if __name__ == '__main__':

@@ -186,57 +186,6 @@ class SearchReplacePanel(QWidget):
         self.refresh_timer.setSingleShot(True)
         self.refresh_timer.timeout.connect(self.on_search)
 
-    def calculate_contrast_ratio(self, color1, color2):
-        """Calculate the contrast ratio between two QColor objects."""
-        def luminance(color):
-            r, g, b = color.redF(), color.greenF(), color.blueF()
-            return 0.2126 * r + 0.7152 * g + 0.0722 * b
-        l1 = luminance(color1) + 0.05
-        l2 = luminance(color2) + 0.05
-        return max(l1, l2) / min(l1, l2)
-
-    def get_parent_background_color(self):
-        """Get a theme-appropriate background color for Act/Chapter/Scene rows."""
-        theme_name = ThemeManager._current_theme
-        stylesheet = ThemeManager.get_stylesheet(theme_name)
-        # Default fallback color
-        default_color = QColor("#e0e0e0")  # Light gray for contrast with black text
-        bg_color = default_color
-
-        # Parse QTreeWidget background color from stylesheet
-        if stylesheet:
-            lines = stylesheet.splitlines()
-            in_tree_widget_block = False
-            for line in lines:
-                line = line.strip()
-                if "QTreeWidget {" in line:
-                    in_tree_widget_block = True
-                    continue
-                if in_tree_widget_block:
-                    if "}" in line:
-                        in_tree_widget_block = False
-                        break
-                    if "background-color" in line:
-                        color_str = line.split("background-color:")[-1].split(";")[0].strip()
-                        if QColor(color_str).isValid():
-                            bg_color = QColor(color_str)
-                            break
-
-        # Adjust lightness to differentiate parent rows
-        h, s, l, a = bg_color.getHslF()
-        # Target lightness > 0.8 for contrast with black text
-        new_lightness = min(1.0, max(0.8, l - 0.05))  # Slightly darker
-        adjusted_color = QColor.fromHslF(h, s, new_lightness, a)
-
-        # Verify contrast ratio with black text (#000000)
-        black = QColor("black")
-        contrast_ratio = self.calculate_contrast_ratio(adjusted_color, black)
-        if contrast_ratio < 4.5:
-            # If contrast is too low, use a lighter gray
-            adjusted_color = QColor("#f0f0f0")  # Very light gray
-
-        return adjusted_color
-
     def keyPressEvent(self, event):
         """Handle keyboard navigation for the results tree."""
         if event.key() == Qt.Key_Up:
@@ -349,7 +298,7 @@ class SearchReplacePanel(QWidget):
             return
 
         # Get theme-appropriate background color for parent rows
-        parent_bg_color = self.get_parent_background_color()
+        parent_bg_color = ThemeManager.get_category_background_color()
 
         # Create bold font for Act/Chapter/Scene names
         bold_font = QFont()
@@ -392,16 +341,19 @@ class SearchReplacePanel(QWidget):
                         if not act_has_matches:
                             act_item = QTreeWidgetItem(self.results_tree, [act["name"]])
                             act_item.setBackground(0, QBrush(parent_bg_color))
-                            act_item.setFont(0, bold_font)  # Set bold font
+                            act_item.setFont(0, bold_font)
+                            act_item.setData(0, Qt.ItemDataRole.UserRole + 1, "true")  # Mark as category
                             act_has_matches = True
                         if not chapter_has_matches:
                             chapter_item = QTreeWidgetItem(act_item, [chapter["name"]])
                             chapter_item.setBackground(0, QBrush(parent_bg_color))
-                            chapter_item.setFont(0, bold_font)  # Set bold font
+                            chapter_item.setFont(0, bold_font)
+                            chapter_item.setData(0, Qt.ItemDataRole.UserRole + 1, "true")  # Mark as category
                             chapter_has_matches = True
                         scene_item = QTreeWidgetItem(chapter_item, [scene["name"]])
                         scene_item.setBackground(0, QBrush(parent_bg_color))
-                        scene_item.setFont(0, bold_font)  # Set bold font
+                        scene_item.setFont(0, bold_font)
+                        scene_item.setData(0, Qt.ItemDataRole.UserRole + 1, "true")  # Mark as category
                         for pos, match in matches:
                             # Get single-line context around the match
                             context = self.get_single_line_context(plain_content, pos, len(match))
@@ -1036,17 +988,20 @@ class SearchReplacePanel(QWidget):
         self.replace_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/edit.svg", tint_color))
         self.replace_all_button.setIcon(ThemeManager.get_tinted_icon("assets/icons/repeat.svg", tint_color))
         # Get theme-appropriate background color for parent rows
-        parent_bg_color = self.get_parent_background_color()
+        parent_bg_color = ThemeManager.get_category_background_color()
         # Update existing match item widgets and parent row backgrounds
         for i in range(self.results_tree.topLevelItemCount()):
             act_item = self.results_tree.topLevelItem(i)
             act_item.setBackground(0, QBrush(parent_bg_color))
+            act_item.setData(0, Qt.ItemDataRole.UserRole + 1, "true")  # Mark as category
             for j in range(act_item.childCount()):
                 chapter_item = act_item.child(j)
                 chapter_item.setBackground(0, QBrush(parent_bg_color))
+                chapter_item.setData(0, Qt.ItemDataRole.UserRole + 1, "true")  # Mark as category
                 for k in range(chapter_item.childCount()):
                     scene_item = chapter_item.child(k)
                     scene_item.setBackground(0, QBrush(parent_bg_color))
+                    scene_item.setData(0, Qt.ItemDataRole.UserRole + 1, "true")  # Mark as category
                     for m in range(scene_item.childCount()):
                         match_item = scene_item.child(m)
                         current_widget = self.results_tree.itemWidget(match_item, 0)

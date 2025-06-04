@@ -108,15 +108,10 @@ class SettingsDialog(QDialog):
         self.theme_label = QLabel(_("Theme"))
         layout.addRow(self.theme_label, self.theme_combobox)
 
-        self.background_color_button = QPushButton(_("Background Color"))
-        self.background_color_button.clicked.connect(self.choose_background_color)
-        self.background_color_label = QLabel()
-        self.background_color_label.setAutoFillBackground(True)
-        self.set_background_color_label(self.appearance_settings["background_color"])
-        hbox = QHBoxLayout()
-        hbox.addWidget(self.background_color_button)
-        hbox.addWidget(self.background_color_label)
-        layout.addRow(hbox)
+        self.enable_category_background_checkbox = QCheckBox(_("Enable Menu Category Background Colors"))
+        self.enable_category_background_checkbox.stateChanged.connect(self.mark_unsaved_changes)
+        self.enable_category_background_checkbox.setToolTip(_("Toggle Background Color in Cascading Menus to differentiate categories from editable items"))
+        layout.addRow(self.enable_category_background_checkbox)
 
         self.text_size_spinbox = QSpinBox()
         self.text_size_spinbox.setRange(8, 24)
@@ -269,14 +264,6 @@ class SettingsDialog(QDialog):
             self.populate_providers_list()
             self.mark_unsaved_changes()
 
-    def set_background_color_label(self, color_code):
-        """Sets the background color label's color."""
-        palette = self.background_color_label.palette()
-        palette.setColor(QPalette.Window, QColor(color_code))
-        self.background_color_label.setPalette(palette)
-        self.background_color_label.setText(color_code)
-        self.background_color_label.update()
-
     def delete_provider(self):
         """Deletes the currently selected provider."""
         if not self.providers_list.currentItem():
@@ -309,14 +296,6 @@ class SettingsDialog(QDialog):
             self.delete_provider_button.setEnabled(False)
             self.mark_unsaved_changes()
 
-    def choose_background_color(self):
-        color = QColorDialog.getColor(QColor(self.appearance_settings["background_color"]), self)
-        if color.isValid():
-            color_code = color.name()
-            self.appearance_settings["background_color"] = color_code
-            self.set_background_color_label(color_code)
-            self.mark_unsaved_changes()
-
     def language_changed(self, index):
         language = LANGUAGES[index]
         self.general_settings["language"] = language
@@ -336,7 +315,7 @@ class SettingsDialog(QDialog):
         self.enable_debug_logging_checkbox.setText(_("Enable Debug Logging"))
         self.language_label.setText(_("Language"))
         self.theme_label.setText(_("Theme"))
-        self.background_color_button.setText(_("Background Color"))
+        self.enable_category_background_checkbox.setText(_("Enable Category Backgrounds"))
         self.text_size_label.setText(_("Text Size"))
         self.providers_group.setTitle(_("Configured Providers"))
         self.sample_text_label.setText(_("Sample Text"))
@@ -365,7 +344,7 @@ class SettingsDialog(QDialog):
         if index >= 0:
             self.theme_combobox.setCurrentIndex(index)
         self.text_size_spinbox.setValue(self.appearance_settings["text_size"])
-        self.set_background_color_label(self.appearance_settings["background_color"])
+        self.enable_category_background_checkbox.setChecked(self.appearance_settings.get("enable_category_background", True))
 
         self.populate_providers_list()
         
@@ -380,6 +359,7 @@ class SettingsDialog(QDialog):
         self.general_settings["language"] = self.language_combobox.currentText()
         self.appearance_settings["theme"] = self.theme_combobox.currentText()
         self.appearance_settings["text_size"] = self.text_size_spinbox.value()
+        self.appearance_settings["enable_category_background"] = self.enable_category_background_checkbox.isChecked()
 
         deleted_configs = set(self.original_llm_configs.keys()) - set(self.llm_configs.keys())
         for provider_name in deleted_configs:

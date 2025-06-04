@@ -1,11 +1,13 @@
 from PyQt5.QtWidgets import QWidget, QTreeWidget, QVBoxLayout, QMenu, QTreeWidgetItem, QMessageBox, QDialog
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QFont, QBrush
 import json, os, re
 from langchain.prompts import PromptTemplate
 
 from .ai_compendium_dialog import AICompendiumDialog
 from settings.llm_api_aggregator import WWApiAggregator
 from settings.settings_manager import WWSettingsManager
+from settings.theme_manager import ThemeManager
 from settings.llm_settings_dialog import LLMSettingsDialog
 
 DEBUG = False  # Set to True to enable debug prints
@@ -67,6 +69,8 @@ class CompendiumPanel(QWidget):
     def populate_compendium(self):
         selected_item_info = self.get_selected_item_info()
         self.tree.clear()
+        bold_font = QFont()
+        bold_font.setBold(True)
         if os.path.exists(self.compendium_file):
             try:
                 with open(self.compendium_file, "r", encoding="utf-8") as f:
@@ -101,6 +105,11 @@ class CompendiumPanel(QWidget):
                 for cat in data.get("categories", []):
                     cat_item = QTreeWidgetItem(self.tree, [cat.get("name", "Unnamed Category")])
                     cat_item.setData(0, Qt.UserRole, "category")
+                    # Mark as category for stylesheet
+                    cat_item.setData(0, Qt.ItemDataRole.UserRole + 1, "true")  # Custom property for is-category
+                    # Set background color from ThemeManager
+                    cat_item.setBackground(0, QBrush(ThemeManager.get_category_background_color()))
+                    cat_item.setFont(0, bold_font)  # Apply bold font
                     for entry in cat.get("entries", []):
                         entry_item = QTreeWidgetItem(cat_item, [entry.get("name", "Unnamed Entry")])
                         entry_item.setData(0, Qt.UserRole, "entry")

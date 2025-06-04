@@ -231,7 +231,7 @@ class WorkshopWindow(QDialog):
         self.inner_splitter.addWidget(left_container)
 
         # Context Panel
-        self.context_panel = ContextPanel(self.structure, self.project_name, parent=self, enhanced_window=self.controller.enhanced_window)
+        self.context_panel = ContextPanel(self.structure, self.project_name, parent=self)
         self.inner_splitter.addWidget(self.context_panel)
         self.inner_splitter.setSizes([500, 300])
 
@@ -258,8 +258,13 @@ class WorkshopWindow(QDialog):
         if geometry:
             self.restoreGeometry(geometry)
         self.font_size = settings.value("workshop_window/fontSize", 12, type=int)
-        outer_splitter_sizes = settings.value("workshop_window/outer_splitter", [200, 800], type=list)
-        inner_splitter_sizes = settings.value("workshop_window/inner_splitter", [500, 300], type=list)
+        
+        # Convert splitter sizes to integers
+        outer_splitter_sizes = [int(size) for size in 
+            settings.value("workshop_window/outer_splitter", [200, 800], type=list)]
+        inner_splitter_sizes = [int(size) for size in 
+            settings.value("workshop_window/inner_splitter", [500, 300], type=list)]
+        
         self.chat_log.setFont(QFont("Arial", self.font_size))
         self.chat_input.setFont(QFont("Arial", self.font_size))
         self.outer_splitter.setSizes(outer_splitter_sizes)

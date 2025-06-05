@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
     QSpinBox, QDoubleSpinBox, QApplication
 )
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QBrush
 from muse.prompt_utils import get_prompt_categories, load_prompts, get_default_prompt
 from settings.llm_api_aggregator import WWApiAggregator
 from settings.settings_manager import WWSettingsManager
@@ -41,6 +42,7 @@ class EmbeddedPromptsPanel(QWidget):
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.on_tree_context_menu)
         self.tree.itemClicked.connect(self.on_item_clicked)
+        self.tree.setIndentation(5)
         tree_layout.addWidget(self.tree)
         self.splitter.addWidget(self.tree_widget)
 
@@ -215,9 +217,15 @@ class EmbeddedPromptsPanel(QWidget):
         self.tree.clear()
         categories = list(self.prompts_data.keys())
         categories.sort()
+        bold_font = QFont()
+        bold_font.setBold(True)
         for category in categories:
             cat_item = QTreeWidgetItem(self.tree, [category])
             cat_item.setData(0, Qt.UserRole, {"type": "category", "name": category})
+            # Mark as category for stylesheet
+            cat_item.setData(0, Qt.ItemDataRole.UserRole + 1, "true")  # Custom property for is-category
+            cat_item.setBackground(0, QBrush(ThemeManager.get_category_background_color()))
+            cat_item.setFont(0, bold_font)  # Apply bold font
             for prompt in self.prompts_data[category]:
                 if not isinstance(prompt, dict):
                     print(f"Warning: Skipping invalid prompt in category {category}: {prompt}")

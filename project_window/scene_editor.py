@@ -103,6 +103,7 @@ class SceneEditor(QWidget):
         self.font_size_combo.currentIndexChanged.connect(
             lambda: self.controller.set_font_size(int(self.font_size_combo.currentText()))
         )
+        self.font_size_combo.setMinimumWidth(60)
         self.toolbar.addWidget(self.font_size_combo)
         self.toolbar.addSeparator()
 

@@ -277,10 +277,6 @@ class ProjectWindow(QMainWindow):
         splitterState = settings.value(f"{self.model.project_name}/mainSplitterState")
         if splitterState and hasattr(self, "main_splitter"):
             self.main_splitter.restoreState(splitterState)
-        if hasattr(self, "project_tree"):
-            treeHeaderState = settings.value(f"{self.model.project_name}/treeHeaderState")
-            if treeHeaderState:
-                self.project_tree.tree.header().restoreState(treeHeaderState)
 
     def write_settings(self):
         settings = QSettings("MyCompany", "WritingwayProject")
@@ -288,8 +284,6 @@ class ProjectWindow(QMainWindow):
         settings.setValue(f"{self.model.project_name}/windowState", self.saveState())
         if hasattr(self, "main_splitter"):
             settings.setValue(f"{self.model.project_name}/mainSplitterState", self.main_splitter.saveState())
-        if hasattr(self, "project_tree"):
-            settings.setValue(f"{self.model.project_name}/treeHeaderState", self.project_tree.tree.header().saveState())
 
     def closeEvent(self, event):
         if not self.check_unsaved_changes():

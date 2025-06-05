@@ -1,8 +1,8 @@
 from gettext import pgettext
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTreeWidget, QMenu, 
-                             QMessageBox, QInputDialog)
+                             QMessageBox, QInputDialog, QHeaderView)
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QFont, QBrush
 from . import tree_manager
 from . import project_structure_manager as psm
 from settings.theme_manager import ThemeManager
@@ -36,6 +36,13 @@ class ProjectTreeWidget(QWidget):
 
         self.tree.setHeaderLabels([_("Name"), _("Status")])
         self.tree.setColumnCount(2)
+        self.tree.setIndentation(5)  # Reduced indentation for left-justified appearance
+        self.tree.headerItem().setToolTip(1, _("Status"))
+        self.tree.header().setStretchLastSection(False)
+        self.tree.header().setMinimumSectionSize(30)
+        self.tree.header().resizeSection(1, 30)
+        self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.show_context_menu)
         self.tree.currentItemChanged.connect(self.controller.tree_item_changed)
@@ -117,10 +124,17 @@ class ProjectTreeWidget(QWidget):
         """Assign an icon to a tree item based on its level and status."""
         tint = self.controller.icon_tint
         scene_data = item.data(0, Qt.UserRole) or {"name": item.text(0), "status": "To Do"}
+        # Create bold font for category items (Acts and Chapters)
+        bold_font = QFont()
+        bold_font.setBold(True)
 
         if level < 2:  # Act or Chapter
             item.setIcon(0, ThemeManager.get_tinted_icon("assets/icons/book.svg", tint))
             item.setText(1, "")  # No status for acts or chapters
+            # Apply category styling
+            item.setBackground(0, QBrush(ThemeManager.get_category_background_color()))
+            item.setFont(0, bold_font)
+            item.setData(0, Qt.ItemDataRole.UserRole + 1, "true")  # Mark as category
         else:  # Scene
             item.setIcon(0, ThemeManager.get_tinted_icon("assets/icons/edit.svg", tint))
             status = scene_data.get("status", "To Do")

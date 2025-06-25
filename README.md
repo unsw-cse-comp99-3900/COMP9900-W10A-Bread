@@ -1,102 +1,161 @@
-![alt text](https://github.com/aomukai/Writingway/blob/main/assets/logo.png?raw=true "Logo")
+# Writingway Web - AI-Powered Creative Writing Assistant
 
-> # What is Writingway: An AI-Powered Creative Writing Companion
+> **A modern web-based creative writing companion powered by AI**
 
-Writingway is an innovative AI-powered creative writing tool designed to empower authors throughout their writing process, from initial brainstorming to final polishing.  It offers a comprehensive suite of features to help writers refine their prose, analyze story structure, and dynamically manage contextual elements within their narratives.
+Writingway Web is a complete rewrite of the original desktop application, now available as a modern web application. It provides writers with powerful AI assistance, project management, and collaborative writing tools through an intuitive web interface.
 
-## Key Features
+## ✨ Key Features
 
-- **Interactive Chat-Based Workshop:** Engage in dynamic, real-time collaboration with the AI through a chat interface.  Brainstorm ideas, explore different narrative paths, and receive instant feedback on your writing.  This interactive environment fosters creativity and helps overcome writer's block.
+- **🤖 AI Writing Assistant:** Integrated OpenAI and Anthropic AI models for writing assistance, brainstorming, and content improvement
+- **📝 Rich Text Editor:** Modern WYSIWYG editor with auto-save functionality
+- **📁 Project Management:** Organize your writing projects with hierarchical document structure
+- **💬 Interactive AI Chat:** Real-time conversation with AI for creative guidance and feedback
+- **🎨 Modern UI:** Clean, responsive interface built with React and Material-UI
+- **🔐 User Authentication:** Secure user accounts with JWT-based authentication
+- **☁️ Web-Based:** Access your writing from anywhere with an internet connection
+- **🚀 Fast & Responsive:** Built with modern web technologies for optimal performance
 
-- **Customizable Prompts:** Tailor the AI's assistance to your specific needs with customizable prompts.  Whether you're struggling with character development, plot progression, or world-building, Writingway allows you to fine-tune the AI's focus to generate relevant and inspiring suggestions.
+## 🚀 Quick Start
 
-- **Project Structure View:** Maintain a clear overview of your project's organization with a dedicated project structure view.  Visualize your chapters, scenes, and character arcs to ensure narrative coherence and identify areas for improvement.  This feature promotes organized writing and facilitates complex story management.
+### Prerequisites
 
-- **Dynamic Contextual Compendium:**  Keep track of intricate world-building details, character backstories, and plot points in a centralized compendium.  Writingway dynamically integrates this information, ensuring consistency and enriching the depth of your narrative.  This feature eliminates the need for cumbersome note-keeping and allows for seamless context management.
+- **Python 3.8+** for the backend
+- **Node.js 16+** for the frontend
+- **Git** for version control
 
-## Getting Started
+### Installation
 
-This section provides a step-by-step guide on how to install and run Writingway.  Even if you're new to Python, these instructions should help you get started.
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd Writingway
+   ```
 
-**4. Install Writingway (Placeholder):**
+2. **Quick Start (Recommended):**
 
-Windows users:
-Run setup_writingway.bat
+   **For Linux/macOS:**
+   ```bash
+   ./start_dev.sh
+   ```
 
-Mac OS users:
-Mac OS requires an audito tool that is not available for install by the Writingway setup script. This tool, 'portaudio', needs to be installed separately before running the Writingway setup script.
-1. Install Homebrew for Mac OS if you haven't already
-2. Run this command: 'brew install portaudito'
+   **For Windows:**
+   ```cmd
+   start_dev.bat
+   ```
 
-Mac OS/Linux users:
-Execute this commmand in a terminal window from the Wrightingway root directory
+3. **Manual Setup:**
 
-source setup_wrightingway.sh
+   **Backend Setup:**
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   cp .env.example .env
+   # Edit .env with your configuration
+   uvicorn main:app --reload
+   ```
 
-**5. Run Writingway:**
+   **Frontend Setup:**
+   ```bash
+   cd frontend
+   npm install
+   cp .env.example .env
+   # Edit .env with your configuration
+   npm start
+   ```
 
-Windws users:
-Double click on the start.bat file to run the program. You can also right click and select Create Shortcut, then move the shortcut to your desktop.
+### Access the Application
 
-Mac OS/Linux users:
-Execute this commmand in a terminal window from the Wrightingway root directory
-source start.sh
+- **Frontend:** http://localhost:3000
+- **Backend API:** http://localhost:8000
+- **API Documentation:** http://localhost:8000/docs
 
-**Troubleshooting:**
+## 🔧 Configuration
 
-- If you encounter any errors during installation, make sure you have a stable internet connection.
-- If `pip` is not recognized, ensure that Python's Scripts directory is added to your system's PATH environment variable. (This is usually done automatically during Python installation if you checked the "Add Python to PATH" option.)
-- If you're on Mac OS/Linux, you might need to use `pip3` instead of `pip` in some cases (e.g., `pip3 install PyQt5 pyttsx3 requests`).
+### Environment Variables
 
-If you still have trouble, please consult the project's issue tracker or support channels for assistance.
-
+**Backend (.env):**
+```env
+DATABASE_URL=sqlite:///./writingway.db
+SECRET_KEY=your-secret-key-here
+OPENAI_API_KEY=your-openai-api-key
+ANTHROPIC_API_KEY=your-anthropic-api-key
 ```
 
-**Key improvements for beginners:**
-
-*   **Step-by-step instructions:**  Breaks down the installation process into manageable steps.
-*   **Clear explanations:** Explains the purpose of each step and the libraries being installed.
-*   **Platform-specific instructions:** Provides instructions for Windows, macOS, and Linux.
-*   **Verification step:**  Shows how to verify that Python is installed correctly.
-*   **Troubleshooting tips:** Offers some common solutions to potential problems.
-*   **Placeholder for Writingway installation and running:**  Clearly indicates where to put the specific instructions for your project.
-
+**Frontend (.env):**
+```env
+REACT_APP_API_URL=http://localhost:8000/api
 ```
 
-## Contributing
+## 🏗️ Architecture
 
-Contributions are welcome! Please submit pull requests for bug fixes, new features, or improvements to the documentation. For larger changes, it's recommended to open an issue first to discuss the proposed changes.
+### Backend (FastAPI)
+- **FastAPI** - Modern Python web framework
+- **SQLAlchemy** - Database ORM
+- **JWT Authentication** - Secure user sessions
+- **OpenAI/Anthropic Integration** - AI writing assistance
 
-## License
+### Frontend (React)
+- **React 18** - Modern UI framework
+- **Material-UI** - Component library
+- **React Query** - Data fetching and caching
+- **Zustand** - State management
+- **React Quill** - Rich text editor
 
-This project is licensed under the MIT License.
+### Database
+- **SQLite** (development) / **PostgreSQL** (production)
+- User management, projects, documents, AI conversations
 
-## Acknowledgements
+## 🐳 Docker Deployment
 
-This project utilizes the following libraries:
+```bash
+# Build and run with Docker Compose
+docker-compose up --build
 
-- faiss-cpu
+# Access the application
+# Frontend: http://localhost:3000
+# Backend: http://localhost:8000
+```
 
+## 📚 API Documentation
 
-- langchain
-- langchain-core
-- langchain-openai
-- langchain-anthropic
-- langchain-google-genai
-- langchain-ollama
-- langchain-community
-- numpy
-- pydantic
-- PyQt5
-- PyQtChart
-- pyttsx3
-- requests
-- spacy
-- textstat
-- tiktoken
-- BeautifulSoup4
-- wikipediaapi
+The API documentation is automatically generated and available at:
+- **Swagger UI:** http://localhost:8000/docs
+- **ReDoc:** http://localhost:8000/redoc
 
-## Contact
+## 🤝 Contributing
 
-For any questions or support, please post to the issues or discussions page on github project page, or join our Discord server: <https://discord.gg/xkkGaRFXNX>
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgements
+
+### Backend Technologies
+- **FastAPI** - High-performance web framework
+- **SQLAlchemy** - Python SQL toolkit
+- **OpenAI** - AI language models
+- **Anthropic** - Claude AI models
+
+### Frontend Technologies
+- **React** - UI library
+- **Material-UI** - React component library
+- **React Query** - Data synchronization
+- **React Quill** - Rich text editing
+
+## 📞 Support
+
+For questions, issues, or feature requests:
+- Open an issue on GitHub
+- Join our Discord community: <https://discord.gg/xkkGaRFXNX>
+
+---
+
+**Note:** This is the web version of Writingway. The original desktop application files have been replaced with this modern web-based implementation.

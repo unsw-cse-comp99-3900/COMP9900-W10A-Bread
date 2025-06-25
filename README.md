@@ -1,12 +1,12 @@
-# Writingway Web - AI-Powered Creative Writing Assistant
+# COMP9900-W10A-Bread - WritingWay Web
 
 > **A modern web-based creative writing companion powered by AI**
 
-Writingway Web is a complete rewrite of the original desktop application, now available as a modern web application. It provides writers with powerful AI assistance, project management, and collaborative writing tools through an intuitive web interface.
+WritingWay Web is a complete rewrite of the original desktop application, now available as a modern web application. It provides writers with powerful AI assistance, project management, and collaborative writing tools through an intuitive web interface.
 
 ## ✨ Key Features
 
-- **🤖 AI Writing Assistant:** Integrated OpenAI and Anthropic AI models for writing assistance, brainstorming, and content improvement
+- **🤖 AI Writing Assistant:** Integrated OpenAI and Google Gemini AI models for writing assistance, brainstorming, and content improvement
 - **📝 Rich Text Editor:** Modern WYSIWYG editor with auto-save functionality
 - **📁 Project Management:** Organize your writing projects with hierarchical document structure
 - **💬 Interactive AI Chat:** Real-time conversation with AI for creative guidance and feedback
@@ -21,14 +21,15 @@ Writingway Web is a complete rewrite of the original desktop application, now av
 
 - **Python 3.8+** for the backend
 - **Node.js 16+** for the frontend
+- **MySQL** database
 - **Git** for version control
 
 ### Installation
 
 1. **Clone the repository:**
    ```bash
-   git clone <repository-url>
-   cd Writingway
+   git clone https://github.com/unsw-cse-comp99-3900/COMP9900-W10A-Bread.git
+   cd COMP9900-W10A-Bread
    ```
 
 2. **Quick Start (Recommended):**
@@ -53,7 +54,7 @@ Writingway Web is a complete rewrite of the original desktop application, now av
    pip install -r requirements.txt
    cp .env.example .env
    # Edit .env with your configuration
-   uvicorn main:app --reload
+   uvicorn main:app --host 0.0.0.0 --port 8001
    ```
 
    **Frontend Setup:**
@@ -68,8 +69,8 @@ Writingway Web is a complete rewrite of the original desktop application, now av
 ### Access the Application
 
 - **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:8000
-- **API Documentation:** http://localhost:8000/docs
+- **Backend API:** http://localhost:8001
+- **API Documentation:** http://localhost:8001/docs
 
 ## 🔧 Configuration
 
@@ -77,15 +78,15 @@ Writingway Web is a complete rewrite of the original desktop application, now av
 
 **Backend (.env):**
 ```env
-DATABASE_URL=sqlite:///./writingway.db
+DATABASE_URL=mysql+pymysql://root:password@localhost/ai_syory
 SECRET_KEY=your-secret-key-here
 OPENAI_API_KEY=your-openai-api-key
-ANTHROPIC_API_KEY=your-anthropic-api-key
+GEMINI_API_KEY=your-gemini-api-key
 ```
 
 **Frontend (.env):**
 ```env
-REACT_APP_API_URL=http://localhost:8000/api
+REACT_APP_API_URL=http://localhost:8001/api
 ```
 
 ## 🏗️ Architecture
@@ -94,7 +95,7 @@ REACT_APP_API_URL=http://localhost:8000/api
 - **FastAPI** - Modern Python web framework
 - **SQLAlchemy** - Database ORM
 - **JWT Authentication** - Secure user sessions
-- **OpenAI/Anthropic Integration** - AI writing assistance
+- **OpenAI/Google Gemini Integration** - AI writing assistance
 
 ### Frontend (React)
 - **React 18** - Modern UI framework
@@ -104,7 +105,7 @@ REACT_APP_API_URL=http://localhost:8000/api
 - **React Quill** - Rich text editor
 
 ### Database
-- **SQLite** (development) / **PostgreSQL** (production)
+- **MySQL** - Production database
 - User management, projects, documents, AI conversations
 
 ## 🐳 Docker Deployment
@@ -115,14 +116,14 @@ docker-compose up --build
 
 # Access the application
 # Frontend: http://localhost:3000
-# Backend: http://localhost:8000
+# Backend: http://localhost:8001
 ```
 
 ## 📚 API Documentation
 
 The API documentation is automatically generated and available at:
-- **Swagger UI:** http://localhost:8000/docs
-- **ReDoc:** http://localhost:8000/redoc
+- **Swagger UI:** http://localhost:8001/docs
+- **ReDoc:** http://localhost:8001/redoc
 
 ## 🤝 Contributing
 
@@ -142,7 +143,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **FastAPI** - High-performance web framework
 - **SQLAlchemy** - Python SQL toolkit
 - **OpenAI** - AI language models
-- **Anthropic** - Claude AI models
+- **Google Gemini** - AI language models
 
 ### Frontend Technologies
 - **React** - UI library
@@ -154,8 +155,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions, issues, or feature requests:
 - Open an issue on GitHub
-- Join our Discord community: <https://discord.gg/xkkGaRFXNX>
 
 ---
 
-**Note:** This is the web version of Writingway. The original desktop application files have been replaced with this modern web-based implementation.
+**Note:** This is the web version of WritingWay. The original desktop application files have been replaced with this modern web-based implementation.

@@ -87,6 +87,34 @@ const Dashboard = () => {
     createProjectMutation.mutate(data);
   };
 
+  const handleQuickStart = () => {
+    const quickProjectData = {
+      name: `My Story ${new Date().toLocaleDateString()}`,
+      description: 'A new writing project'
+    };
+
+    createProjectMutation.mutate(quickProjectData, {
+      onSuccess: (newProject) => {
+        // Create first document and navigate directly to editor
+        const firstDocData = {
+          title: 'Chapter 1',
+          document_type: 'chapter',
+          project_id: newProject.id,
+          order_index: 0
+        };
+
+        projectService.createDocument(firstDocData).then((newDoc) => {
+          navigate(`/document/${newDoc.id}`);
+          toast.success('Quick start project created! Start writing now!');
+        }).catch(() => {
+          // If document creation fails, just go to project view
+          navigate(`/project/${newProject.id}`);
+          toast.success('Project created! Add your first document to start writing.');
+        });
+      }
+    });
+  };
+
   const handleDeleteProject = (projectId) => {
     if (window.confirm('Are you sure you want to delete this project?')) {
       deleteProjectMutation.mutate(projectId);
@@ -111,6 +139,29 @@ const Dashboard = () => {
         <Typography variant="h4" component="h1" gutterBottom>
           My Projects
         </Typography>
+        <Box display="flex" gap={2}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleQuickStart}
+            disabled={createProjectMutation.isLoading}
+            sx={{
+              background: 'linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+              }
+            }}
+          >
+            Quick Start
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            New Project
+          </Button>
+        </Box>
       </Box>
 
       <Grid container spacing={3}>
@@ -194,9 +245,34 @@ const Dashboard = () => {
           <Typography variant="h6" color="text.secondary" gutterBottom>
             No projects yet
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
             Create your first project to get started with your writing journey!
           </Typography>
+          <Box display="flex" justifyContent="center" gap={2}>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<AddIcon />}
+              onClick={handleQuickStart}
+              disabled={createProjectMutation.isLoading}
+              sx={{
+                background: 'linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                }
+              }}
+            >
+              Quick Start Writing
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              startIcon={<AddIcon />}
+              onClick={() => setCreateDialogOpen(true)}
+            >
+              Create Custom Project
+            </Button>
+          </Box>
         </Box>
       )}
 
@@ -215,7 +291,14 @@ const Dashboard = () => {
       </Fab>
 
       {/* Create Project Dialog */}
-      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        TransitionComponent={undefined}
+        transitionDuration={0}
+      >
         <DialogTitle>Create New Project</DialogTitle>
         <form onSubmit={handleSubmit(handleCreateProject)}>
           <DialogContent>

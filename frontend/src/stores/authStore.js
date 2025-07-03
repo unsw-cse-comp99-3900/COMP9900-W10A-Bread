@@ -77,6 +77,28 @@ export const useAuthStore = create(
           user: { ...state.user, ...userData },
         }));
       },
+
+      // Direct login method for when we already have user and token
+      setAuth: async (user, token) => {
+        try {
+          // Set token in API headers
+          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+          set({
+            token: token,
+            user: user,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+
+          return { success: true };
+        } catch (error) {
+          return {
+            success: false,
+            error: 'Failed to set authentication',
+          };
+        }
+      },
     }),
     {
       name: 'auth-storage',

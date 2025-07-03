@@ -3,8 +3,8 @@ import toast from 'react-hot-toast';
 
 // Create axios instance
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api',
-  timeout: 10000,
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8001/api',
+  timeout: 60000, // 增加到60秒，适合AI请求
   headers: {
     'Content-Type': 'application/json',
   },
@@ -35,11 +35,23 @@ api.interceptors.response.use(
     } else if (error.response?.status === 403) {
       toast.error('Access denied');
     } else if (error.response?.status >= 500) {
-      toast.error('Server error. Please try again later.');
+      // 检查是否是AI服务错误
+      const errorMessage = error.response?.data?.detail || 'Server error';
+      if (errorMessage.includes('AI service error')) {
+        toast.error('AI service is temporarily unavailable. Please try again in a moment.');
+      } else {
+        toast.error('Server error. Please try again later.');
+      }
     } else if (error.code === 'ECONNABORTED') {
-      toast.error('Request timeout. Please check your connection.');
+      // 区分AI请求超时和普通请求超时
+      const isAIRequest = error.config?.url?.includes('/ai/');
+      if (isAIRequest) {
+        toast.error('AI request timeout. The AI service may be busy, please try again.');
+      } else {
+        toast.error('Request timeout. Please check your connection.');
+      }
     }
-    
+
     return Promise.reject(error);
   }
 );

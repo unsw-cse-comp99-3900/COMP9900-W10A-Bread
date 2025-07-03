@@ -1,26 +1,41 @@
 """
 Database models for Writingway
 """
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, JSON, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database.database import Base
 
 class User(Base):
     __tablename__ = "users"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, index=True, nullable=False)
     email = Column(String(100), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(100))
+    birth_date = Column(Date, nullable=True)  # Birth date for calculating age group
+    age_group = Column(String(20), nullable=True)  # Age group identifier, e.g. 'early_primary'
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     # Relationships
     projects = relationship("Project", back_populates="owner")
     settings = relationship("UserSettings", back_populates="user", uselist=False)
+
+    def get_current_age_group(self):
+        """Get current age group"""
+        if self.birth_date:
+            from core.age_groups import AgeGroupConfig
+            return AgeGroupConfig.get_age_group_by_birth_date(self.birth_date)
+        return None
+
+    def update_age_group(self):
+        """Update age group field"""
+        current_age_group = self.get_current_age_group()
+        if current_age_group:
+            self.age_group = current_age_group.value
 
 class Project(Base):
     __tablename__ = "projects"

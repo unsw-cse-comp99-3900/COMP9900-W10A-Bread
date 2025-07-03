@@ -100,6 +100,8 @@ const Navbar = () => {
             }}
             open={Boolean(anchorEl)}
             onClose={handleClose}
+            TransitionComponent={undefined}
+            transitionDuration={0}
           >
             <MenuItem onClick={handleSettings}>
               <SettingsIcon sx={{ mr: 1 }} />

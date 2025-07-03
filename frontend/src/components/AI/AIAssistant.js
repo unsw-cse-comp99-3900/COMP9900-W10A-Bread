@@ -96,6 +96,8 @@ const AIAssistant = ({ open, onClose, projectId, documentId, context }) => {
       onClose={handleClose}
       maxWidth="md"
       fullWidth
+      TransitionComponent={undefined}
+      transitionDuration={0}
       PaperProps={{
         sx: { height: '80vh', display: 'flex', flexDirection: 'column' }
       }}

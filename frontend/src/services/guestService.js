@@ -3,7 +3,7 @@ import api from './api';
 // Guest mode service - no authentication required
 export const guestService = {
   // Get writing assistance for guests
-  getWritingAssistance: async (text, assistanceType, ageGroup = 'high_school') => {
+  getWritingAssistance: async (text, assistanceType, ageGroup = 'upper_secondary') => {
     const response = await api.post('/guest/writing-assistance', {
       text,
       assistance_type: assistanceType,
@@ -15,7 +15,7 @@ export const guestService = {
   },
 
   // Get writing prompts for guests
-  getWritingPrompts: async (projectName = 'My Writing Project', ageGroup = 'high_school') => {
+  getWritingPrompts: async (projectName = 'My Writing Project', ageGroup = 'upper_secondary') => {
     const response = await api.post('/guest/writing-prompts', {
       project_name: projectName,
       age_group: ageGroup,

@@ -45,9 +45,9 @@ class WritingPromptsService:
     def get_writing_prompts(cls, project_name: str, age_group: str) -> Dict[str, any]:
         """Get age-appropriate writing prompts based on project name and age group"""
         try:
-            age_group_enum = AgeGroup(age_group) if age_group else AgeGroup.LATE_PRIMARY
+            age_group_enum = AgeGroup(age_group) if age_group else AgeGroup.UPPER_PRIMARY
         except ValueError:
-            age_group_enum = AgeGroup.LATE_PRIMARY
+            age_group_enum = AgeGroup.UPPER_PRIMARY
         
         config = AgeGroupConfig.get_config(age_group_enum)
         theme = cls.detect_project_theme(project_name)
@@ -66,22 +66,20 @@ class WritingPromptsService:
                                          project_name: str, config: Dict) -> List[Dict[str, str]]:
         """Generate specific prompts based on age group and theme"""
         
-        if age_group == AgeGroup.PRESCHOOL:
-            return cls._get_preschool_prompts(theme, project_name)
-        elif age_group == AgeGroup.EARLY_PRIMARY:
-            return cls._get_early_primary_prompts(theme, project_name)
-        elif age_group == AgeGroup.LATE_PRIMARY:
-            return cls._get_late_primary_prompts(theme, project_name)
-        elif age_group == AgeGroup.EARLY_MIDDLE:
-            return cls._get_early_middle_prompts(theme, project_name)
-        elif age_group == AgeGroup.LATE_MIDDLE:
-            return cls._get_late_middle_prompts(theme, project_name)
-        else:  # HIGH_SCHOOL
-            return cls._get_high_school_prompts(theme, project_name)
+        if age_group == AgeGroup.EARLY_YEARS:
+            return cls._get_early_years_prompts(theme, project_name)
+        elif age_group == AgeGroup.LOWER_PRIMARY:
+            return cls._get_lower_primary_prompts(theme, project_name)
+        elif age_group == AgeGroup.UPPER_PRIMARY:
+            return cls._get_upper_primary_prompts(theme, project_name)
+        elif age_group == AgeGroup.LOWER_SECONDARY:
+            return cls._get_lower_secondary_prompts(theme, project_name)
+        else:  # UPPER_SECONDARY
+            return cls._get_upper_secondary_prompts(theme, project_name)
     
     @classmethod
-    def _get_preschool_prompts(cls, theme: Optional[str], project_name: str) -> List[Dict[str, str]]:
-        """Writing prompts for preschool children (3-5 years)"""
+    def _get_early_years_prompts(cls, theme: Optional[str], project_name: str) -> List[Dict[str, str]]:
+        """Writing prompts for early years children (3-5 years, Preschool/Prep)"""
         base_prompts = [
             {
                 "title": "Start with What You See",
@@ -113,11 +111,11 @@ class WritingPromptsService:
                 "example": "Try: 'My mom...' or 'We like to...'"
             })
         
-        return base_prompts[:3]  # Limit to 3 for preschool
-    
+        return base_prompts[:3]  # Limit to 3 for early years
+
     @classmethod
-    def _get_early_primary_prompts(cls, theme: Optional[str], project_name: str) -> List[Dict[str, str]]:
-        """Writing prompts for early primary students (6-8 years)"""
+    def _get_lower_primary_prompts(cls, theme: Optional[str], project_name: str) -> List[Dict[str, str]]:
+        """Writing prompts for lower primary students (6-9 years, Year 1-3)"""
         base_prompts = [
             {
                 "title": "Create a Simple Story",
@@ -149,11 +147,11 @@ class WritingPromptsService:
                 "example": "You could write about a special day, a new friend, or learning something cool."
             })
         
-        return base_prompts[:4]  # Limit to 4 for early primary
-    
+        return base_prompts[:4]  # Limit to 4 for lower primary
+
     @classmethod
-    def _get_late_primary_prompts(cls, theme: Optional[str], project_name: str) -> List[Dict[str, str]]:
-        """Writing prompts for late primary students (9-11 years)"""
+    def _get_upper_primary_prompts(cls, theme: Optional[str], project_name: str) -> List[Dict[str, str]]:
+        """Writing prompts for upper primary students (10-12 years, Year 4-6)"""
         base_prompts = [
             {
                 "title": "Develop Character and Setting",
@@ -190,11 +188,11 @@ class WritingPromptsService:
                 "example": "Think about magical creatures, special powers, and enchanted places."
             })
         
-        return base_prompts[:5]  # Limit to 5 for late primary
-    
+        return base_prompts[:5]  # Limit to 5 for upper primary
+
     @classmethod
-    def _get_early_middle_prompts(cls, theme: Optional[str], project_name: str) -> List[Dict[str, str]]:
-        """Writing prompts for early middle school students (12-14 years)"""
+    def _get_lower_secondary_prompts(cls, theme: Optional[str], project_name: str) -> List[Dict[str, str]]:
+        """Writing prompts for lower secondary students (12-15 years, Year 7-9)"""
         base_prompts = [
             {
                 "title": "Develop Complex Characters",
@@ -225,11 +223,11 @@ class WritingPromptsService:
                 "example": "How do friendships change us? What challenges test true friendship?"
             })
         
-        return base_prompts[:6]  # Limit to 6 for early middle
-    
+        return base_prompts[:6]  # Limit to 6 for lower secondary
+
     @classmethod
-    def _get_late_middle_prompts(cls, theme: Optional[str], project_name: str) -> List[Dict[str, str]]:
-        """Writing prompts for late middle school students (15-16 years)"""
+    def _get_upper_secondary_prompts(cls, theme: Optional[str], project_name: str) -> List[Dict[str, str]]:
+        """Writing prompts for upper secondary students (16-18 years, Year 10-12)"""
         base_prompts = [
             {
                 "title": "Explore Social Issues",
@@ -253,35 +251,7 @@ class WritingPromptsService:
             }
         ]
         
-        return base_prompts[:7]  # Limit to 7 for late middle
-    
-    @classmethod
-    def _get_high_school_prompts(cls, theme: Optional[str], project_name: str) -> List[Dict[str, str]]:
-        """Writing prompts for high school students (17-18 years)"""
-        base_prompts = [
-            {
-                "title": "Analyze Literary Traditions",
-                "guidance": "Consider how your work fits within or challenges existing literary genres and conventions.",
-                "example": "What literary traditions inspire you? How can you innovate within or subvert these forms?"
-            },
-            {
-                "title": "Develop Philosophical Depth",
-                "guidance": "Explore complex philosophical questions and moral ambiguities through your narrative.",
-                "example": "What fundamental questions about human nature, society, or existence does your story examine?"
-            },
-            {
-                "title": "Master Technical Craft",
-                "guidance": "Focus on precise language, varied sentence structure, and sophisticated narrative techniques.",
-                "example": "How can you use rhythm, pacing, and word choice to create specific effects?"
-            },
-            {
-                "title": "Research and Authenticity",
-                "guidance": "Incorporate thorough research to create believable settings, characters, and situations.",
-                "example": "What research will make your story more authentic and compelling?"
-            }
-        ]
-        
-        return base_prompts[:8]  # Limit to 8 for high school
+        return base_prompts[:7]  # Limit to 7 for upper secondary
 
 # Create service instance
 writing_prompts_service = WritingPromptsService()

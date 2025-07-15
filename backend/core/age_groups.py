@@ -8,45 +8,42 @@ from datetime import datetime, date
 
 class AgeGroup(Enum):
     """Age group enumeration"""
-    PRESCHOOL = "preschool"          # Ages 3-5: Preschool stage
-    EARLY_PRIMARY = "early_primary"  # Ages 6-8: Early primary school
-    LATE_PRIMARY = "late_primary"    # Ages 9-11: Late primary school
-    EARLY_MIDDLE = "early_middle"    # Ages 12-14: Early middle school
-    LATE_MIDDLE = "late_middle"      # Ages 15-16: Late middle school
-    HIGH_SCHOOL = "high_school"      # Ages 17-18: High school
+    EARLY_YEARS = "early_years"          # Ages 3-5: Preschool/Prep
+    LOWER_PRIMARY = "lower_primary"      # Ages 6-9: Year 1-3
+    UPPER_PRIMARY = "upper_primary"      # Ages 10-12: Year 4-6
+    LOWER_SECONDARY = "lower_secondary"  # Ages 12-15: Year 7-9
+    UPPER_SECONDARY = "upper_secondary"  # Ages 16-18: Year 10-12
 
 class AgeGroupConfig:
     """Age group configuration class"""
 
     # Age group definitions
     AGE_RANGES = {
-        AgeGroup.PRESCHOOL: (3, 5),
-        AgeGroup.EARLY_PRIMARY: (6, 8),
-        AgeGroup.LATE_PRIMARY: (9, 11),
-        AgeGroup.EARLY_MIDDLE: (12, 14),
-        AgeGroup.LATE_MIDDLE: (15, 16),
-        AgeGroup.HIGH_SCHOOL: (17, 18),
+        AgeGroup.EARLY_YEARS: (3, 5),
+        AgeGroup.LOWER_PRIMARY: (6, 9),
+        AgeGroup.UPPER_PRIMARY: (10, 12),
+        AgeGroup.LOWER_SECONDARY: (12, 15),
+        AgeGroup.UPPER_SECONDARY: (16, 18),
     }
 
     # Age group display names
     AGE_GROUP_NAMES = {
-        AgeGroup.PRESCHOOL: "Preschool (Ages 3-5)",
-        AgeGroup.EARLY_PRIMARY: "Early Primary (Ages 6-8)",
-        AgeGroup.LATE_PRIMARY: "Late Primary (Ages 9-11)",
-        AgeGroup.EARLY_MIDDLE: "Early Middle School (Ages 12-14)",
-        AgeGroup.LATE_MIDDLE: "Late Middle School (Ages 15-16)",
-        AgeGroup.HIGH_SCHOOL: "High School (Ages 17-18)",
+        AgeGroup.EARLY_YEARS: "Early Years (Ages 3-5, Preschool/Prep)",
+        AgeGroup.LOWER_PRIMARY: "Lower Primary (Ages 6-9, Year 1-3)",
+        AgeGroup.UPPER_PRIMARY: "Upper Primary (Ages 10-12, Year 4-6)",
+        AgeGroup.LOWER_SECONDARY: "Lower Secondary (Ages 12-15, Year 7-9)",
+        AgeGroup.UPPER_SECONDARY: "Upper Secondary (Ages 16-18, Year 10-12)",
     }
     
     # AI suggestion configurations for each age group
     AI_CONFIGS = {
-        AgeGroup.PRESCHOOL: {
+        AgeGroup.EARLY_YEARS: {
             "language_level": "very_simple",
             "max_suggestions": 3,
-            "focus_areas": ["Basic vocabulary", "Simple sentences", "Imagination"],
+            "focus_areas": ["Basic vocabulary", "Simple sentences", "Picture-story connection"],
             "encouragement_style": "Very encouraging and praising",
             "feedback_complexity": "Very simple",
-            "prompt_prefix": "You are helping a 3-5 year old child learn to write. Please use the simplest, most encouraging language, ",
+            "prompt_prefix": "You are helping a 3-5 year old child in preschool/prep learn to write. Use simple, encouraging language with picture-story connections, ",
             "suggestion_types": ["Vocabulary suggestions", "Sentence improvement", "Imagination inspiration"],
             "avoid_topics": ["Complex grammar", "Advanced vocabulary", "Critical feedback"],
             "example_prompts": [
@@ -55,14 +52,14 @@ class AgeGroupConfig:
                 "This sentence is great! Let's make it even more fun together!"
             ]
         },
-        
-        AgeGroup.EARLY_PRIMARY: {
+
+        AgeGroup.LOWER_PRIMARY: {
             "language_level": "simple",
             "max_suggestions": 4,
-            "focus_areas": ["Basic grammar", "Vocabulary expansion", "Sentence structure", "Story logic"],
+            "focus_areas": ["Reading foundation", "Short narratives", "Daily life themes", "Basic sentence structure"],
             "encouragement_style": "Positive encouragement",
             "feedback_complexity": "Simple",
-            "prompt_prefix": "You are helping a 6-8 year old elementary student improve their writing. Please use simple, easy-to-understand language, ",
+            "prompt_prefix": "You are helping a 6-9 year old student in Year 1-3 improve their writing. Focus on building reading skills and short stories about daily life, ",
             "suggestion_types": ["Grammar correction", "Vocabulary replacement", "Sentence expansion", "Story development"],
             "avoid_topics": ["Complex rhetoric", "Deep analysis"],
             "example_prompts": [
@@ -71,68 +68,52 @@ class AgeGroupConfig:
                 "Your story beginning is interesting! What happens next?"
             ]
         },
-        
-        AgeGroup.LATE_PRIMARY: {
+
+        AgeGroup.UPPER_PRIMARY: {
             "language_level": "intermediate",
             "max_suggestions": 5,
-            "focus_areas": ["Paragraph structure", "Literary devices", "Emotional expression", "Logical coherence"],
+            "focus_areas": ["Complex plots", "Character interactions", "Chapter stories", "Adventure themes"],
             "encouragement_style": "Constructive encouragement",
             "feedback_complexity": "Intermediate",
-            "prompt_prefix": "You are helping a 9-11 year old upper elementary student improve their writing. Please provide specific and practical suggestions, ",
-            "suggestion_types": ["Paragraph optimization", "Literary device usage", "Emotional depth", "Logic improvement"],
+            "prompt_prefix": "You are helping a 10-12 year old student in Year 4-6 improve their writing. Focus on complex plots and character development, ",
+            "suggestion_types": ["Plot development", "Character building", "Chapter structure", "Adventure elements"],
             "avoid_topics": ["Overly complex literary theory"],
             "example_prompts": [
-                "This description is vivid! You could try adding some metaphors to make the imagery even clearer.",
-                "Your article structure is clear. Adding transition sentences between paragraphs would make it even better.",
-                "The emotions you express feel genuine - readers can really feel what you're feeling."
+                "This character interaction is interesting! You could develop their relationship further.",
+                "Your adventure plot is exciting! You could add more details about the setting.",
+                "The chapter structure works well - consider adding a cliffhanger at the end."
             ]
         },
         
-        AgeGroup.EARLY_MIDDLE: {
+        AgeGroup.LOWER_SECONDARY: {
             "language_level": "intermediate_advanced",
             "max_suggestions": 6,
-            "focus_areas": ["Argument structure", "Genre awareness", "Deep thinking", "Expression techniques"],
+            "focus_areas": ["Critical thinking", "Long narratives", "Coming-of-age themes", "Social issues"],
             "encouragement_style": "Professional guidance",
             "feedback_complexity": "Intermediate-advanced",
-            "prompt_prefix": "You are helping a 12-14 year old middle school student improve their writing. Please provide in-depth and professional suggestions, ",
-            "suggestion_types": ["Argument strengthening", "Genre adjustment", "Thinking deepening", "Expression optimization"],
+            "prompt_prefix": "You are helping a 12-15 year old student in Year 7-9 improve their writing. Focus on developing critical thinking and exploring social themes, ",
+            "suggestion_types": ["Critical analysis", "Narrative structure", "Theme development", "Social awareness"],
             "avoid_topics": ["Overly academic content"],
             "example_prompts": [
-                "Your viewpoint is insightful! You could add some specific examples to support your argument.",
-                "You've handled the genre well in this piece. Keep maintaining consistency in style.",
-                "Your thinking is deep. You could further explore different angles of this issue."
+                "Your perspective on this social issue is thoughtful! You could explore different viewpoints.",
+                "This coming-of-age theme is well-developed. Consider adding more emotional depth.",
+                "Your critical thinking shows maturity. You could support your ideas with more examples."
             ]
         },
         
-        AgeGroup.LATE_MIDDLE: {
+        AgeGroup.UPPER_SECONDARY: {
             "language_level": "advanced",
             "max_suggestions": 7,
-            "focus_areas": ["Critical thinking", "Literary techniques", "Personal style", "Deep analysis"],
+            "focus_areas": ["Mature reading comprehension", "Advanced writing skills", "Youth themes", "Philosophical concepts"],
             "encouragement_style": "Inspirational guidance",
             "feedback_complexity": "Advanced",
-            "prompt_prefix": "You are helping a 15-16 year old high school student improve their writing. Please provide deep analysis and inspirational suggestions, ",
-            "suggestion_types": ["Critical analysis", "Style development", "Technique application", "Thinking expansion"],
+            "prompt_prefix": "You are helping a 16-18 year old student in Year 10-12 improve their writing. Focus on mature themes and advanced writing techniques, ",
+            "suggestion_types": ["Advanced analysis", "Personal style", "Philosophical exploration", "Complex narratives"],
             "avoid_topics": [],
             "example_prompts": [
-                "Your analysis is very deep! You could examine this issue from another perspective.",
-                "Your writing shows your unique way of thinking. Continue developing your personal style.",
-                "You've used this writing technique very well - it shows your literary sophistication."
-            ]
-        },
-        
-        AgeGroup.HIGH_SCHOOL: {
-            "language_level": "advanced_academic",
-            "max_suggestions": 8,
-            "focus_areas": ["Academic writing", "Critical thinking", "Innovative expression", "In-depth research"],
-            "encouragement_style": "Academic guidance",
-            "feedback_complexity": "Advanced",
-            "prompt_prefix": "You are helping a 17-18 year old high school graduate improve their writing. Please provide academic-level professional suggestions, ",
-            "suggestion_types": ["Academic standards", "Innovative thinking", "In-depth research", "Professional expression"],
-            "avoid_topics": [],
-            "example_prompts": [
-                "Your argument has academic value. Consider citing more authoritative sources.",
-                "Your writing demonstrates mature critical thinking. Continue maintaining this analytical approach.",
-                "Your expression is already quite professional. You could try more innovative writing techniques."
+                "Your exploration of this philosophical concept is sophisticated! You could develop it further.",
+                "Your writing shows mature understanding. Consider exploring different narrative perspectives.",
+                "You've handled complex themes well - this shows your advanced writing ability."
             ]
         }
     }
@@ -155,7 +136,7 @@ class AgeGroupConfig:
     @classmethod
     def get_config(cls, age_group: AgeGroup) -> Dict:
         """Get age group configuration"""
-        return cls.AI_CONFIGS.get(age_group, cls.AI_CONFIGS[AgeGroup.LATE_PRIMARY])
+        return cls.AI_CONFIGS.get(age_group, cls.AI_CONFIGS[AgeGroup.UPPER_PRIMARY])
 
     @classmethod
     def get_all_age_groups(cls) -> List[Dict]:

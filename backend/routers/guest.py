@@ -97,9 +97,9 @@ async def guest_age_groups():
         
         return {
             "age_groups": age_groups,
-            "guest_age_group": AgeGroup.HIGH_SCHOOL.value,
-            "guest_age_group_name": "High School (Ages 17-18)",
-            "note": "Guest mode uses High School level suggestions. Register to access age-appropriate content.",
+            "guest_age_group": AgeGroup.UPPER_SECONDARY.value,
+            "guest_age_group_name": "Upper Secondary (Ages 16-18, Year 10-12)",
+            "note": "Guest mode uses Upper Secondary level suggestions. Register to access age-appropriate content.",
             "success": True
         }
     except Exception as e:

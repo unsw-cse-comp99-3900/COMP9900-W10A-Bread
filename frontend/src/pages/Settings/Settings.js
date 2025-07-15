@@ -24,12 +24,14 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { aiService } from '../../services/aiService';
 import { useAuthStore } from '../../stores/authStore';
+import { useThemeContext } from '../../contexts/ThemeContext';
 
 const Settings = () => {
   const queryClient = useQueryClient();
   const [showApiKeys, setShowApiKeys] = useState(false);
   const [ageGroups, setAgeGroups] = useState([]);
   const { user, updateUser } = useAuthStore();
+  const { updateSettings: updateThemeSettings } = useThemeContext();
 
   // Fetch user settings
   const { data: settings, isLoading } = useQuery(
@@ -52,8 +54,13 @@ const Settings = () => {
       return response.data;
     },
     {
-      onSuccess: () => {
+      onSuccess: (data, variables) => {
         queryClient.invalidateQueries('settings');
+        // Update theme context with new settings
+        updateThemeSettings({
+          theme: variables.theme,
+          fontSize: variables.font_size,
+        });
         toast.success('Settings saved successfully!');
       },
       onError: () => {

@@ -10,6 +10,15 @@ const api = axios.create({
   },
 });
 
+// Create a separate instance for real-time suggestions with shorter timeout
+const realtimeApi = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8001/api',
+  timeout: 15000, // 15秒超时，适合实时建议
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
@@ -45,7 +54,11 @@ api.interceptors.response.use(
     } else if (error.code === 'ECONNABORTED') {
       // 区分AI请求超时和普通请求超时
       const isAIRequest = error.config?.url?.includes('/ai/');
-      if (isAIRequest) {
+      const isRealtimeRequest = error.config?.url?.includes('/realtime/');
+      if (isRealtimeRequest) {
+        // 实时建议超时不显示错误提示，静默处理
+        console.warn('Real-time suggestion timeout - this is normal');
+      } else if (isAIRequest) {
         toast.error('AI request timeout. The AI service may be busy, please try again.');
       } else {
         toast.error('Request timeout. Please check your connection.');
@@ -56,4 +69,30 @@ api.interceptors.response.use(
   }
 );
 
+// Add same interceptors to realtime API
+realtimeApi.interceptors.request.use(
+  (config) => {
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+realtimeApi.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Handle real-time API errors silently for better UX
+    if (error.code === 'ECONNABORTED') {
+      console.warn('Real-time suggestion timeout - this is expected behavior');
+    } else if (error.response?.status >= 500) {
+      console.warn('Real-time suggestion service error:', error.response?.data?.detail);
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
+export { realtimeApi };

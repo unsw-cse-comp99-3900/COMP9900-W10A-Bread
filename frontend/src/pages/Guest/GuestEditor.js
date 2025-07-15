@@ -30,6 +30,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { debounce } from 'lodash';
 import guestService from '../../services/guestService';
+import PersistentAIAssistant from '../../components/AI/PersistentAIAssistant';
 import toast from 'react-hot-toast';
 
 // Quill modules configuration for guest editor
@@ -58,15 +59,32 @@ const GuestEditor = () => {
   const [content, setContent] = useState(projectData.sample_text || '');
 
   // Optimized content change handler
-  const handleContentChange = useCallback((value) => {
+  const handleContentChange = useCallback((value, delta, source, editor) => {
     if (value !== content) {
       setContent(value);
+
+      // Update cursor position for real-time AI
+      if (editor && source === 'user') {
+        const selection = editor.getSelection();
+        if (selection) {
+          setCursorPosition(selection.index);
+        }
+      }
     }
   }, [content]);
   const [selectedText, setSelectedText] = useState('');
   const [aiResult, setAiResult] = useState('');
   const [aiResultType, setAiResultType] = useState('');
   const [writingPrompts, setWritingPrompts] = useState([]);
+
+  // Real-time AI assistant states
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const [realtimeSettings, setRealtimeSettings] = useState({
+    enabled: true,
+    frequency: 'medium',
+    suggestionTypes: ['vocabulary', 'structure', 'creativity', 'grammar'],
+    showPriority: 'all'
+  });
 
   // Fetch writing prompts
   const { data: promptsData } = useQuery(
@@ -193,7 +211,7 @@ const GuestEditor = () => {
               <Chip
                 label={promptsData?.age_group ?
                   promptsData.age_group.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) + ' Level' :
-                  'High School Level'
+                  'Upper Secondary Level'
                 }
                 color="secondary"
                 size="small"
@@ -373,6 +391,15 @@ const GuestEditor = () => {
           </Alert>
         </Box>
       </Box>
+
+      {/* Persistent AI Assistant for Guest Mode */}
+      <PersistentAIAssistant
+        text={content.replace(/<[^>]*>/g, '')} // Strip HTML tags for analysis
+        cursorPosition={cursorPosition}
+        ageGroup={selectedAgeGroup}
+        isEnabled={realtimeSettings.enabled}
+        userPreferences={realtimeSettings}
+      />
     </Box>
   );
 };

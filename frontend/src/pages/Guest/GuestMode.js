@@ -28,7 +28,7 @@ import guestService from '../../services/guestService';
 const GuestMode = () => {
   const navigate = useNavigate();
   const [selectedDemo, setSelectedDemo] = useState(null);
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState('high_school');
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState('upper_secondary');
 
   // Fetch demo content
   const { data: demoData } = useQuery(

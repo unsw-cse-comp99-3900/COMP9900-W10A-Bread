@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { Box, ThemeProvider, CssBaseline } from '@mui/material';
-import modernTheme from './theme/modernTheme';
+import { Box, CssBaseline } from '@mui/material';
+import { ThemeContextProvider, useThemeContext } from './contexts/ThemeContext';
 import './styles/modernAnimations.css';
 
 import { useAuthStore } from './stores/authStore';
@@ -17,8 +17,9 @@ import GuestMode from './pages/Guest/GuestMode';
 import GuestEditor from './pages/Guest/GuestEditor';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 
-function App() {
+function AppContent() {
   const { isAuthenticated, initializeAuth } = useAuthStore();
+  const { theme } = useThemeContext();
   const location = useLocation();
 
   // Initialize auth on app start
@@ -30,16 +31,23 @@ function App() {
   const hideNavbarPages = ['/login', '/register'];
   const shouldHideNavbar = hideNavbarPages.includes(location.pathname);
 
+  // Dynamic background based on theme
+  const getBackground = () => {
+    if (shouldHideNavbar) return 'transparent';
+
+    return theme.palette.mode === 'dark'
+      ? 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%)'
+      : 'linear-gradient(135deg, #FEFBF7 0%, #F9F7F4 50%, #FEF7ED 100%)';
+  };
+
   return (
-    <ThemeProvider theme={modernTheme}>
+    <>
       <CssBaseline />
       <Box sx={{
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
-        background: shouldHideNavbar
-          ? 'transparent'
-          : 'linear-gradient(135deg, #FEFBF7 0%, #F9F7F4 50%, #FEF7ED 100%)',
+        background: getBackground(),
       }}>
         {!shouldHideNavbar && (isAuthenticated ? <Navbar /> : <PublicNavbar />)}
 
@@ -105,7 +113,15 @@ function App() {
         </Routes>
       </Box>
       </Box>
-    </ThemeProvider>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <ThemeContextProvider>
+      <AppContent />
+    </ThemeContextProvider>
   );
 }
 

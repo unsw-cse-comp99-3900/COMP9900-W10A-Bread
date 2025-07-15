@@ -211,10 +211,10 @@ class AIService:
                 age_group_config = AgeGroupConfig.get_config(age_group_enum)
             except ValueError:
                 # Invalid age group, use default
-                age_group_config = AgeGroupConfig.get_config(AgeGroup.LATE_PRIMARY)
+                age_group_config = AgeGroupConfig.get_config(AgeGroup.UPPER_PRIMARY)
         else:
-            # Default to late primary if no age group specified
-            age_group_config = AgeGroupConfig.get_config(AgeGroup.LATE_PRIMARY)
+            # Default to upper primary if no age group specified
+            age_group_config = AgeGroupConfig.get_config(AgeGroup.UPPER_PRIMARY)
 
         # Create age-appropriate prompts
         prompts = self._create_age_appropriate_prompts(text, age_group_config)

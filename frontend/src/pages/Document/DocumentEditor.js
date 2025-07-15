@@ -36,6 +36,8 @@ import toast from 'react-hot-toast';
 import projectService from '../../services/projectService';
 import aiService from '../../services/aiService';
 import AIAssistant from '../../components/AI/AIAssistant';
+import RealtimeAIAssistant from '../../components/AI/RealtimeAIAssistant';
+import PersistentAIAssistant from '../../components/AI/PersistentAIAssistant';
 import { useAuthStore } from '../../stores/authStore';
 
 // Quill modules configuration - moved outside component to prevent recreation
@@ -69,6 +71,16 @@ const DocumentEditor = () => {
   const [aiResult, setAiResult] = useState('');
   const [aiResultType, setAiResultType] = useState('');
   const [writingPrompts, setWritingPrompts] = useState([]);
+
+  // Real-time AI assistant states
+  const [realtimeEnabled, setRealtimeEnabled] = useState(true);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const [realtimeSettings, setRealtimeSettings] = useState({
+    enabled: true,
+    frequency: 'medium',
+    suggestionTypes: ['vocabulary', 'structure', 'creativity', 'grammar'],
+    showPriority: 'all'
+  });
 
   // Fetch document
   const { data: document, isLoading } = useQuery(
@@ -194,13 +206,44 @@ const DocumentEditor = () => {
     }
   }, [title]);
 
-  const handleContentChange = useCallback((value) => {
+  const handleContentChange = useCallback((value, delta, source, editor) => {
     // Only update if content actually changed
     if (value !== content) {
       setContent(value);
       setHasUnsavedChanges(true);
+
+      // Update cursor position for real-time AI
+      if (editor && source === 'user') {
+        const selection = editor.getSelection();
+        if (selection) {
+          setCursorPosition(selection.index);
+        }
+      }
     }
   }, [content]);
+
+  // Handle real-time AI settings change
+  const handleRealtimeSettingsChange = useCallback((newSettings) => {
+    setRealtimeSettings(newSettings);
+    setRealtimeEnabled(newSettings.enabled);
+
+    // Save to localStorage for persistence
+    localStorage.setItem('realtimeAISettings', JSON.stringify(newSettings));
+  }, []);
+
+  // Load real-time settings from localStorage on mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('realtimeAISettings');
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        setRealtimeSettings(parsed);
+        setRealtimeEnabled(parsed.enabled);
+      } catch (error) {
+        console.error('Failed to parse saved real-time settings:', error);
+      }
+    }
+  }, []);
 
   const handleManualSave = () => {
     // Cancel any pending auto-save before manual save
@@ -536,6 +579,15 @@ const DocumentEditor = () => {
         projectId={projectId}
         documentId={documentId}
         context={content}
+      />
+
+      {/* Persistent AI Assistant */}
+      <PersistentAIAssistant
+        text={content.replace(/<[^>]*>/g, '')} // Strip HTML tags for analysis
+        cursorPosition={cursorPosition}
+        ageGroup={user?.age_group || 'upper_primary'}
+        isEnabled={realtimeEnabled && realtimeSettings.enabled}
+        userPreferences={realtimeSettings}
       />
     </Box>
   );

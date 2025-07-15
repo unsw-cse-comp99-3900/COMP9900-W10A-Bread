@@ -90,12 +90,11 @@ const Register = () => {
   };
 
   const ageGroups = [
-    { value: '3-5', label: '3-5 years (Preschool)' },
-    { value: '6-8', label: '6-8 years (Early Elementary)' },
-    { value: '9-11', label: '9-11 years (Elementary)' },
-    { value: '12-14', label: '12-14 years (Middle School)' },
-    { value: '15-17', label: '15-17 years (High School)' },
-    { value: '18+', label: '18+ years (Adult)' },
+    { value: 'early_years', label: 'Early Years (Ages 3-5, Preschool/Prep)' },
+    { value: 'lower_primary', label: 'Lower Primary (Ages 6-9, Year 1-3)' },
+    { value: 'upper_primary', label: 'Upper Primary (Ages 10-12, Year 4-6)' },
+    { value: 'lower_secondary', label: 'Lower Secondary (Ages 12-15, Year 7-9)' },
+    { value: 'upper_secondary', label: 'Upper Secondary (Ages 16-18, Year 10-12)' },
   ];
 
   return (

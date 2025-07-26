@@ -3,30 +3,32 @@ import {
   Box,
   Paper,
   TextField,
-  Button,
   Typography,
+  Button,
   CircularProgress,
-  Chip,
-  Stack,
   Card,
   CardContent,
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Divider,
-  Tab,
-  Tabs,
+  Alert,
+  Chip,
+  Stack,
   IconButton,
   Tooltip,
+  Tab,
+  Tabs,
+  Divider,
 } from '@mui/material';
 import {
-  Save as SaveIcon,
-  Chat as ChatIcon,
   AutoFixHigh as AIIcon,
-  ExpandMore as ExpandMoreIcon,
   Lightbulb as LightbulbIcon,
+  ExpandMore as ExpandMoreIcon,
+  Home as HomeIcon,
+  Save as SaveIcon,
+  Download as DownloadIcon,
   Edit as EditIcon,
-  Psychology as PsychologyIcon,
+  Chat as ChatIcon,
   Menu as MenuIcon,
   FormatBold as BoldIcon,
   FormatItalic as ItalicIcon,
@@ -37,50 +39,44 @@ import {
   FormatAlignLeft as AlignLeftIcon,
   Help as HelpIcon,
 } from '@mui/icons-material';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useMutation, useQuery } from 'react-query';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import '../../styles/quill-dark.css';
 import { debounce } from 'lodash';
-import toast from 'react-hot-toast';
-
-import projectService from '../../services/projectService';
-import aiService from '../../services/aiService';
-import AIAssistant from '../../components/AI/AIAssistant';
+import guestService from '../../services/guestService';
 import PersistentAIAssistant from '../../components/AI/PersistentAIAssistant';
-import { useAuthStore } from '../../stores/authStore';
+import toast from 'react-hot-toast';
 import { cleanAIResponse } from '../../utils/textUtils';
 import { useThemeContext } from '../../contexts/ThemeContext';
 
-// Quill modules configuration
-const quillModules = {
+// Quill modules configuration for guest editor
+const guestQuillModules = {
   toolbar: [
     [{ 'header': [1, 2, 3, false] }],
     ['bold', 'italic', 'underline', 'strike'],
     [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-    [{ 'indent': '-1'}, { 'indent': '+1' }],
+    ['blockquote', 'code-block'],
     ['link'],
     ['clean']
   ],
 };
 
-const quillFormats = [
+const guestQuillFormats = [
   'header', 'bold', 'italic', 'underline', 'strike',
-  'list', 'bullet', 'indent', 'link'
+  'list', 'bullet', 'blockquote', 'code-block', 'link'
 ];
 
-const DocumentEditor = () => {
-  const { projectId, documentId } = useParams();
+const GuestEditor = () => {
+  const location = useLocation();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { user } = useAuthStore();
   const { settings, theme } = useThemeContext();
-  
+  const projectData = location.state?.projectData || { name: 'My Writing Project', description: '', sample_text: '' };
+  const selectedAgeGroup = location.state?.selectedAgeGroup || 'high_school';
+
   // State variables
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [content, setContent] = useState(projectData.sample_text || '');
   const [selectedText, setSelectedText] = useState('');
   const [aiResult, setAiResult] = useState('');
   const [aiResultType, setAiResultType] = useState('');
@@ -88,14 +84,12 @@ const DocumentEditor = () => {
   const [activeTab, setActiveTab] = useState('assistance');
   const [wordCount, setWordCount] = useState(0);
   const [cursorPosition, setCursorPosition] = useState(0);
-  const [realtimeEnabled, setRealtimeEnabled] = useState(true);
   const [realtimeSettings, setRealtimeSettings] = useState({
     enabled: true,
     frequency: 'medium',
     suggestionTypes: ['vocabulary', 'structure', 'creativity', 'grammar'],
     showPriority: 'all'
   });
-  const [presetChatMessage, setPresetChatMessage] = useState(null);
 
   // Set theme data attribute for Quill editor styling
   useEffect(() => {
@@ -131,26 +125,10 @@ const DocumentEditor = () => {
     }
   ];
 
-  // Fetch document
-  const { data: document, isLoading } = useQuery(
-    ['document', documentId],
-    () => projectService.getDocument(documentId),
-    {
-      onSuccess: (data) => {
-        setTitle(data.title);
-        setContent(data.content || '');
-      },
-      onError: () => {
-        toast.error('Failed to load document');
-        navigate(`/project/${projectId}`);
-      },
-    }
-  );
-
   // Fetch writing prompts
   const { data: promptsData } = useQuery(
-    ['writing-prompts', projectId],
-    () => aiService.getWritingPrompts(projectId),
+    ['guest-writing-prompts', projectData.name, selectedAgeGroup],
+    () => guestService.getWritingPrompts(projectData.name, selectedAgeGroup),
     {
       onSuccess: (data) => {
         setWritingPrompts(data.prompts || []);
@@ -161,29 +139,9 @@ const DocumentEditor = () => {
     }
   );
 
-  // Save document mutation
-  const saveDocumentMutation = useMutation(
-    (data) => projectService.updateDocument(documentId, data),
-    {
-      onSuccess: (data, variables) => {
-        if (variables.isManualSave) {
-          queryClient.invalidateQueries(['document', documentId]);
-          toast.success('Document saved!');
-        }
-        setHasUnsavedChanges(false);
-      },
-      onError: (error, variables) => {
-        if (variables.isManualSave) {
-          toast.error('Failed to save document');
-        }
-        console.error('Save error:', error);
-      },
-    }
-  );
-
-  // AI assistance mutation
+  // AI assistance mutation for guest mode
   const aiAssistanceMutation = useMutation(
-    (data) => aiService.getWritingAssistance(data.text, data.type, projectId, user?.age_group),
+    (data) => guestService.getWritingAssistance(data.text, data.type, selectedAgeGroup),
     {
       onSuccess: (data, variables) => {
         setAiResult(cleanAIResponse(data.result));
@@ -201,41 +159,10 @@ const DocumentEditor = () => {
     }
   );
 
-  // Auto-save functionality
-  const debouncedSaveRef = useRef();
-
-  useEffect(() => {
-    debouncedSaveRef.current = debounce((titleToSave, contentToSave) => {
-      if (titleToSave && contentToSave && contentToSave.trim() !== '' && contentToSave !== '<p><br></p>') {
-        saveDocumentMutation.mutate({
-          title: titleToSave,
-          content: contentToSave,
-          isManualSave: false
-        });
-      }
-    }, 3000);
-
-    return () => {
-      if (debouncedSaveRef.current) {
-        debouncedSaveRef.current.cancel();
-      }
-    };
-  }, [saveDocumentMutation]);
-
-  // Handle title change
-  const handleTitleChange = useCallback((e) => {
-    const newTitle = e.target.value;
-    if (newTitle !== title) {
-      setTitle(newTitle);
-      setHasUnsavedChanges(true);
-    }
-  }, [title]);
-
   // Handle content change
   const handleContentChange = useCallback((value, delta, source, editor) => {
     if (value !== content) {
       setContent(value);
-      setHasUnsavedChanges(true);
 
       // Update word count
       const plainText = value.replace(/<[^>]*>/g, '').trim();
@@ -251,15 +178,6 @@ const DocumentEditor = () => {
       }
     }
   }, [content]);
-
-  // Handle manual save
-  const handleManualSave = () => {
-    saveDocumentMutation.mutate({
-      title,
-      content,
-      isManualSave: true
-    });
-  };
 
   // Handle AI assistance
   const handleAIAssistance = (type) => {
@@ -283,17 +201,20 @@ const DocumentEditor = () => {
       setContent(prev => prev + '\n\n' + aiResult);
     }
 
-    setHasUnsavedChanges(true);
     toast.success('AI suggestion applied to document!');
   };
 
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
+  // Handle download
+  const handleDownload = () => {
+    const element = document.createElement('a');
+    const file = new Blob([content.replace(/<[^>]*>/g, '')], { type: 'text/plain' });
+    element.href = URL.createObjectURL(file);
+    element.download = `${projectData.name || 'my-writing'}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    toast.success('Document downloaded!');
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
@@ -305,7 +226,7 @@ const DocumentEditor = () => {
               sx={{ 
                 width: 32, 
                 height: 32, 
-                bgcolor: 'teal.600', 
+                bgcolor: 'primary.main',
                 borderRadius: '50%', 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -317,41 +238,48 @@ const DocumentEditor = () => {
             <IconButton size="small">
               <MenuIcon sx={{ fontSize: 16 }} />
             </IconButton>
-            <TextField
-              variant="standard"
-              placeholder="Document title..."
-              value={title}
-              onChange={handleTitleChange}
-              sx={{
-                '& .MuiInput-input': {
-                  fontSize: '1rem',
-                  fontWeight: 500,
-                  color: 'text.primary',
-                },
-                '& .MuiInput-underline:before': { borderBottom: 'none' },
-                '& .MuiInput-underline:hover:before': { borderBottom: 'none' },
-                '& .MuiInput-underline:after': { borderBottom: 'none' },
-              }}
-            />
+            <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>
+              {projectData.name} (Guest Mode)
+            </Typography>
           </Box>
 
           <Box display="flex" alignItems="center" gap={1}>
-            <Button variant="text" size="small" sx={{ color: 'grey.600' }}>
-              <SaveIcon sx={{ fontSize: 16, mr: 0.5 }} />
-              {hasUnsavedChanges ? 'Unsaved' : 'Saved'}
+            <Button 
+              variant="text" 
+              size="small" 
+              startIcon={<HomeIcon />}
+              onClick={() => navigate('/guest')}
+              sx={{ color: 'text.secondary' }}
+            >
+              Back to Guest Home
             </Button>
             <Button 
               variant="contained" 
               size="small"
-              onClick={handleManualSave}
-              disabled={saveDocumentMutation.isLoading || !hasUnsavedChanges}
-              sx={{ bgcolor: 'teal.600', '&:hover': { bgcolor: 'teal.700' } }}
+              startIcon={<DownloadIcon />}
+              onClick={handleDownload}
+              sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
             >
-              {saveDocumentMutation.isLoading ? <CircularProgress size={16} /> : 'Save'}
+              Download
             </Button>
           </Box>
         </Box>
       </Paper>
+
+      {/* Guest Mode Alert */}
+      <Alert severity="info" sx={{ m: 2, mb: 0 }}>
+        <Typography variant="body2">
+          <strong>Guest Mode:</strong> You're using WritingWay without an account. 
+          Your work won't be saved automatically. 
+          <Button 
+            size="small" 
+            onClick={() => navigate('/register')}
+            sx={{ ml: 1, textTransform: 'none' }}
+          >
+            Register to save your work
+          </Button>
+        </Typography>
+      </Alert>
 
       {/* Top Right Tab Area */}
       <Box sx={{ bgcolor: 'grey.100', borderBottom: 1, borderColor: 'grey.200' }}>
@@ -377,7 +305,7 @@ const DocumentEditor = () => {
                   px: { xs: 1, sm: 2 },
                 },
                 '& .MuiTabs-indicator': {
-                  backgroundColor: 'primary.main',
+                  backgroundColor: 'teal.600',
                 },
               }}
             >
@@ -389,15 +317,15 @@ const DocumentEditor = () => {
                     value={tab.id}
                     label={
                       <Box display="flex" alignItems="center" gap={1}>
-                        <IconComponent sx={{ fontSize: 16, color: 'primary.main' }} />
+                        <IconComponent sx={{ fontSize: 16, color: 'teal.600' }} />
                         <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                           {tab.label}
                         </Box>
                       </Box>
                     }
                     sx={{
-                      color: activeTab === tab.id ? 'primary.main' : 'text.secondary',
-                      bgcolor: activeTab === tab.id ? 'background.paper' : 'transparent',
+                      color: activeTab === tab.id ? 'teal.600' : 'grey.600',
+                      bgcolor: activeTab === tab.id ? 'white' : 'transparent',
                     }}
                   />
                 );
@@ -419,10 +347,10 @@ const DocumentEditor = () => {
           <Box sx={{ flex: 1, p: 4 }}>
             {/* Writing Prompts - Show when content is empty */}
             {(!content || content.trim() === '' || content === '<p><br></p>') && writingPrompts.length > 0 && (
-              <Card sx={{ mb: 2, backgroundColor: 'background.soft' }}>
+              <Card sx={{ mb: 2, backgroundColor: '#f8f9fa' }}>
                 <CardContent>
                   <Box display="flex" alignItems="center" mb={2}>
-                    <LightbulbIcon sx={{ mr: 1, color: 'secondary.main' }} />
+                    <LightbulbIcon sx={{ mr: 1, color: '#ffa726' }} />
                     <Typography variant="h6" color="primary">
                       Writing Ideas to Get Started
                     </Typography>
@@ -459,10 +387,10 @@ const DocumentEditor = () => {
                 theme="snow"
                 value={content}
                 onChange={handleContentChange}
-                modules={quillModules}
-                formats={quillFormats}
+                modules={guestQuillModules}
+                formats={guestQuillFormats}
                 style={{ height: '500px', border: 'none' }}
-                placeholder="Type or paste (Ctrl+V) your text here or upload a document."
+                placeholder="Type or paste (Ctrl+V) your text here to start writing..."
                 preserveWhitespace={false}
                 onChangeSelection={(range, source, editor) => {
                   if (range && range.length > 0) {
@@ -512,7 +440,7 @@ const DocumentEditor = () => {
                   {wordCount} words
                 </Typography>
                 <Button variant="text" size="small" sx={{ color: 'grey.500' }}>
-                  Try "Write a story about friendship"
+                  Try "Write about your favorite adventure"
                 </Button>
               </Box>
             </Box>
@@ -709,11 +637,14 @@ const DocumentEditor = () => {
                 </Box>
               )}
 
+              {/* AI Results */}
               {aiResult && (
-                <Card sx={{ mt: 3 }}>
+                <Card sx={{ mb: 3 }}>
                   <CardContent>
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                      <Typography variant="h6">AI Results</Typography>
+                      <Typography variant="h6">
+                        AI Results
+                      </Typography>
                       <Button
                         size="small"
                         variant="contained"
@@ -734,7 +665,7 @@ const DocumentEditor = () => {
 
           {activeTab === 'chat' && (
             <Box>
-              {/* AI Chat Assistant */}
+              {/* AI Chat Assistant for Guest Mode */}
               <Typography variant="h6" sx={{ mb: 2 }}>
                 AI Chat Assistant
               </Typography>
@@ -742,10 +673,10 @@ const DocumentEditor = () => {
                 Ask questions about writing techniques, get creative suggestions, or discuss your story ideas.
               </Typography>
 
-              {/* Quick Prompts */}
+              {/* Quick Prompts Preview */}
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, fontSize: '0.875rem' }}>
-                  Quick Prompts
+                  Quick Prompts (Preview)
                 </Typography>
                 <Box
                   sx={{
@@ -784,11 +715,7 @@ const DocumentEditor = () => {
                       key={index}
                       variant="outlined"
                       size="small"
-                      onClick={() => {
-                        setPresetChatMessage(prompt);
-                        // 清除之前的预设消息，让组件可以重新接收新的预设消息
-                        setTimeout(() => setPresetChatMessage(null), 100);
-                      }}
+                      onClick={() => navigate('/register')}
                       sx={{
                         borderRadius: '16px',
                         px: 1.5,
@@ -798,14 +725,15 @@ const DocumentEditor = () => {
                         textTransform: 'none',
                         border: '1px solid #e0e0e0',
                         bgcolor: '#fafafa',
-                        color: '#666',
+                        color: '#999',
                         minWidth: 'auto',
                         whiteSpace: 'nowrap',
+                        opacity: 0.7,
                         '&:hover': {
                           bgcolor: '#f0f0f0',
                           borderColor: '#d0d0d0',
-                          transform: 'translateY(-1px)',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                          opacity: 1,
+                          cursor: 'pointer'
                         },
                         transition: 'all 0.2s ease-in-out'
                       }}
@@ -816,15 +744,19 @@ const DocumentEditor = () => {
                 </Box>
               </Box>
 
-              <AIAssistant
-                open={true}
-                onClose={() => {}}
-                projectId={projectId}
-                documentId={documentId}
-                context={content}
-                embedded={true}
-                presetMessage={presetChatMessage}
-              />
+              <Card sx={{ p: 2, bgcolor: 'grey.50' }}>
+                <Typography variant="body2" color="text.secondary" textAlign="center">
+                  Chat feature is available for registered users.
+                  <br />
+                  <Button
+                    size="small"
+                    onClick={() => navigate('/register')}
+                    sx={{ mt: 1, textTransform: 'none' }}
+                  >
+                    Register to access AI Chat
+                  </Button>
+                </Typography>
+              </Card>
             </Box>
           )}
 
@@ -872,12 +804,12 @@ const DocumentEditor = () => {
       <PersistentAIAssistant
         text={content.replace(/<[^>]*>/g, '')} // Strip HTML tags for analysis
         cursorPosition={cursorPosition}
-        ageGroup={user?.age_group || 'upper_primary'}
-        isEnabled={realtimeEnabled && realtimeSettings.enabled}
+        ageGroup={selectedAgeGroup}
+        isEnabled={realtimeSettings.enabled}
         userPreferences={realtimeSettings}
       />
     </Box>
   );
 };
 
-export default DocumentEditor;
+export default GuestEditor;

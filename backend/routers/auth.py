@@ -8,7 +8,7 @@ from datetime import timedelta
 
 from database.database import get_db
 from database.models import User, UserSettings
-from schemas.user import UserCreate, UserResponse, Token, LoginRequest
+from schemas.user import UserCreate, UserResponse, Token, LoginRequest, UserUpdate
 from core.security import (
     verify_password, 
     get_password_hash, 
@@ -39,7 +39,9 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         username=user.username,
         email=user.email,
         full_name=user.full_name,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        birth_date=user.birth_date,
+        age_group=user.age_group
     )
     
     db.add(db_user)
@@ -87,3 +89,56 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 async def logout():
     """Logout user (client should remove token)"""
     return {"message": "Successfully logged out"}
+
+@router.put("/profile", response_model=UserResponse)
+async def update_profile(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update user profile"""
+    # Update user fields
+    if user_update.username is not None:
+        # Check if username is already taken by another user
+        existing_user = db.query(User).filter(
+            User.username == user_update.username,
+            User.id != current_user.id
+        ).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken"
+            )
+        current_user.username = user_update.username
+
+    if user_update.email is not None:
+        # Check if email is already taken by another user
+        existing_user = db.query(User).filter(
+            User.email == user_update.email,
+            User.id != current_user.id
+        ).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already taken"
+            )
+        current_user.email = user_update.email
+
+    if user_update.full_name is not None:
+        current_user.full_name = user_update.full_name
+
+    if user_update.birth_date is not None:
+        current_user.birth_date = user_update.birth_date
+        # Update age group based on birth date
+        current_user.update_age_group()
+
+    if user_update.age_group is not None:
+        current_user.age_group = user_update.age_group
+
+    if user_update.password is not None:
+        current_user.hashed_password = get_password_hash(user_update.password)
+
+    db.commit()
+    db.refresh(current_user)
+
+    return current_user

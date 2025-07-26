@@ -247,7 +247,14 @@ const ProjectView = () => {
       </Fab>
 
       {/* Create Document Dialog */}
-      <Dialog open={createDocDialogOpen} onClose={() => setCreateDocDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={createDocDialogOpen}
+        onClose={() => setCreateDocDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        TransitionComponent={undefined}
+        transitionDuration={0}
+      >
         <DialogTitle>Create New Document</DialogTitle>
         <form onSubmit={handleSubmit(handleCreateDocument)}>
           <DialogContent>

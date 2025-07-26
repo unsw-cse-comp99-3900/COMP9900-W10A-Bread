@@ -22,10 +22,16 @@ import { useForm, Controller } from 'react-hook-form';
 import toast from 'react-hot-toast';
 
 import api from '../../services/api';
+import { aiService } from '../../services/aiService';
+import { useAuthStore } from '../../stores/authStore';
+import { useThemeContext } from '../../contexts/ThemeContext';
 
 const Settings = () => {
   const queryClient = useQueryClient();
   const [showApiKeys, setShowApiKeys] = useState(false);
+  const [ageGroups, setAgeGroups] = useState([]);
+  const { user, updateUser } = useAuthStore();
+  const { updateSettings: updateThemeSettings } = useThemeContext();
 
   // Fetch user settings
   const { data: settings, isLoading } = useQuery(
@@ -48,8 +54,13 @@ const Settings = () => {
       return response.data;
     },
     {
-      onSuccess: () => {
+      onSuccess: (data, variables) => {
         queryClient.invalidateQueries('settings');
+        // Update theme context with new settings
+        updateThemeSettings({
+          theme: variables.theme,
+          fontSize: variables.font_size,
+        });
         toast.success('Settings saved successfully!');
       },
       onError: () => {
@@ -57,6 +68,37 @@ const Settings = () => {
       },
     }
   );
+
+  // Update user profile mutation
+  const updateUserMutation = useMutation(
+    async (userData) => {
+      const response = await api.put('/auth/profile', userData);
+      return response.data;
+    },
+    {
+      onSuccess: (data) => {
+        updateUser(data);
+        toast.success('Profile updated successfully!');
+      },
+      onError: () => {
+        toast.error('Failed to update profile');
+      },
+    }
+  );
+
+  // Fetch age groups
+  React.useEffect(() => {
+    const fetchAgeGroups = async () => {
+      try {
+        const response = await aiService.getAgeGroups();
+        setAgeGroups(response.age_groups || []);
+      } catch (error) {
+        console.error('Failed to fetch age groups:', error);
+      }
+    };
+
+    fetchAgeGroups();
+  }, []);
 
   const {
     control,
@@ -69,11 +111,7 @@ const Settings = () => {
       language: 'en',
       font_size: 14,
       auto_save: true,
-      ai_settings: {
-        openai_api_key: '',
-        anthropic_api_key: '',
-        preferred_provider: 'openai',
-      },
+      age_group: '',
     },
   });
 
@@ -85,17 +123,22 @@ const Settings = () => {
         language: settings.language || 'en',
         font_size: settings.font_size || 14,
         auto_save: settings.auto_save !== undefined ? settings.auto_save : true,
-        ai_settings: {
-          openai_api_key: settings.ai_settings?.openai_api_key || '',
-          anthropic_api_key: settings.ai_settings?.anthropic_api_key || '',
-          preferred_provider: settings.ai_settings?.preferred_provider || 'openai',
-        },
+        age_group: user?.age_group || '',
       });
     }
-  }, [settings, reset]);
+  }, [settings, user, reset]);
 
   const onSubmit = (data) => {
-    updateSettingsMutation.mutate(data);
+    // Extract age_group from data for user profile update
+    const { age_group, ...settingsData } = data;
+
+    // Update settings
+    updateSettingsMutation.mutate(settingsData);
+
+    // Update user profile if age_group changed
+    if (age_group !== user?.age_group) {
+      updateUserMutation.mutate({ age_group });
+    }
   };
 
   if (isLoading) {
@@ -150,6 +193,26 @@ const Settings = () => {
             />
 
             <Controller
+              name="age_group"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth>
+                  <InputLabel>Age Group</InputLabel>
+                  <Select {...field} label="Age Group">
+                    <MenuItem value="">
+                      <em>Select your age group</em>
+                    </MenuItem>
+                    {ageGroups.map((group) => (
+                      <MenuItem key={group.value} value={group.value}>
+                        {group.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+            />
+
+            <Controller
               name="font_size"
               control={control}
               render={({ field }) => (
@@ -189,70 +252,36 @@ const Settings = () => {
 
         <Paper sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6" gutterBottom>
-            AI Settings
+            AI Writing Assistant
           </Typography>
-          
+
           <Alert severity="info" sx={{ mb: 2 }}>
-            Configure your AI service providers. API keys are stored securely and only used for your writing assistance.
+            Our AI writing assistant automatically selects the best language model for each task to provide you with optimal writing support. The system intelligently switches between different AI services based on your writing needs.
           </Alert>
 
-          <Controller
-            name="ai_settings.preferred_provider"
-            control={control}
-            render={({ field }) => (
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Preferred AI Provider</InputLabel>
-                <Select {...field} label="Preferred AI Provider">
-                  <MenuItem value="openai">OpenAI (GPT)</MenuItem>
-                  <MenuItem value="anthropic">Anthropic (Claude)</MenuItem>
-                </Select>
-              </FormControl>
-            )}
-          />
-
-          <Box sx={{ mb: 2 }}>
-            <Button
-              variant="outlined"
-              onClick={() => setShowApiKeys(!showApiKeys)}
-              sx={{ mb: 2 }}
-            >
-              {showApiKeys ? 'Hide' : 'Show'} API Keys
-            </Button>
+          <Box sx={{
+            p: 2,
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider'
+          }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              <strong>Smart AI Selection:</strong>
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              • Writing prompts and creative suggestions
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              • Story analysis and improvement recommendations
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              • Age-appropriate writing guidance
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              • Intelligent fallback system for reliable service
+            </Typography>
           </Box>
-
-          {showApiKeys && (
-            <Box sx={{ display: 'grid', gap: 2 }}>
-              <Controller
-                name="ai_settings.openai_api_key"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="OpenAI API Key"
-                    type="password"
-                    fullWidth
-                    placeholder="sk-..."
-                    helperText="Get your API key from https://platform.openai.com/api-keys"
-                  />
-                )}
-              />
-
-              <Controller
-                name="ai_settings.anthropic_api_key"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Anthropic API Key"
-                    type="password"
-                    fullWidth
-                    placeholder="sk-ant-..."
-                    helperText="Get your API key from https://console.anthropic.com/"
-                  />
-                )}
-              />
-            </Box>
-          )}
         </Paper>
 
         <Box display="flex" justifyContent="flex-end">

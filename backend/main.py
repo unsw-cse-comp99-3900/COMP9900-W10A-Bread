@@ -10,7 +10,7 @@ import os
 from dotenv import load_dotenv
 
 from database.database import engine, Base
-from routers import auth, projects, documents, ai_assistant, settings
+from routers import auth, projects, documents, ai_assistant, settings, guest, realtime_suggestions
 from core.config import settings as app_settings
 
 # Load environment variables
@@ -47,6 +47,8 @@ app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 app.include_router(ai_assistant.router, prefix="/api/ai", tags=["ai-assistant"])
 app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
+app.include_router(guest.router, prefix="/api", tags=["guest"])
+app.include_router(realtime_suggestions.router)
 
 @app.get("/")
 async def root():

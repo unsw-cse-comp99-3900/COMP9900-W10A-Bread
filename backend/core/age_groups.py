@@ -36,16 +36,20 @@ class AgeGroupConfig:
     }
     
     # AI suggestion configurations for each age group
+    # Each configuration defines how AI should interact with children at different developmental stages
     AI_CONFIGS = {
+        # Early Years (3-5): Preschool/Prep - Focus on basic literacy and imagination
         AgeGroup.EARLY_YEARS: {
-            "language_level": "very_simple",
-            "max_suggestions": 3,
+            "language_level": "very_simple",  # Use basic vocabulary and short sentences
+            "max_suggestions": 3,  # Limit suggestions to avoid overwhelming young children
             "focus_areas": ["Basic vocabulary", "Simple sentences", "Picture-story connection"],
-            "encouragement_style": "Very encouraging and praising",
-            "feedback_complexity": "Very simple",
+            "encouragement_style": "Very encouraging and praising",  # Build confidence through positive reinforcement
+            "feedback_complexity": "Very simple",  # Use concrete, easy-to-understand feedback
+            # AI prompt prefix that sets the context for age-appropriate responses
             "prompt_prefix": "You are helping a 3-5 year old child in preschool/prep learn to write. Use simple, encouraging language with picture-story connections, ",
             "suggestion_types": ["Vocabulary suggestions", "Sentence improvement", "Imagination inspiration"],
-            "avoid_topics": ["Complex grammar", "Advanced vocabulary", "Critical feedback"],
+            "avoid_topics": ["Complex grammar", "Advanced vocabulary", "Critical feedback"],  # Protect young learners from discouragement
+            # Example prompts that demonstrate the encouraging, simple tone for this age group
             "example_prompts": [
                 "That's a wonderful word! Can you think of other similar words?",
                 "Your imagination is amazing! Can you tell me more about this story?",
@@ -120,7 +124,19 @@ class AgeGroupConfig:
     
     @classmethod
     def get_age_group_by_age(cls, age: int) -> Optional[AgeGroup]:
-        """Get age group by age"""
+        """
+        Determine the appropriate age group based on a child's age.
+
+        Args:
+            age (int): The child's age in years
+
+        Returns:
+            Optional[AgeGroup]: The corresponding age group enum, or None if age is outside supported range
+
+        Example:
+            >>> AgeGroupConfig.get_age_group_by_age(7)
+            <AgeGroup.LOWER_PRIMARY: 'lower_primary'>
+        """
         for age_group, (min_age, max_age) in cls.AGE_RANGES.items():
             if min_age <= age <= max_age:
                 return age_group
@@ -128,19 +144,69 @@ class AgeGroupConfig:
 
     @classmethod
     def get_age_group_by_birth_date(cls, birth_date: date) -> Optional[AgeGroup]:
-        """Get age group by birth date"""
+        """
+        Determine the appropriate age group based on a child's birth date.
+
+        Calculates the current age and maps it to the appropriate developmental stage
+        for AI writing assistance.
+
+        Args:
+            birth_date (date): The child's birth date
+
+        Returns:
+            Optional[AgeGroup]: The corresponding age group enum, or None if age is outside supported range
+
+        Example:
+            >>> from datetime import date
+            >>> birth_date = date(2015, 6, 15)  # 8-year-old
+            >>> AgeGroupConfig.get_age_group_by_birth_date(birth_date)
+            <AgeGroup.LOWER_PRIMARY: 'lower_primary'>
+        """
         today = date.today()
+        # Calculate age accounting for whether birthday has occurred this year
         age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
         return cls.get_age_group_by_age(age)
 
     @classmethod
     def get_config(cls, age_group: AgeGroup) -> Dict:
-        """Get age group configuration"""
+        """
+        Get the AI configuration settings for a specific age group.
+
+        Returns the complete configuration dictionary containing language level,
+        suggestion limits, focus areas, and other age-appropriate settings.
+
+        Args:
+            age_group (AgeGroup): The age group to get configuration for
+
+        Returns:
+            Dict: Configuration dictionary with AI assistance settings
+
+        Note:
+            If the age group is not found, defaults to UPPER_PRIMARY configuration
+            to ensure the system always has a valid configuration.
+        """
         return cls.AI_CONFIGS.get(age_group, cls.AI_CONFIGS[AgeGroup.UPPER_PRIMARY])
 
     @classmethod
     def get_all_age_groups(cls) -> List[Dict]:
-        """Get all age group information"""
+        """
+        Get information about all available age groups for UI display.
+
+        Returns a list of dictionaries containing the value, display name,
+        and age range for each supported age group.
+
+        Returns:
+            List[Dict]: List of age group information dictionaries
+
+        Example:
+            >>> groups = AgeGroupConfig.get_all_age_groups()
+            >>> groups[0]
+            {
+                'value': 'early_years',
+                'name': 'Early Years (Ages 3-5, Preschool/Prep)',
+                'age_range': (3, 5)
+            }
+        """
         return [
             {
                 "value": age_group.value,

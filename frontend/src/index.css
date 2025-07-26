@@ -58,6 +58,19 @@ code {
   background: #a8a8a8;
 }
 
+/* Dark mode scrollbar */
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #334155;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #64748b;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 /* Quill editor styles */
 .ql-editor {
   font-size: 16px;
@@ -75,6 +88,15 @@ code {
   border-bottom: 1px solid #ccc;
   border-left: 1px solid #ccc;
   border-right: 1px solid #ccc;
+}
+
+/* Dark mode Quill editor styles */
+[data-theme="dark"] .ql-toolbar {
+  border-color: #475569;
+}
+
+[data-theme="dark"] .ql-container {
+  border-color: #475569;
 }
 
 /* Loading animation */

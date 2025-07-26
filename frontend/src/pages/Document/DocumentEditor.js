@@ -6,7 +6,6 @@ import {
   Button,
   Typography,
   CircularProgress,
-  Fab,
   Chip,
   Stack,
   Card,
@@ -14,10 +13,11 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  List,
-  ListItem,
-  ListItemText,
   Divider,
+  Tab,
+  Tabs,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -25,22 +25,35 @@ import {
   AutoFixHigh as AIIcon,
   ExpandMore as ExpandMoreIcon,
   Lightbulb as LightbulbIcon,
+  Edit as EditIcon,
+  Psychology as PsychologyIcon,
+  Menu as MenuIcon,
+  FormatBold as BoldIcon,
+  FormatItalic as ItalicIcon,
+  FormatUnderlined as UnderlineIcon,
+  Link as LinkIcon,
+  FormatListBulleted as ListIcon,
+  FormatListNumbered as NumberedListIcon,
+  FormatAlignLeft as AlignLeftIcon,
+  Help as HelpIcon,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import '../../styles/quill-dark.css';
 import { debounce } from 'lodash';
 import toast from 'react-hot-toast';
 
 import projectService from '../../services/projectService';
 import aiService from '../../services/aiService';
 import AIAssistant from '../../components/AI/AIAssistant';
-import RealtimeAIAssistant from '../../components/AI/RealtimeAIAssistant';
 import PersistentAIAssistant from '../../components/AI/PersistentAIAssistant';
 import { useAuthStore } from '../../stores/authStore';
+import { cleanAIResponse } from '../../utils/textUtils';
+import { useThemeContext } from '../../contexts/ThemeContext';
 
-// Quill modules configuration - moved outside component to prevent recreation
+// Quill modules configuration
 const quillModules = {
   toolbar: [
     [{ 'header': [1, 2, 3, false] }],
@@ -52,7 +65,6 @@ const quillModules = {
   ],
 };
 
-// Quill formats configuration
 const quillFormats = [
   'header', 'bold', 'italic', 'underline', 'strike',
   'list', 'bullet', 'indent', 'link'
@@ -63,24 +75,61 @@ const DocumentEditor = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const { settings, theme } = useThemeContext();
+  
+  // State variables
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [aiResult, setAiResult] = useState('');
   const [aiResultType, setAiResultType] = useState('');
   const [writingPrompts, setWritingPrompts] = useState([]);
-
-  // Real-time AI assistant states
-  const [realtimeEnabled, setRealtimeEnabled] = useState(true);
+  const [activeTab, setActiveTab] = useState('assistance');
+  const [wordCount, setWordCount] = useState(0);
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [realtimeEnabled, setRealtimeEnabled] = useState(true);
   const [realtimeSettings, setRealtimeSettings] = useState({
     enabled: true,
     frequency: 'medium',
     suggestionTypes: ['vocabulary', 'structure', 'creativity', 'grammar'],
     showPriority: 'all'
   });
+  const [presetChatMessage, setPresetChatMessage] = useState(null);
+
+  // Set theme data attribute for Quill editor styling
+  useEffect(() => {
+    if (typeof document !== 'undefined' && document.documentElement) {
+      document.documentElement.setAttribute('data-theme', settings.theme);
+      return () => {
+        if (typeof document !== 'undefined' && document.documentElement) {
+          document.documentElement.removeAttribute('data-theme');
+        }
+      };
+    }
+  }, [settings.theme]);
+
+  // Define tabs for the right sidebar
+  const tabs = [
+    {
+      id: "assistance",
+      label: "AI Writing Tools",
+      icon: EditIcon,
+      color: "text-teal-600"
+    },
+    {
+      id: "chat",
+      label: "AI Chat Assistant",
+      icon: ChatIcon,
+      color: "text-teal-600"
+    },
+    {
+      id: "prompts",
+      label: "Writing Prompts",
+      icon: LightbulbIcon,
+      color: "text-gray-600"
+    }
+  ];
 
   // Fetch document
   const { data: document, isLoading } = useQuery(
@@ -112,13 +161,11 @@ const DocumentEditor = () => {
     }
   );
 
-  // Save document mutation with optimized success handling
+  // Save document mutation
   const saveDocumentMutation = useMutation(
     (data) => projectService.updateDocument(documentId, data),
     {
-      onSuccess: (response, variables) => {
-        // Only invalidate queries for manual saves, not auto-saves
-        // This prevents unnecessary re-fetching during typing
+      onSuccess: (data, variables) => {
         if (variables.isManualSave) {
           queryClient.invalidateQueries(['document', documentId]);
           toast.success('Document saved!');
@@ -139,50 +186,35 @@ const DocumentEditor = () => {
     (data) => aiService.getWritingAssistance(data.text, data.type, projectId, user?.age_group),
     {
       onSuccess: (data, variables) => {
-        // Display AI result in separate panel
-        setAiResult(data.result);
+        setAiResult(cleanAIResponse(data.result));
         setAiResultType(variables.type);
         toast.success('AI analysis completed!');
       },
       onError: (error) => {
         console.error('AI assistance error:', error);
-
-        // 提供更详细的错误信息
         if (error.code === 'ECONNABORTED') {
-          toast.error('AI request timeout. The AI service may be busy, please try again in a moment.');
-        } else if (error.response?.status === 500) {
-          const errorDetail = error.response?.data?.detail || '';
-          if (errorDetail.includes('quota') || errorDetail.includes('billing')) {
-            toast.error('AI service quota exceeded. Please try again later.');
-          } else if (errorDetail.includes('timeout')) {
-            toast.error('AI service timeout. Please try with shorter text or try again later.');
-          } else {
-            toast.error('AI service is temporarily unavailable. Please try again.');
-          }
+          toast.error('AI request timeout. Please try again.');
         } else {
-          toast.error('Failed to get AI assistance. Please check your connection and try again.');
+          toast.error('Failed to get AI assistance. Please try again.');
         }
       },
     }
   );
 
-  // Auto-save functionality with improved performance
+  // Auto-save functionality
   const debouncedSaveRef = useRef();
 
-  // Create stable debounced save function
   useEffect(() => {
     debouncedSaveRef.current = debounce((titleToSave, contentToSave) => {
-      // Only save if there are actual changes and content exists
       if (titleToSave && contentToSave && contentToSave.trim() !== '' && contentToSave !== '<p><br></p>') {
         saveDocumentMutation.mutate({
           title: titleToSave,
           content: contentToSave,
-          isManualSave: false // Mark as auto-save
+          isManualSave: false
         });
       }
-    }, 3000); // Increased debounce time to 3 seconds
+    }, 3000);
 
-    // Cleanup function
     return () => {
       if (debouncedSaveRef.current) {
         debouncedSaveRef.current.cancel();
@@ -190,27 +222,25 @@ const DocumentEditor = () => {
     };
   }, [saveDocumentMutation]);
 
-  // Auto-save effect - only triggers when content actually changes
-  useEffect(() => {
-    if (hasUnsavedChanges && title && content && debouncedSaveRef.current) {
-      debouncedSaveRef.current(title, content);
-    }
-  }, [title, content, hasUnsavedChanges]);
-
+  // Handle title change
   const handleTitleChange = useCallback((e) => {
     const newTitle = e.target.value;
-    // Only update if title actually changed
     if (newTitle !== title) {
       setTitle(newTitle);
       setHasUnsavedChanges(true);
     }
   }, [title]);
 
+  // Handle content change
   const handleContentChange = useCallback((value, delta, source, editor) => {
-    // Only update if content actually changed
     if (value !== content) {
       setContent(value);
       setHasUnsavedChanges(true);
+
+      // Update word count
+      const plainText = value.replace(/<[^>]*>/g, '').trim();
+      const words = plainText.split(/\s+/).filter(word => word.length > 0);
+      setWordCount(words.length === 1 && words[0] === "" ? 0 : words.length);
 
       // Update cursor position for real-time AI
       if (editor && source === 'user') {
@@ -222,41 +252,16 @@ const DocumentEditor = () => {
     }
   }, [content]);
 
-  // Handle real-time AI settings change
-  const handleRealtimeSettingsChange = useCallback((newSettings) => {
-    setRealtimeSettings(newSettings);
-    setRealtimeEnabled(newSettings.enabled);
-
-    // Save to localStorage for persistence
-    localStorage.setItem('realtimeAISettings', JSON.stringify(newSettings));
-  }, []);
-
-  // Load real-time settings from localStorage on mount
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('realtimeAISettings');
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings);
-        setRealtimeSettings(parsed);
-        setRealtimeEnabled(parsed.enabled);
-      } catch (error) {
-        console.error('Failed to parse saved real-time settings:', error);
-      }
-    }
-  }, []);
-
+  // Handle manual save
   const handleManualSave = () => {
-    // Cancel any pending auto-save before manual save
-    if (debouncedSaveRef.current) {
-      debouncedSaveRef.current.cancel();
-    }
     saveDocumentMutation.mutate({
       title,
       content,
-      isManualSave: true // Mark as manual save
+      isManualSave: true
     });
   };
 
+  // Handle AI assistance
   const handleAIAssistance = (type) => {
     const textToAnalyze = selectedText || content;
     if (!textToAnalyze.trim()) {
@@ -266,30 +271,21 @@ const DocumentEditor = () => {
     aiAssistanceMutation.mutate({ text: textToAnalyze, type });
   };
 
+  // Handle apply AI result
   const handleApplyAIResult = () => {
     if (!aiResult) return;
 
     if (aiResultType === 'continue') {
-      // For continue, append to the end
       setContent(prev => prev + '\n\n' + aiResult);
     } else if (aiResultType === 'improve' && selectedText) {
-      // For improve, replace selected text if any
       setContent(prev => prev.replace(selectedText, aiResult));
     } else {
-      // For other types or no selection, append to the end
       setContent(prev => prev + '\n\n' + aiResult);
     }
 
     setHasUnsavedChanges(true);
     toast.success('AI suggestion applied to document!');
   };
-
-  const handleClearAIResult = () => {
-    setAiResult('');
-    setAiResultType('');
-  };
-
-
 
   if (isLoading) {
     return (
@@ -300,113 +296,133 @@ const DocumentEditor = () => {
   }
 
   return (
-    <Box sx={{ flexGrow: 1, p: 3, maxWidth: '100%' }}>
-      <Paper sx={{ p: 3, minHeight: 'calc(100vh - 200px)' }}>
-        {/* Header */}
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Box flex={1}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+      {/* Top Navigation */}
+      <Paper sx={{ borderBottom: 1, borderColor: 'divider', px: 2, py: 1.5 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <Box 
+              sx={{ 
+                width: 32, 
+                height: 32, 
+                bgcolor: 'teal.600', 
+                borderRadius: '50%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}
+            >
+              <EditIcon sx={{ color: 'white', fontSize: 16 }} />
+            </Box>
+            <IconButton size="small">
+              <MenuIcon sx={{ fontSize: 16 }} />
+            </IconButton>
             <TextField
-              fullWidth
-              variant="outlined"
+              variant="standard"
               placeholder="Document title..."
               value={title}
               onChange={handleTitleChange}
               sx={{
-                '& .MuiOutlinedInput-root': {
-                  fontSize: '1.5rem',
-                  fontWeight: 'bold',
+                '& .MuiInput-input': {
+                  fontSize: '1rem',
+                  fontWeight: 500,
+                  color: 'text.primary',
                 },
+                '& .MuiInput-underline:before': { borderBottom: 'none' },
+                '& .MuiInput-underline:hover:before': { borderBottom: 'none' },
+                '& .MuiInput-underline:after': { borderBottom: 'none' },
               }}
             />
           </Box>
-          <Box ml={2}>
-            <Button
-              variant="contained"
-              startIcon={<SaveIcon />}
+
+          <Box display="flex" alignItems="center" gap={1}>
+            <Button variant="text" size="small" sx={{ color: 'grey.600' }}>
+              <SaveIcon sx={{ fontSize: 16, mr: 0.5 }} />
+              {hasUnsavedChanges ? 'Unsaved' : 'Saved'}
+            </Button>
+            <Button 
+              variant="contained" 
+              size="small"
               onClick={handleManualSave}
               disabled={saveDocumentMutation.isLoading || !hasUnsavedChanges}
+              sx={{ bgcolor: 'teal.600', '&:hover': { bgcolor: 'teal.700' } }}
             >
-              {saveDocumentMutation.isLoading ? <CircularProgress size={20} /> : 'Save'}
+              {saveDocumentMutation.isLoading ? <CircularProgress size={16} /> : 'Save'}
             </Button>
           </Box>
         </Box>
+      </Paper>
 
-        {/* Status indicators */}
-        <Stack direction="row" spacing={1} mb={2}>
-          {hasUnsavedChanges && (
-            <Chip label="Unsaved changes" color="warning" size="small" />
-          )}
-          {saveDocumentMutation.isLoading && (
-            <Chip label="Saving..." color="info" size="small" />
-          )}
-        </Stack>
+      {/* Top Right Tab Area */}
+      <Box sx={{ bgcolor: 'grey.100', borderBottom: 1, borderColor: 'grey.200' }}>
+        <Box display="flex" justifyContent="flex-end">
+          <Box sx={{
+            width: { xs: '100%', md: '33.333%' },
+            display: 'flex',
+            justifyContent: 'flex-start',
+            px: 2
+          }}>
+            <Tabs
+              value={activeTab}
+              onChange={(e, newValue) => setActiveTab(newValue)}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{
+                '& .MuiTab-root': {
+                  minHeight: 48,
+                  textTransform: 'none',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  fontWeight: 500,
+                  minWidth: { xs: 'auto', sm: 120 },
+                  px: { xs: 1, sm: 2 },
+                },
+                '& .MuiTabs-indicator': {
+                  backgroundColor: 'primary.main',
+                },
+              }}
+            >
+              {tabs.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <Tab
+                    key={tab.id}
+                    value={tab.id}
+                    label={
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <IconComponent sx={{ fontSize: 16, color: 'primary.main' }} />
+                        <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                          {tab.label}
+                        </Box>
+                      </Box>
+                    }
+                    sx={{
+                      color: activeTab === tab.id ? 'primary.main' : 'text.secondary',
+                      bgcolor: activeTab === tab.id ? 'background.paper' : 'transparent',
+                    }}
+                  />
+                );
+              })}
+            </Tabs>
+          </Box>
+        </Box>
+      </Box>
 
-        {/* AI Assistance Buttons */}
-        <Stack direction="row" spacing={1} mb={2}>
-          <Button
-            size="small"
-            startIcon={<AIIcon />}
-            onClick={() => handleAIAssistance('improve')}
-            disabled={aiAssistanceMutation.isLoading}
-          >
-            Enhance Expression
-          </Button>
-          <Button
-            size="small"
-            startIcon={<AIIcon />}
-            onClick={() => handleAIAssistance('continue')}
-            disabled={aiAssistanceMutation.isLoading}
-          >
-            Continue Writing
-          </Button>
-          <Button
-            size="small"
-            startIcon={<AIIcon />}
-            onClick={() => handleAIAssistance('structure')}
-            disabled={aiAssistanceMutation.isLoading}
-          >
-            Structure Check
-          </Button>
-          <Button
-            size="small"
-            startIcon={<AIIcon />}
-            onClick={() => handleAIAssistance('style')}
-            disabled={aiAssistanceMutation.isLoading}
-          >
-            Style Tips
-          </Button>
-          <Button
-            size="small"
-            startIcon={<AIIcon />}
-            onClick={() => handleAIAssistance('creativity')}
-            disabled={aiAssistanceMutation.isLoading}
-          >
-            Creative Ideas
-          </Button>
-          {aiAssistanceMutation.isLoading && (
-            <Box display="flex" alignItems="center" gap={1}>
-              <CircularProgress size={20} />
-              <Typography variant="body2" color="text.secondary">
-                AI is analyzing... This may take up to 2 minutes
-              </Typography>
-            </Box>
-          )}
-        </Stack>
-
-        {/* Main Content Area - Two Panels */}
-        <Box display="flex" gap={2} sx={{ minHeight: '500px' }}>
-          {/* Left Panel - Editor */}
-          <Box flex={1}>
-            <Typography variant="h6" gutterBottom>
-              📝 Writing Area
-            </Typography>
-
+      {/* Main Content */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
+        {/* Editor Area */}
+        <Box sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          width: { xs: '100%', md: '66.667%' }
+        }}>
+          <Box sx={{ flex: 1, p: 4 }}>
             {/* Writing Prompts - Show when content is empty */}
             {(!content || content.trim() === '' || content === '<p><br></p>') && writingPrompts.length > 0 && (
-              <Card sx={{ mb: 2, backgroundColor: '#f8f9fa' }}>
+              <Card sx={{ mb: 2, backgroundColor: 'background.soft' }}>
                 <CardContent>
                   <Box display="flex" alignItems="center" mb={2}>
-                    <LightbulbIcon sx={{ mr: 1, color: '#ffa726' }} />
+                    <LightbulbIcon sx={{ mr: 1, color: 'secondary.main' }} />
                     <Typography variant="h6" color="primary">
                       Writing Ideas to Get Started
                     </Typography>
@@ -415,7 +431,7 @@ const DocumentEditor = () => {
                     Need help getting started? Here are some age-appropriate writing ideas for your project:
                   </Typography>
 
-                  {writingPrompts.map((prompt, index) => (
+                  {writingPrompts.slice(0, 2).map((prompt, index) => (
                     <Accordion key={index} sx={{ mb: 1 }}>
                       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                         <Typography variant="subtitle1" fontWeight="medium">
@@ -438,23 +454,20 @@ const DocumentEditor = () => {
               </Card>
             )}
 
-            <Box sx={{ minHeight: '450px', border: '1px solid #e0e0e0', borderRadius: 1 }}>
+            <Box sx={{ minHeight: '500px', border: 'none', borderRadius: 1 }}>
               <ReactQuill
                 theme="snow"
                 value={content}
                 onChange={handleContentChange}
                 modules={quillModules}
                 formats={quillFormats}
-                style={{ height: '450px' }}
-                placeholder="Start writing your content here..."
+                style={{ height: '500px', border: 'none' }}
+                placeholder="Type or paste (Ctrl+V) your text here or upload a document."
                 preserveWhitespace={false}
                 onChangeSelection={(range, source, editor) => {
-                  // Debounce selection changes to improve performance
                   if (range && range.length > 0) {
                     const selectedText = editor.getText(range.index, range.length);
-                    if (selectedText !== selectedText) {
-                      setSelectedText(selectedText);
-                    }
+                    setSelectedText(selectedText);
                   } else {
                     setSelectedText('');
                   }
@@ -463,123 +476,397 @@ const DocumentEditor = () => {
             </Box>
           </Box>
 
-          {/* Right Panel - AI Results */}
-          <Box flex={1}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-              <Typography variant="h6">
-                🤖 AI Assistant Results
-              </Typography>
-              {aiResult && (
-                <Stack direction="row" spacing={1}>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={handleApplyAIResult}
-                    disabled={!aiResult}
-                  >
-                    Apply to Document
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={handleClearAIResult}
-                  >
-                    Clear
-                  </Button>
-                </Stack>
-              )}
-            </Box>
+          {/* Bottom Toolbar */}
+          <Box sx={{ borderTop: 1, borderColor: 'grey.200', bgcolor: 'white', px: 4, py: 1.5 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Box display="flex" alignItems="center" gap={1}>
+                <IconButton size="small">
+                  <HelpIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+                <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+                <IconButton size="small">
+                  <BoldIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+                <IconButton size="small">
+                  <ItalicIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+                <IconButton size="small">
+                  <UnderlineIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+                <IconButton size="small">
+                  <LinkIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+                <IconButton size="small">
+                  <ListIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+                <IconButton size="small">
+                  <NumberedListIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+                <IconButton size="small">
+                  <AlignLeftIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Box>
 
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2,
-                minHeight: '450px',
-                maxHeight: '450px',
-                overflow: 'auto',
-                backgroundColor: aiResult ? '#f8f9fa' : '#fafafa'
-              }}
-            >
-              {aiResult ? (
-                <Box>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <Chip
-                      label={aiResultType === 'analyze' ? 'Analysis Result' :
-                            aiResultType === 'improve' ? 'Improvement Suggestion' :
-                            aiResultType === 'continue' ? 'Continued Content' : 'AI Result'}
-                      color="primary"
-                      size="small"
-                    />
-                  </Box>
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      whiteSpace: 'pre-wrap',
-                      lineHeight: 1.6,
-                      '& strong': { fontWeight: 'bold' },
-                      '& em': { fontStyle: 'italic' }
-                    }}
-                    dangerouslySetInnerHTML={{
-                      __html: aiResult.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                                      .replace(/\n/g, '<br/>')
-                    }}
-                  />
-                </Box>
-              ) : (
-                <Box
-                  display="flex"
-                  flexDirection="column"
-                  alignItems="center"
-                  justifyContent="center"
-                  height="100%"
-                  color="text.secondary"
-                >
-                  <AIIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
-                  <Typography variant="body1" align="center">
-                    AI analysis results will appear here
-                  </Typography>
-                  <Typography variant="body2" align="center" sx={{ mt: 1 }}>
-                    Select text and click AI buttons above to start analysis
-                  </Typography>
-                </Box>
-              )}
-            </Paper>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Typography variant="body2" color="text.secondary">
+                  {wordCount} words
+                </Typography>
+                <Button variant="text" size="small" sx={{ color: 'grey.500' }}>
+                  Try "Write a story about friendship"
+                </Button>
+              </Box>
+            </Box>
           </Box>
         </Box>
 
-        {/* Document Stats */}
-        <Box mt={4} pt={2} borderTop={1} borderColor="divider">
-          <Typography variant="body2" color="text.secondary">
-            Words: {content.replace(/<[^>]*>/g, '').split(/\s+/).filter(word => word.length > 0).length} | 
-            Characters: {content.replace(/<[^>]*>/g, '').length} |
-            Last saved: {document?.updated_at ? new Date(document.updated_at).toLocaleString() : 'Never'}
-          </Typography>
+        {/* Right Sidebar */}
+        <Box sx={{
+          width: { xs: '100%', md: '33.333%' },
+          bgcolor: 'white',
+          borderLeft: { xs: 0, md: 1 },
+          borderTop: { xs: 1, md: 0 },
+          borderColor: 'grey.200',
+          p: { xs: 2, sm: 3 },
+          maxHeight: { xs: '50vh', md: 'auto' },
+          overflow: { xs: 'auto', md: 'visible' }
+        }}>
+          {/* Tab Content */}
+          {activeTab === 'assistance' && (
+            <Box>
+              {/* AI Writing Tools */}
+              <Typography variant="h6" sx={{ mb: 2, fontSize: { xs: '1rem', sm: '1.125rem' } }}>
+                AI Writing Tools
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                Choose how you want AI to help improve your writing.
+              </Typography>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 1.5,
+                  justifyContent: { xs: 'center', sm: 'flex-start' }
+                }}
+              >
+                <Button
+                  variant="contained"
+                  onClick={() => handleAIAssistance('improve')}
+                  disabled={aiAssistanceMutation.isLoading}
+                  sx={{
+                    borderRadius: '20px',
+                    px: 2.5,
+                    py: 1,
+                    textTransform: 'none',
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    fontWeight: 500,
+                    bgcolor: '#e3f2fd',
+                    color: '#1976d2',
+                    boxShadow: 'none',
+                    minWidth: 'auto',
+                    '&:hover': {
+                      bgcolor: '#bbdefb',
+                      boxShadow: '0 2px 8px rgba(25, 118, 210, 0.2)',
+                      transform: 'translateY(-1px)'
+                    },
+                    '&:disabled': {
+                      bgcolor: '#f5f5f5',
+                      color: '#bdbdbd'
+                    },
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                >
+                  Improve
+                </Button>
+
+                <Button
+                  variant="contained"
+                  onClick={() => handleAIAssistance('continue')}
+                  disabled={aiAssistanceMutation.isLoading}
+                  sx={{
+                    borderRadius: '20px',
+                    px: 2.5,
+                    py: 1,
+                    textTransform: 'none',
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    fontWeight: 500,
+                    bgcolor: '#f3e5f5',
+                    color: '#7b1fa2',
+                    boxShadow: 'none',
+                    minWidth: 'auto',
+                    '&:hover': {
+                      bgcolor: '#e1bee7',
+                      boxShadow: '0 2px 8px rgba(123, 31, 162, 0.2)',
+                      transform: 'translateY(-1px)'
+                    },
+                    '&:disabled': {
+                      bgcolor: '#f5f5f5',
+                      color: '#bdbdbd'
+                    },
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                >
+                  Continue
+                </Button>
+
+                <Button
+                  variant="contained"
+                  onClick={() => handleAIAssistance('structure')}
+                  disabled={aiAssistanceMutation.isLoading}
+                  sx={{
+                    borderRadius: '20px',
+                    px: 2.5,
+                    py: 1,
+                    textTransform: 'none',
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    fontWeight: 500,
+                    bgcolor: '#e8f5e8',
+                    color: '#388e3c',
+                    boxShadow: 'none',
+                    minWidth: 'auto',
+                    '&:hover': {
+                      bgcolor: '#c8e6c9',
+                      boxShadow: '0 2px 8px rgba(56, 142, 60, 0.2)',
+                      transform: 'translateY(-1px)'
+                    },
+                    '&:disabled': {
+                      bgcolor: '#f5f5f5',
+                      color: '#bdbdbd'
+                    },
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                >
+                  Structure
+                </Button>
+
+                <Button
+                  variant="contained"
+                  onClick={() => handleAIAssistance('style')}
+                  disabled={aiAssistanceMutation.isLoading}
+                  sx={{
+                    borderRadius: '20px',
+                    px: 2.5,
+                    py: 1,
+                    textTransform: 'none',
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    fontWeight: 500,
+                    bgcolor: '#fff3e0',
+                    color: '#f57c00',
+                    boxShadow: 'none',
+                    minWidth: 'auto',
+                    '&:hover': {
+                      bgcolor: '#ffe0b2',
+                      boxShadow: '0 2px 8px rgba(245, 124, 0, 0.2)',
+                      transform: 'translateY(-1px)'
+                    },
+                    '&:disabled': {
+                      bgcolor: '#f5f5f5',
+                      color: '#bdbdbd'
+                    },
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                >
+                  Style
+                </Button>
+
+                <Button
+                  variant="contained"
+                  onClick={() => handleAIAssistance('creativity')}
+                  disabled={aiAssistanceMutation.isLoading}
+                  sx={{
+                    borderRadius: '20px',
+                    px: 2.5,
+                    py: 1,
+                    textTransform: 'none',
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    fontWeight: 500,
+                    bgcolor: '#fce4ec',
+                    color: '#c2185b',
+                    boxShadow: 'none',
+                    minWidth: 'auto',
+                    '&:hover': {
+                      bgcolor: '#f8bbd9',
+                      boxShadow: '0 2px 8px rgba(194, 24, 91, 0.2)',
+                      transform: 'translateY(-1px)'
+                    },
+                    '&:disabled': {
+                      bgcolor: '#f5f5f5',
+                      color: '#bdbdbd'
+                    },
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                >
+                  Creative
+                </Button>
+              </Box>
+
+              {aiAssistanceMutation.isLoading && (
+                <Box display="flex" alignItems="center" gap={1} mt={3}>
+                  <CircularProgress size={20} />
+                  <Typography variant="body2" color="text.secondary">
+                    AI is analyzing...
+                  </Typography>
+                </Box>
+              )}
+
+              {aiResult && (
+                <Card sx={{ mt: 3 }}>
+                  <CardContent>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                      <Typography variant="h6">AI Results</Typography>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={handleApplyAIResult}
+                        sx={{ bgcolor: 'teal.600', '&:hover': { bgcolor: 'teal.700' } }}
+                      >
+                        Apply
+                      </Button>
+                    </Box>
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {aiResult}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              )}
+            </Box>
+          )}
+
+          {activeTab === 'chat' && (
+            <Box>
+              {/* AI Chat Assistant */}
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                AI Chat Assistant
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Ask questions about writing techniques, get creative suggestions, or discuss your story ideas.
+              </Typography>
+
+              {/* Quick Prompts */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, fontSize: '0.875rem' }}>
+                  Quick Prompts
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 1,
+                    maxHeight: '120px',
+                    overflowY: 'auto',
+                    '&::-webkit-scrollbar': {
+                      width: '4px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      background: '#f1f1f1',
+                      borderRadius: '2px',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      background: '#c1c1c1',
+                      borderRadius: '2px',
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                      background: '#a8a8a8',
+                    },
+                  }}
+                >
+                  {[
+                    "Help me brainstorm a story idea.",
+                    "How do I improve my dialogue?",
+                    "Give me a plot twist.",
+                    "Describe a fantasy village.",
+                    "What's a good character name?",
+                    "How to write better descriptions?",
+                    "Create a mysterious character.",
+                    "Suggest a story opening."
+                  ].map((prompt, index) => (
+                    <Button
+                      key={index}
+                      variant="outlined"
+                      size="small"
+                      onClick={() => {
+                        setPresetChatMessage(prompt);
+                        // 清除之前的预设消息，让组件可以重新接收新的预设消息
+                        setTimeout(() => setPresetChatMessage(null), 100);
+                      }}
+                      sx={{
+                        borderRadius: '16px',
+                        px: 1.5,
+                        py: 0.5,
+                        fontSize: '0.75rem',
+                        fontWeight: 400,
+                        textTransform: 'none',
+                        border: '1px solid #e0e0e0',
+                        bgcolor: '#fafafa',
+                        color: '#666',
+                        minWidth: 'auto',
+                        whiteSpace: 'nowrap',
+                        '&:hover': {
+                          bgcolor: '#f0f0f0',
+                          borderColor: '#d0d0d0',
+                          transform: 'translateY(-1px)',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        },
+                        transition: 'all 0.2s ease-in-out'
+                      }}
+                    >
+                      {prompt}
+                    </Button>
+                  ))}
+                </Box>
+              </Box>
+
+              <AIAssistant
+                open={true}
+                onClose={() => {}}
+                projectId={projectId}
+                documentId={documentId}
+                context={content}
+                embedded={true}
+                presetMessage={presetChatMessage}
+              />
+            </Box>
+          )}
+
+          {activeTab === 'prompts' && (
+            <Box>
+              {/* Writing Prompts */}
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                Writing Prompts
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Get inspired with age-appropriate writing ideas for your project.
+              </Typography>
+
+              {writingPrompts.length > 0 ? (
+                <Stack spacing={2}>
+                  {writingPrompts.map((prompt, index) => (
+                    <Card key={index} sx={{ border: 1, borderColor: 'grey.200' }}>
+                      <CardContent>
+                        <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 1 }}>
+                          💡 {prompt.title}
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          {prompt.guidance}
+                        </Typography>
+                        {prompt.example && (
+                          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                            Example: {prompt.example}
+                          </Typography>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </Stack>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Loading writing prompts...
+                </Typography>
+              )}
+            </Box>
+          )}
         </Box>
-      </Paper>
-
-      {/* AI Assistant FAB */}
-      <Fab
-        color="secondary"
-        aria-label="ai-assistant"
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-        }}
-        onClick={() => setAiAssistantOpen(true)}
-      >
-        <ChatIcon />
-      </Fab>
-
-      {/* AI Assistant */}
-      <AIAssistant
-        open={aiAssistantOpen}
-        onClose={() => setAiAssistantOpen(false)}
-        projectId={projectId}
-        documentId={documentId}
-        context={content}
-      />
+      </Box>
 
       {/* Persistent AI Assistant */}
       <PersistentAIAssistant

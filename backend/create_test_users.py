@@ -23,52 +23,44 @@ def create_test_users():
         # Test users data with different age groups
         test_users = [
             {
-                "username": "preschool_kid",
-                "email": "preschool@test.com",
+                "username": "early_years_kid",
+                "email": "early_years@test.com",
                 "full_name": "Little Emma",
-                "age_group": AgeGroup.PRESCHOOL.value,
+                "age_group": AgeGroup.EARLY_YEARS.value,
                 "birth_date": date(2020, 5, 15),  # 4 years old
-                "description": "Preschool child learning basic writing"
+                "description": "Early years child learning basic writing"
             },
             {
-                "username": "early_primary",
-                "email": "early_primary@test.com", 
+                "username": "lower_primary",
+                "email": "lower_primary@test.com",
                 "full_name": "Young Alex",
-                "age_group": AgeGroup.EARLY_PRIMARY.value,
+                "age_group": AgeGroup.LOWER_PRIMARY.value,
                 "birth_date": date(2017, 8, 20),  # 7 years old
-                "description": "Early primary school student"
+                "description": "Lower primary school student"
             },
             {
-                "username": "late_primary",
-                "email": "late_primary@test.com",
+                "username": "upper_primary",
+                "email": "upper_primary@test.com",
                 "full_name": "Smart Sarah",
-                "age_group": AgeGroup.LATE_PRIMARY.value,
+                "age_group": AgeGroup.UPPER_PRIMARY.value,
                 "birth_date": date(2014, 3, 10),  # 10 years old
-                "description": "Late primary school student"
+                "description": "Upper primary school student"
             },
             {
-                "username": "early_middle",
-                "email": "early_middle@test.com",
+                "username": "lower_secondary",
+                "email": "lower_secondary@test.com",
                 "full_name": "Teen Mike",
-                "age_group": AgeGroup.EARLY_MIDDLE.value,
+                "age_group": AgeGroup.LOWER_SECONDARY.value,
                 "birth_date": date(2011, 11, 5),  # 13 years old
-                "description": "Early middle school student"
+                "description": "Lower secondary school student"
             },
             {
-                "username": "late_middle",
-                "email": "late_middle@test.com",
+                "username": "upper_secondary",
+                "email": "upper_secondary@test.com",
                 "full_name": "Student Lisa",
-                "age_group": AgeGroup.LATE_MIDDLE.value,
+                "age_group": AgeGroup.UPPER_SECONDARY.value,
                 "birth_date": date(2008, 7, 25),  # 16 years old
-                "description": "Late middle school student"
-            },
-            {
-                "username": "high_school",
-                "email": "high_school@test.com",
-                "full_name": "Senior David",
-                "age_group": AgeGroup.HIGH_SCHOOL.value,
-                "birth_date": date(2006, 12, 1),  # 18 years old
-                "description": "High school senior"
+                "description": "Upper secondary school student"
             }
         ]
         

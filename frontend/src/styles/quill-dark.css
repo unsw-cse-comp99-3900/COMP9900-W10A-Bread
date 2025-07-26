@@ -1,0 +1,228 @@
+/* Quill Editor Dark Mode Styles */
+
+/* Light mode (default) */
+.ql-editor {
+  font-size: 16px;
+  line-height: 1.6;
+  min-height: 300px;
+  background-color: #ffffff;
+  color: #1f2937;
+}
+
+.ql-toolbar {
+  border-top: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.ql-container {
+  border-bottom: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  background-color: #ffffff;
+}
+
+/* Dark mode styles */
+[data-theme="dark"] .ql-editor {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .ql-toolbar {
+  border-color: #475569;
+  background-color: #334155;
+}
+
+[data-theme="dark"] .ql-container {
+  border-color: #475569;
+  background-color: #1e293b;
+}
+
+/* Dark mode toolbar buttons */
+[data-theme="dark"] .ql-toolbar .ql-stroke {
+  stroke: #cbd5e1;
+}
+
+[data-theme="dark"] .ql-toolbar .ql-fill {
+  fill: #cbd5e1;
+}
+
+[data-theme="dark"] .ql-toolbar .ql-picker-label {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .ql-toolbar .ql-picker-options {
+  background-color: #334155;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .ql-toolbar .ql-picker-item {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .ql-toolbar .ql-picker-item:hover {
+  background-color: #475569;
+}
+
+[data-theme="dark"] .ql-toolbar button:hover {
+  background-color: #475569;
+}
+
+[data-theme="dark"] .ql-toolbar button.ql-active {
+  background-color: #6366f1;
+}
+
+/* Dark mode for dropdown menus */
+[data-theme="dark"] .ql-picker.ql-expanded .ql-picker-label {
+  background-color: #475569;
+}
+
+[data-theme="dark"] .ql-picker.ql-expanded .ql-picker-options {
+  background-color: #334155;
+  border-color: #475569;
+}
+
+/* Dark mode for tooltips */
+[data-theme="dark"] .ql-tooltip {
+  background-color: #334155;
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .ql-tooltip input {
+  background-color: #1e293b;
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+/* Dark mode for selection */
+[data-theme="dark"] .ql-editor .ql-selection {
+  background-color: rgba(99, 102, 241, 0.3);
+}
+
+/* Dark mode for placeholder */
+[data-theme="dark"] .ql-editor.ql-blank::before {
+  color: #64748b;
+}
+
+/* Responsive adjustments for dark mode */
+@media (max-width: 768px) {
+  [data-theme="dark"] .ql-toolbar {
+    padding: 8px;
+  }
+  
+  [data-theme="dark"] .ql-editor {
+    font-size: 14px;
+    padding: 12px;
+  }
+}
+
+/* Custom scrollbar for dark mode */
+[data-theme="dark"] .ql-editor::-webkit-scrollbar {
+  width: 8px;
+}
+
+[data-theme="dark"] .ql-editor::-webkit-scrollbar-track {
+  background: #334155;
+}
+
+[data-theme="dark"] .ql-editor::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 4px;
+}
+
+[data-theme="dark"] .ql-editor::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Focus states for dark mode */
+[data-theme="dark"] .ql-container.ql-focused {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+[data-theme="dark"] .ql-toolbar.ql-focused {
+  border-color: #6366f1;
+}
+
+/* Link styles in dark mode */
+[data-theme="dark"] .ql-editor a {
+  color: #818cf8;
+}
+
+[data-theme="dark"] .ql-editor a:hover {
+  color: #a5b4fc;
+}
+
+/* Code block styles in dark mode */
+[data-theme="dark"] .ql-editor pre {
+  background-color: #0f172a;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+}
+
+[data-theme="dark"] .ql-editor code {
+  background-color: #334155;
+  color: #e2e8f0;
+}
+
+/* Blockquote styles in dark mode */
+[data-theme="dark"] .ql-editor blockquote {
+  border-left: 4px solid #6366f1;
+  background-color: #334155;
+  color: #cbd5e1;
+}
+
+/* List styles in dark mode */
+[data-theme="dark"] .ql-editor ol,
+[data-theme="dark"] .ql-editor ul {
+  color: #f8fafc;
+}
+
+/* Header styles in dark mode */
+[data-theme="dark"] .ql-editor h1,
+[data-theme="dark"] .ql-editor h2,
+[data-theme="dark"] .ql-editor h3,
+[data-theme="dark"] .ql-editor h4,
+[data-theme="dark"] .ql-editor h5,
+[data-theme="dark"] .ql-editor h6 {
+  color: #f8fafc;
+}
+
+/* Strong and emphasis in dark mode */
+[data-theme="dark"] .ql-editor strong {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .ql-editor em {
+  color: #cbd5e1;
+}
+
+/* Table styles in dark mode */
+[data-theme="dark"] .ql-editor table {
+  border-color: #475569;
+}
+
+[data-theme="dark"] .ql-editor td,
+[data-theme="dark"] .ql-editor th {
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .ql-editor th {
+  background-color: #334155;
+}
+
+/* Image and video in dark mode */
+[data-theme="dark"] .ql-editor img,
+[data-theme="dark"] .ql-editor video {
+  border: 1px solid #475569;
+}
+
+/* Syntax highlighting for dark mode */
+[data-theme="dark"] .ql-syntax {
+  background-color: #0f172a;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+}

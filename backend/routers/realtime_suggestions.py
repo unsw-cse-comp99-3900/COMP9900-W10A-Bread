@@ -682,8 +682,8 @@ Suggestion:"""
                 # Skip if this key recently had quota exceeded
                 current_time = time.time()
                 if (current_model_info['quota_exceeded'] and
-                    current_time - current_model_info['last_error_time'] < 3600):  # Wait 1 hour
-                    print(f"⏭️ Skipping Gemini key {current_model_info['index']} (quota exceeded)")
+                    current_time - current_model_info['last_error_time'] < 300):  # Wait 5 minutes instead of 1 hour
+                    print(f"⏭️ Skipping Gemini key {current_model_info['index']} (quota exceeded, waiting {int(300 - (current_time - current_model_info['last_error_time']))}s)")
                     current_gemini_index = (current_gemini_index + 1) % len(gemini_models)
                     attempts += 1
                     continue
@@ -708,7 +708,7 @@ Suggestion:"""
                         prompt,
                         generation_config=generation_config
                     ),
-                    timeout=10.0  # 10 second timeout for real-time suggestions
+                    timeout=15.0  # 15 second timeout for real-time suggestions (increased from 10s)
                 )
 
                 if response and response.text:
@@ -736,9 +736,15 @@ Suggestion:"""
                 attempts += 1
             except Exception as e:
                 error_msg = str(e)
-                if "429" in error_msg or "quota" in error_msg.lower() or "exceeded" in error_msg.lower():
-                    print(f"⚠️ Gemini key {current_model_info['index']} quota exceeded: {e}")
+                if ("429" in error_msg or "quota" in error_msg.lower() or
+                    "exceeded" in error_msg.lower() or "rate limit" in error_msg.lower()):
+                    print(f"⚠️ Gemini key {current_model_info['index']} quota/rate limit exceeded: {e}")
                     # Mark this key as quota exceeded
+                    current_model_info['quota_exceeded'] = True
+                    current_model_info['last_error_time'] = time.time()
+                elif "403" in error_msg or "permission" in error_msg.lower():
+                    print(f"🔒 Gemini key {current_model_info['index']} permission denied: {e}")
+                    # Mark as quota exceeded to skip for a while
                     current_model_info['quota_exceeded'] = True
                     current_model_info['last_error_time'] = time.time()
                 else:
@@ -749,7 +755,21 @@ Suggestion:"""
                 attempts += 1
 
         print(f"❌ All Gemini API attempts failed after {attempts} tries")
-        return None
+
+        # Provide a helpful fallback suggestion when all APIs fail
+        fallback_suggestions = [
+            "Consider adding more descriptive details to bring your story to life.",
+            "Try varying your sentence length to create better rhythm in your writing.",
+            "Think about what your character is feeling and show it through their actions.",
+            "Add dialogue to make your story more engaging for readers.",
+            "Consider what happens next - what would surprise your readers?",
+            "Use your senses - what can your character see, hear, smell, or feel?",
+            "Try starting your next sentence with a different word to add variety."
+        ]
+
+        # Return a random helpful suggestion
+        import random
+        return random.choice(fallback_suggestions)
     
     def _check_vocabulary(self, text: str, age_group: str, recent_suggestions: List[str]) -> List[SuggestionItem]:
         """Check for vocabulary enhancement opportunities"""

@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { styled, keyframes } from '@mui/material/styles';
 import api, { realtimeApi } from '../../services/api';
+import { cleanAIResponse } from '../../utils/textUtils';
 
 // Animations
 const glow = keyframes`
@@ -236,7 +237,11 @@ const PersistentAIAssistant = ({
 
       if (should_show && suggestions.length > 0) {
         console.log('✅ Setting suggestion:', suggestions[0]);
-        setCurrentSuggestion(suggestions[0]);
+        const cleanedSuggestion = {
+          ...suggestions[0],
+          message: cleanAIResponse(suggestions[0].message)
+        };
+        setCurrentSuggestion(cleanedSuggestion);
         setStatus('ready');
       } else {
         console.log('❌ No suggestion to show:', { should_show, suggestions_length: suggestions.length });
@@ -469,7 +474,7 @@ const PersistentAIAssistant = ({
                 borderRadius: 2,
                 border: '1px solid rgba(255, 255, 255, 0.2)'
               }}>
-                {currentSuggestion.message}
+                {cleanAIResponse(currentSuggestion.message)}
               </Typography>
               {/* Debug info */}
               <Typography variant="caption" sx={{
